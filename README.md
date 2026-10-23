@@ -42,6 +42,25 @@ Auf The Forge geht das genauso über das Foundry-Setup. Danach das Modul in der 
 Das Modul läuft allein. Ist das Modul reaction_monitor aktiv, kommt dazu eine Reflexkarte, wenn
 eine Figur auf schmalem oder unebenem Gelände getroffen wird oder einen Rettungswurf verfehlt.
 
-## Urheber
+## Urheber und Maintainer
 
-Code und Bilder: Sarevoc. Es sind keine fremden Grafiken, Schriften oder Bibliotheken enthalten.
+Sarevoc. Fehler, Fragen und Wünsche bitte als Issue hier auf GitHub.
+
+Es sind keine fremden Grafiken, Schriften oder Bibliotheken enthalten.
+
+## Coding
+
+Idee, Vorgaben, Regelauslegung und die Tests am Spieltisch kommen von Sarevoc. Den Code hat Claude,
+die KI von Anthropic, nach diesen Vorgaben geschrieben. Vor jeder Freigabe laufen die automatischen
+Tests im Ordner `tests` (mit Node.js), danach wird die Fassung in einer laufenden Foundry-Welt
+erprobt.
+
+## Deployment
+
+Jede Fassung erscheint als Release hier auf GitHub, mit `module.json` und
+`pf2e-activeterrain.zip`. Die Manifest-URL zeigt immer auf das neueste Release; Foundry meldet
+neue Fassungen dadurch von selbst. Die Modul-ID ist `gelaendepinsel`.
+
+## Lizenz
+
+MIT, siehe `LICENSE`.
