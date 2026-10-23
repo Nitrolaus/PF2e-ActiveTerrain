@@ -44,4 +44,4 @@ eine Figur auf schmalem oder unebenem Gelände getroffen wird oder einen Rettung
 
 ## Urheber
 
-Code und Bilder: Ju. Es sind keine fremden Grafiken, Schriften oder Bibliotheken enthalten.
+Code und Bilder: Sarevoc. Es sind keine fremden Grafiken, Schriften oder Bibliotheken enthalten.
