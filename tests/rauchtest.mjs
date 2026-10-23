@@ -141,7 +141,7 @@ const leiste = hooks.get("getSceneControlButtons")[0];
   const symbole = ["schwierig", "sehr", "gefahr", "schmal", "uneben"].map((art) => controls.gelaendepinsel.tools[art].icon);
   assert.equal(new Set(symbole).size, 5, "Fünf verschiedene Symbole im Menü");
   assert.equal(symbole.includes("fa-solid fa-paintbrush"), false, "Kein gleicher Pinsel mehr");
-  // Seit 0.2.3 Jus Bilder im Menü, dieselben wie am Token (Ju: "nimm diese Bilder").
+  // Seit 0.2.3 die eigenen Bilder im Menü, dieselben wie am Token (Wunsch: "nimm diese Bilder").
   const css = readFileSync(new URL("../styles/gelaendepinsel.css", import.meta.url), "utf8");
   for (const art of ["schwierig", "sehr", "gefahr", "schmal", "uneben"]) {
     assert.equal(controls.gelaendepinsel.tools[art].icon, `gelaendepinsel-symbol gelaendepinsel-symbol-${art}`);
@@ -289,7 +289,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   const duncan = { id: "duncan", x: 1000, y: 1000, w: 100, h: 100, visible: true, actor: lebewesen };
   const riese = { id: "riese", x: 1000, y: 1000, w: 200, h: 200, visible: true, actor: lebewesen };
   const versteckt = { id: "versteckt", x: 1000, y: 1000, w: 100, h: 100, visible: false, actor: lebewesen };
-  // Ju 23.10.2026: Stiefel an Schatzkiste und Kartenmarke "C4 a". Abzeichen nur an Kreaturen (0.2.7).
+  // 23.10.2026: Stiefel an Schatzkiste und Kartenmarke "C4 a". Abzeichen nur an Kreaturen (0.2.7).
   const kiste = { id: "kiste", x: 1000, y: 1000, w: 100, h: 100, visible: true, actor: { isOfType: () => false, system: {} } };
   const marke = { id: "marke", x: 1000, y: 1000, w: 100, h: 100, visible: true, actor: null };
   canvas.tokens = { placeables: [duncan, riese, versteckt, kiste, marke] };
@@ -300,7 +300,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.equal(grafikDuncan.flaechen.length, 2, "Grund und Stiefel");
   assert.equal(grafikDuncan.flaechen[0].color, 0xff8c3a, "In der Farbe von sehr schwierigem Gelände");
   assert.ok(grafikDuncan.flaechen[0].x >= 1100 && grafikDuncan.flaechen[0].y === 1000, "Rechts oben neben dem Token");
-  // Seit 0.2.2 (Ju: "A überall"): Stiefel und fünf Strahlen an der Sohle, weiß auf Orange.
+  // Seit 0.2.2 (Wunsch: "A überall"): Stiefel und fünf Strahlen an der Sohle, weiß auf Orange.
   assert.equal(grafikDuncan.flaechen[1].punkte?.length, 16, "Der Stiefel als Vieleck mit acht Ecken");
   assert.equal(grafikDuncan.flaechen[1].color, 0xffffff);
   assert.equal(grafikDuncan.striche.length, 5, "Fünf Strahlen für sehr schwierig");
@@ -459,7 +459,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   await game.settings.set("gelaendepinsel", "art", "schwierig");
 }
 
-// Radierer-Vorschau (0.2.1, Ju 23.10.2026: "wenn man löscht, ist ein vorhandenes Gelände weiß"):
+// Radierer-Vorschau (0.2.1, 23.10.2026: "wenn man löscht, ist ein vorhandenes Gelände weiß"):
 // keine weiße Spur, das Gelände verschwindet schon beim Ziehen, so wie es nach dem Loslassen bleibt.
 {
   await game.settings.set("gelaendepinsel", "art", "radierer");
@@ -504,7 +504,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.ok(modul.felderDerSzene().schwierig.has("9,9"), "Linksklick malt danach wieder schwierig");
 }
 
-// Jus Bilder am Token (0.2.3): Sind sie geladen, steht das Bild statt des gezeichneten Stiefels da.
+// Die eigenen Bilder am Token (0.2.3): Sind sie geladen, steht das Bild statt des gezeichneten Stiefels da.
 {
   const geladen = [];
   globalThis.foundry.canvas = { loadTexture: async (pfad) => { geladen.push(pfad); return { pfad, source: {} }; } };

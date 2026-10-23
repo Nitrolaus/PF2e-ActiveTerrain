@@ -16,8 +16,8 @@ const MODUL = "gelaendepinsel";
 const VERSION = "0.2.7";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
-// Jede Art ein eigenes Symbol im Menü (Ju 23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
-// 0.2.3 dieselben Bilder wie am Token (Ju: "nimm diese Bilder"): assets/symbole/<art>.png,
+// Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
+// 0.2.3 dieselben Bilder wie am Token (Wunsch: "nimm diese Bilder"): assets/symbole/<art>.png,
 // eingebunden über styles/gelaendepinsel.css.
 export const SYMBOLE = Object.freeze({
   schwierig: "gelaendepinsel-symbol gelaendepinsel-symbol-schwierig",
@@ -53,7 +53,7 @@ function einstellungenAnmelden() {
   game.settings.register(MODUL, "schaden", { scope: "client", config: false, type: String, default: "2d6" });
   game.settings.register(MODUL, "schadensart", { scope: "client", config: false, type: String, default: "fire" });
   game.settings.register(MODUL, "rettungswurf", { scope: "client", config: false, type: String, default: "reflex" });
-  // Deckkraft der Linien je Rechner (0.1.2, Ju 23.10.2026: "es reicht, wenn man es kaum sieht",
+  // Deckkraft der Linien je Rechner (0.1.2, 23.10.2026: "es reicht, wenn man es kaum sieht",
   // "wir machen die Darstellung deckend einstellbar"). Vorgabe 40 Prozent.
   game.settings.register(MODUL, "deckkraft", {
     name: "Erweitert: Deckkraft der Geländelinien",
@@ -65,7 +65,7 @@ function einstellungenAnmelden() {
     default: 40,
     onChange: () => anzeige.zeichnen()
   });
-  // 0.2.0 (Ju 23.10.2026): Darstellung je Rechner, weil einige Spieler alte Rechner haben.
+  // 0.2.0 (23.10.2026): Darstellung je Rechner, weil einige Spieler alte Rechner haben.
   game.settings.register(MODUL, "darstellung", {
     name: "Geländepinsel: Darstellung",
     hint: "Weich zeigt den frei gemalten Rand, einfach den Rand am Raster (schont alte Rechner), aus zeigt keine Linien. Gerechnet wird immer.",
@@ -174,7 +174,7 @@ async function strichSpeichern(neu, szene = canvas?.scene) {
 
 /* ------------------------------------------------------------------ Werte der Flächen (0.2.7) */
 
-// Ju 23.10.2026: "alle drei bauen, Schaden wende ich selbst an, aber Reflexwurf 15 ist zu niedrig".
+// 23.10.2026: "alle drei bauen, Schaden wende ich selbst an, aber Reflexwurf 15 ist zu niedrig".
 // Vorgabe ist der stufengerechte SG nach Gruppenstufe (Spielleiterhandbuch, SG nach Stufe); im
 // Fenster "Werte" lässt er sich je Fläche höher setzen. Jeder Strich merkt sich die Werte, mit
 // denen er gemalt wurde; am Raster gilt der zuletzt benutzte Wert je Art in der Szene.
@@ -453,7 +453,7 @@ function raenderAus(flaechen, raster) {
   return raender;
 }
 
-// Radierer (0.2.1, Ju 23.10.2026: "wenn man löscht, ist ein vorhandenes Gelände weiß, das ist nicht
+// Radierer (0.2.1, 23.10.2026: "wenn man löscht, ist ein vorhandenes Gelände weiß, das ist nicht
 // so"): Statt einer weißen Spur zeigt die Anzeige schon beim Ziehen, was nach dem Loslassen bleibt -
 // wie strichSpeichern es rechnet: Der Radierer nimmt allen Arten seine Punkte und den Rasterfeldern,
 // die er zur Hälfte trifft, das ganze Feld.
@@ -612,11 +612,11 @@ function zeichenMalen(grafik, art, mx, my, g) {
   }
 }
 
-// Rechts oben neben dem Token ein Abzeichen je Geländeart, auf der er gerade steht (Ju 23.10.2026:
+// Rechts oben neben dem Token ein Abzeichen je Geländeart, auf der er gerade steht (23.10.2026:
 // "ich sehe am Token nicht, ob gerade sehr schwieriges Gelände berechnet wird"). Spielleitung
 // immer, Spieler wie die Umrandung nur mit eingeschalteter Anzeige, und nur an Tokens, die sie sehen.
-// Bilder der Abzeichen (0.2.3, Ju 23.10.2026: "nimm diese Bilder"): je Art 48 mal 48 Pixel, von Ju
-// bereitgestellt. Geladen bei canvasReady; bis dahin oder wenn ein Bild fehlt, zeichnet das
+// Bilder der Abzeichen (0.2.3, 23.10.2026: "nimm diese Bilder"): je Art 48 mal 48 Pixel, eigens für
+// das Modul gemacht. Geladen bei canvasReady; bis dahin oder wenn ein Bild fehlt, zeichnet das
 // Abzeichen den Stiefel aus symbole.mjs.
 export const BILDER = Object.freeze(Object.fromEntries(Object.keys(ZEICHEN).map((art) => [art, `modules/${MODUL}/assets/symbole/${art}.png`])));
 const texturen = new Map();
@@ -693,7 +693,7 @@ export const abzeichen = {
     const id = token?.id ?? token?.document?.id;
     if (!id) return;
     if (!this.felder) this.felder = felderDerSzene();
-    // Nur an Kreaturen (0.2.7, Ju: Stiefel an Schatzkiste und Kartenmarke "C4 a"): keine Kisten,
+    // Nur an Kreaturen (0.2.7, gemeldet: Stiefel an Schatzkiste und Kartenmarke "C4 a"): keine Kisten,
     // keine Beute, keine Marken ohne Akteur.
     const kreatur = Boolean(token.actor?.isOfType?.("creature"));
     const arten = kreatur && anzeige.sichtbar() && token.visible !== false ? artenUnterToken(token, this.felder) : [];
@@ -868,7 +868,7 @@ export function ebeneKlasse() {
       if (strichBeginnen()) void strichBeenden();
     }
 
-    // Rechtsklick radiert an der Stelle, in der eingestellten Pinselgröße (0.2.4, Ju 23.10.2026:
+    // Rechtsklick radiert an der Stelle, in der eingestellten Pinselgröße (0.2.4, 23.10.2026:
     // "mache beim Zeichenwerkzeug zusätzlich Rechtsklick als Löschen"). Rechts ziehen bleibt
     // Foundrys Verschieben der Karte.
     _onClickRight() {
@@ -900,7 +900,7 @@ export function ebeneKlasse() {
 
 /* ------------------------------------------------------------------ Leiste */
 
-// Kurzerklärung beim Überfahren der Knöpfe (0.2.6, Ju 23.10.2026: "beim Hover eine Kurzerklärung
+// Kurzerklärung beim Überfahren der Knöpfe (0.2.6, 23.10.2026: "beim Hover eine Kurzerklärung
 // ausgeben"). Die ausführlichen Regeln stehen im Regelglossar des reaction_monitor unter Kampf,
 // Gelände (Kernregeln: Spieler, S. 423 und S. 233).
 export const KURZ = Object.freeze({
@@ -916,7 +916,7 @@ function groesseName(g) {
   return g === 0.5 ? "groesse05" : `groesse${g}`;
 }
 
-// Pinselgröße wie ein Wahlschalter (0.2.5, Ju 23.10.2026: "ich kann gleichzeitig alle drei Größen
+// Pinselgröße wie ein Wahlschalter (0.2.5, 23.10.2026: "ich kann gleichzeitig alle drei Größen
 // einschalten, es soll aber immer nur einer gehen, ein Grid ist Standard"). Foundry kennt dafür nur
 // Einzelschalter; beim Klick schaltet das Modul die übrigen Größen aus, ein Klick auf die aktive
 // lässt sie an. Vorgabe bleibt ein Feld.

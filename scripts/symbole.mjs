@@ -1,6 +1,6 @@
 /**
- * Geländepinsel 0.2.2: ein Zeichen je Geländeart, am Token und im Menü gleich (Ju 23.10.2026:
- * "A überall und in meinem Menü auch so"). Seit 0.2.3 nur noch Rückfall, solange Jus Bilder unter
+ * Geländepinsel 0.2.2: ein Zeichen je Geländeart, am Token und im Menü gleich (23.10.2026:
+ * "A überall und in meinem Menü auch so"). Seit 0.2.3 nur noch Rückfall, solange die eigenen Bilder unter
  * assets/symbole noch nicht geladen sind; die Menübilder kommen nicht mehr von hier.
  * Immer derselbe Stiefel, darunter zeigt der Boden die Art: Strahlen an der Sohle (schwierig: Gehen
  * geht, kostet aber), mehr Strahlen (sehr schwierig), Stacheln (gefährlich), ein Balken (schmal),

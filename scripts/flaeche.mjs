@@ -4,7 +4,7 @@
  * Ein Strich ist { art, r, p }: Geländeart (oder "radierer"), Pinselradius in Feldern und die
  * Punkte als flache Liste [x0, y0, x1, y1, ...] in Feldeinheiten (Feld (2,3) reicht von 2 bis 3).
  * Die Fläche liegt auf einem feinen Raster mit FEIN Punkten je Feldseite. Ein Feld zählt, wenn
- * mindestens die Hälfte seiner Punkte bemalt ist (Ju 23.10.2026).
+ * mindestens die Hälfte seiner Punkte bemalt ist (23.10.2026).
  */
 
 import { ARTEN, schluessel } from "./felder.mjs";

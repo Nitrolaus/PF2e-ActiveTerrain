@@ -1,7 +1,7 @@
 /* Geländepinsel: die Anzeige zeichnet auf der Leinwand. */
 
-/* Seit 0.2.3 Jus Bilder im Menü, dieselben wie am Token (Ju 23.10.2026: "nimm diese Bilder").
-   Seit 0.2.4 füllt das Bild den ganzen Knopf (Ju: "wegen einem Rand zu klein"): Sitzt die Klasse am
+/* Seit 0.2.3 die eigenen Bilder im Menü, dieselben wie am Token (23.10.2026: "nimm diese Bilder").
+   Seit 0.2.4 füllt das Bild den ganzen Knopf (Wunsch: "wegen einem Rand zu klein"): Sitzt die Klasse am
    Knopf selbst, wie in Foundry 13 und 14, trägt der Knopf das Bild als Hintergrund; sitzt sie an
    einem Zeichen im Knopf, hängt das Bild am ::before. !important gegen Foundrys Knopfstil. */
 button.gelaendepinsel-symbol {
