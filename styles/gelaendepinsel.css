@@ -1,0 +1,34 @@
+/* Geländepinsel: die Anzeige zeichnet auf der Leinwand. */
+
+/* Seit 0.2.3 Jus Bilder im Menü, dieselben wie am Token (Ju 23.10.2026: "nimm diese Bilder").
+   Seit 0.2.4 füllt das Bild den ganzen Knopf (Ju: "wegen einem Rand zu klein"): Sitzt die Klasse am
+   Knopf selbst, wie in Foundry 13 und 14, trägt der Knopf das Bild als Hintergrund; sitzt sie an
+   einem Zeichen im Knopf, hängt das Bild am ::before. !important gegen Foundrys Knopfstil. */
+button.gelaendepinsel-symbol {
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  image-rendering: pixelated;
+}
+button.gelaendepinsel-symbol::before {
+  content: none !important;
+  display: none !important;
+}
+:not(button).gelaendepinsel-symbol::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 1.9em !important;
+  height: 1.9em !important;
+  margin: -0.3em !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  vertical-align: middle;
+  font-family: inherit !important;
+  image-rendering: pixelated;
+}
+button.gelaendepinsel-symbol-schwierig, :not(button).gelaendepinsel-symbol-schwierig::before { background-image: url("../assets/symbole/schwierig.png") !important; }
+button.gelaendepinsel-symbol-sehr, :not(button).gelaendepinsel-symbol-sehr::before { background-image: url("../assets/symbole/sehr.png") !important; }
+button.gelaendepinsel-symbol-gefahr, :not(button).gelaendepinsel-symbol-gefahr::before { background-image: url("../assets/symbole/gefahr.png") !important; }
+button.gelaendepinsel-symbol-schmal, :not(button).gelaendepinsel-symbol-schmal::before { background-image: url("../assets/symbole/schmal.png") !important; }
+button.gelaendepinsel-symbol-uneben, :not(button).gelaendepinsel-symbol-uneben::before { background-image: url("../assets/symbole/uneben.png") !important; }

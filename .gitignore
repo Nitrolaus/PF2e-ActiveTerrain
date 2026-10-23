@@ -1,0 +1,83 @@
+# Vorlage für neue Projekte unter C:\Claude\work\
+# Kopieren nach <projekt>\.gitignore und um projektspezifische Zeilen ergänzen.
+#
+# Der obere Block ist nicht verhandelbar: Was hier steht, darf nie in ein Repository geraten.
+# Er deckt sich mit den deny-Regeln in .claude\settings.json und den Ausschlüssen in
+# tools\sicherung.ps1 — die drei gehören zusammen und werden gemeinsam gepflegt.
+
+# ---------------------------------------------------------------- Geheimnisse
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.ppk
+*.kdbx
+
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+
+.npmrc
+.netrc
+_netrc
+.pgpass
+
+credentials
+credentials.*
+secrets/
+.secrets/
+.aws/
+.ssh/
+.gnupg/
+
+*.tfvars
+!*.tfvars.example
+terraform.tfstate
+terraform.tfstate.*
+
+# ---------------------------------------------------------------- Abhängigkeiten
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+target/
+vendor/
+
+# ---------------------------------------------------------------- Bauartefakte
+dist/
+build/
+out/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ---------------------------------------------------------------- Werkzeugreste
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------- Lokales
+tmp/
+.cache/
+coverage/
+
+# Freigabe-Archive entstehen ausserhalb
+*.zip
