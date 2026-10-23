@@ -1,0 +1,100 @@
+{
+  "GELAENDEPINSEL": {
+    "Titel": "Geländepinsel",
+    "Arten": {
+      "schwierig": "Schwieriges Gelände",
+      "sehr": "Sehr Schwieriges Gelände",
+      "gefahr": "Gefährliches Gelände",
+      "schmal": "Schmale Oberfläche",
+      "uneben": "Unebener Boden"
+    },
+    "Kurz": {
+      "schwierig": "jedes Feld kostet 5 Fuß mehr, kein Schritt hinein",
+      "sehr": "jedes Feld kostet 10 Fuß mehr, kein Schritt hinein",
+      "gefahr": "wer hindurchgeht, nimmt Schaden; Art und Menge legt das Gelände fest",
+      "schmal": "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Absturz",
+      "uneben": "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Liegend",
+      "radierer": "nimmt Gelände weg; ein Rechtsklick radiert auch mit jedem anderen Pinsel"
+    },
+    "Einstellung": {
+      "Anzeigen": {
+        "Name": "Geländepinsel: Gelände anzeigen",
+        "Hint": "Zeigt die Umrandungen des gemalten Geländes. Auf die Bewegung wirkt es immer."
+      },
+      "Deckkraft": {
+        "Name": "Erweitert: Deckkraft der Geländelinien",
+        "Hint": "Wie stark die gestrichelten Umrandungen zu sehen sind. 100 ist voll deckend, 10 kaum sichtbar."
+      },
+      "Strichstaerke": {
+        "Name": "Erweitert: Strichstärke der Geländelinien",
+        "Hint": "Wie dick die Umrandungen gezeichnet werden. Wirkt bei der Darstellung Weich und Einfach am Raster."
+      },
+      "Darstellung": {
+        "Name": "Geländepinsel: Darstellung",
+        "Hint": "Weich zeigt den frei gemalten Rand, einfach den Rand am Raster (schont alte Rechner), aus zeigt keine Linien. Gerechnet wird immer.",
+        "Weich": "Weich (Standard)",
+        "Einfach": "Einfach am Raster",
+        "Aus": "Aus"
+      },
+      "ZaehlendeFelder": {
+        "Name": "Erweitert: Zählende Felder blass hinterlegen (nur Spielleitung)",
+        "Hint": "Zeigt, welche Felder zur Hälfte bemalt sind und damit Bewegung kosten."
+      },
+      "RasterModus": {
+        "Name": "Erweitert: Am Raster malen statt frei",
+        "Hint": "Malt ganze Felder wie bis 0.1.2, etwa für Räume mit geraden Wänden."
+      }
+    },
+    "Leiste": {
+      "Werkzeug": "{name}: {kurz}",
+      "Radierer": "Radierer",
+      "Werte": "Werte der Fläche: SG, Schaden und Rettungswurf für schmal, uneben und gefährlich",
+      "PinselHalb": "Pinsel ½ Feld",
+      "PinselEin": "Pinsel 1 Feld",
+      "PinselFelder": "Pinsel {anzahl} Felder",
+      "Anzeigen": "Gelände anzeigen",
+      "Ausblenden": "Gelände ausblenden"
+    },
+    "Werte": {
+      "Titel": "Geländepinsel: Werte der Fläche",
+      "Gilt": "Gilt für alles, was du ab jetzt schmal, uneben oder gefährlich malst.",
+      "SG": "SG",
+      "Leer": "Leer: stufengerecht nach Gruppenstufe {stufe}, also SG {sg}.",
+      "Schaden": "Schaden",
+      "Art": "Art",
+      "Rettungswurf": "Rettungswurf",
+      "Uebernehmen": "Übernehmen"
+    },
+    "Schadensarten": {
+      "fire": "Feuer",
+      "acid": "Säure",
+      "cold": "Kälte",
+      "electricity": "Elektrizität",
+      "bludgeoning": "Wucht",
+      "piercing": "Stich",
+      "slashing": "Hieb",
+      "poison": "Gift",
+      "force": "Kraft",
+      "sonic": "Schall",
+      "spirit": "Geist",
+      "void": "Leere",
+      "vitality": "Vitalität"
+    },
+    "Rettungswuerfe": {
+      "reflex": "Reflex, einfach",
+      "fortitude": "Zähigkeit, einfach",
+      "will": "Willen, einfach",
+      "keiner": "kein Rettungswurf"
+    },
+    "Region": "Geländepinsel: {art}",
+    "Karte": {
+      "Jemand": "Jemand",
+      "Schmal": "{name} betritt eine schmale Oberfläche: Balancieren (Akrobatik). Auf dem Falschen Fuß, solange die Figur darauf steht.",
+      "Uneben": "{name} betritt unebenen Boden: Balancieren (Akrobatik). Auf dem Falschen Fuß, solange die Figur darauf steht.",
+      "Gefahr": "{name} geht durch gefährliches Gelände."
+    },
+    "Fehler": {
+      "Speichern": "Geländepinsel: Das Gelände konnte nicht gespeichert werden."
+    }
+  }
+}

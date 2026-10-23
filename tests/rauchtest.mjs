@@ -82,8 +82,23 @@ globalThis.Hooks = {
   on: (name, fn) => { if (!hooks.has(name)) hooks.set(name, []); hooks.get(name).push(fn); },
   once: (name, fn) => { if (!einmal.has(name)) einmal.set(name, []); einmal.get(name).push(fn); }
 };
+// Sprachdateien (zweisprachig seit 23.10.2026): Die Attrappe übersetzt wie Foundry aus lang/<sprache>.json,
+// Vorgabe Deutsch, damit die deutschen Erwartungen unten gelten. Fehlende Schlüssel werden gesammelt.
+const flach = (baum, vorne = "") => Object.entries(baum).flatMap(([k, v]) => (v && typeof v === "object" ? flach(v, `${vorne}${k}.`) : [[`${vorne}${k}`, v]]));
+const texte = Object.fromEntries(["de", "en"].map((lang) => [lang, Object.fromEntries(flach(JSON.parse(readFileSync(new URL(`../lang/${lang}.json`, import.meta.url), "utf8"))))]));
+const fehlendeSchluessel = new Set();
+let sprache = "de";
+const i18n = {
+  localize: (schl) => {
+    if (typeof texte[sprache][schl] === "string") return texte[sprache][schl];
+    fehlendeSchluessel.add(schl);
+    return schl;
+  },
+  format: (schl, daten = {}) => i18n.localize(schl).replace(/{[^}]+}/g, (k) => String(daten[k.slice(1, -1)]))
+};
 const spielleitung = { id: "gm", isGM: true };
 globalThis.game = {
+  i18n,
   user: spielleitung,
   users: Object.assign([spielleitung, { id: "stefan", isGM: false }], { activeGM: spielleitung }),
   settings: {
@@ -260,16 +275,47 @@ assert.ok(striche.every((s) => s.width === 1.5), "Linie 1,5 Pixel statt 7,4 bei 
 assert.ok(striche.every((s) => s.alpha === 0.4), "Vorgabe 40 Prozent");
 assert.equal(einstellungen.get("deckkraft").config, true, "Im Einstellungsmenue");
 assert.deepEqual(einstellungen.get("deckkraft").range, { min: 10, max: 100, step: 5 });
-assert.match(einstellungen.get("deckkraft").name, /^Erweitert:/);
+assert.match(einstellungen.get("deckkraft").name, /^GELAENDEPINSEL\./, "Name als Schlüssel, Foundry übersetzt ihn");
+assert.match(game.i18n.localize(einstellungen.get("deckkraft").name), /^Erweitert:/);
 await game.settings.set("gelaendepinsel", "deckkraft", 100);
 assert.ok(modul.anzeige.grafik.striche.every((s) => s.alpha === 1), "100 Prozent: voll deckend, sofort neu gezeichnet");
 await game.settings.set("gelaendepinsel", "deckkraft", 40);
+// Strichstärke einstellbar (23.10.2026): Faktor auf die bisherige Breite max(1,5 Pixel, 0,75 Prozent
+// der Feldgröße). Vorgabe 100 Prozent zeichnet genau wie vorher.
+{
+  const staerke = einstellungen.get("strichstaerke");
+  assert.equal(staerke.config, true, "Im Einstellungsmenue");
+  assert.equal(staerke.scope, "client");
+  assert.deepEqual(staerke.range, { min: 50, max: 300, step: 10 });
+  assert.equal(staerke.default, 100, "Vorgabe 100 Prozent");
+  assert.equal(game.i18n.localize(staerke.name), "Erweitert: Strichstärke der Geländelinien");
+  const breiten = () => [...new Set(modul.anzeige.grafik.striche.map((s) => s.width))];
+  assert.equal(modul.anzeige.grafik.striche.length, 32);
+  assert.deepEqual(breiten(), [1.5], "Vorgabe: die bisherige Breite");
+  await game.settings.set("gelaendepinsel", "strichstaerke", 200);
+  assert.equal(modul.anzeige.grafik.striche.length, 32, "Sofort neu gezeichnet, dieselben Striche");
+  assert.deepEqual(breiten(), [3], "200 Prozent: doppelt so breit");
+  await game.settings.set("gelaendepinsel", "strichstaerke", 50);
+  assert.deepEqual(breiten(), [0.75], "50 Prozent: halb so breit");
+  // Große Felder: Die bisherige Breite wächst mit der Feldgröße, der Faktor wirkt darauf.
+  canvas.grid.size = 400;
+  await game.settings.set("gelaendepinsel", "strichstaerke", 100);
+  assert.deepEqual(breiten(), [3], "Feldgröße 400, Vorgabe: wie bisher 0,75 Prozent der Feldgröße");
+  await game.settings.set("gelaendepinsel", "strichstaerke", 300);
+  assert.deepEqual(breiten(), [9]);
+  canvas.grid.size = FELD;
+  await game.settings.set("gelaendepinsel", "strichstaerke", 100);
+  assert.deepEqual(breiten(), [1.5]);
+}
 game.user = { id: "stefan", isGM: false };
 await game.settings.set("gelaendepinsel", "anzeigen", false);
 modul.anzeige.zeichnen();
 assert.equal(modul.anzeige.grafik.striche.length, 0, "Spieler ohne Schalter sehen nichts");
 await game.settings.set("gelaendepinsel", "anzeigen", true);
 assert.equal(modul.anzeige.grafik.striche.length, 32, "Spieler mit Schalter sehen dasselbe");
+await game.settings.set("gelaendepinsel", "strichstaerke", 200);
+assert.ok(modul.anzeige.grafik.striche.every((s) => s.width === 3), "Strichstärke gilt auch für Spieler");
+await game.settings.set("gelaendepinsel", "strichstaerke", 100);
 await game.settings.set("gelaendepinsel", "anzeigen", false);
 game.user = spielleitung;
 // Zaehlende Felder blass hinterlegt (nur SL): zwei Felder, zwei Flaechen.
@@ -443,6 +489,9 @@ assert.ok(regionSchwierig.daten.shapes.some((f) => f.y === 800), "Region deckt Z
 modul.anzeige.zeichnen();
 assert.ok(modul.anzeige.grafik.striche.length > 0, "Weicher Rand gezeichnet");
 assert.ok(modul.anzeige.grafik.striche.every((s) => s.width === 1.5));
+await game.settings.set("gelaendepinsel", "strichstaerke", 200);
+assert.ok(modul.anzeige.grafik.striche.length > 0 && modul.anzeige.grafik.striche.every((s) => s.width === 3), "Strichstärke auch beim weichen Rand");
+await game.settings.set("gelaendepinsel", "strichstaerke", 100);
 await game.settings.set("gelaendepinsel", "darstellung", "aus");
 assert.equal(modul.anzeige.grafik.striche.length, 0, "Darstellung aus");
 await game.settings.set("gelaendepinsel", "darstellung", "weich");
@@ -566,6 +615,38 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.equal(modul.haltAn({ x: 400, y: 2000, w: 100, h: 100, actor: lebewesen, document: {} }), null, "Daneben");
   await game.settings.set("gelaendepinsel", "sg", 0);
   await game.settings.set("gelaendepinsel", "art", "schwierig");
+}
+
+// Sprachdateien: jeder Schlüssel im Code steht in de.json und en.json, beide haben dieselben
+// Schlüssel und Platzhalter, keiner ist unbenutzt, und Englisch kommt auch an.
+{
+  const code = ["gelaendepinsel.mjs", "felder.mjs", "flaeche.mjs", "symbole.mjs"]
+    .map((datei) => readFileSync(new URL(`../scripts/${datei}`, import.meta.url), "utf8")).join("\n");
+  const benutzt = new Set([...code.matchAll(/["'`](GELAENDEPINSEL\.[A-Za-z0-9_.]+)["'`]/g)].map((treffer) => treffer[1]));
+  const { de, en } = texte;
+  assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort(), "de.json und en.json haben dieselben Schlüssel");
+  for (const schl of benutzt) {
+    assert.equal(typeof de[schl], "string", `${schl} fehlt in de.json`);
+    assert.equal(typeof en[schl], "string", `${schl} fehlt in en.json`);
+  }
+  assert.deepEqual(Object.keys(de).filter((schl) => !benutzt.has(schl)), [], "Kein Schlüssel ohne Verwendung");
+  const platzhalter = (text) => [...text.matchAll(/{[^}]+}/g)].map((t) => t[0]).sort();
+  for (const schl of Object.keys(de)) {
+    assert.ok(de[schl].trim() && en[schl].trim(), `${schl} ist leer`);
+    assert.deepEqual(platzhalter(en[schl]), platzhalter(de[schl]), `${schl}: gleiche Platzhalter`);
+    for (const text of [de[schl], en[schl]]) assert.doesNotMatch(text, /[–—−…„“”‚‘’]/, `${schl}: nur gerade Striche und Anführungszeichen`);
+  }
+  assert.deepEqual([...fehlendeSchluessel], [], "Zur Laufzeit kein Schlüssel ohne Übersetzung");
+  const manifest = JSON.parse(readFileSync(new URL("../module.json", import.meta.url), "utf8"));
+  assert.deepEqual(manifest.languages, [{ lang: "de", name: "Deutsch", path: "lang/de.json" }, { lang: "en", name: "English", path: "lang/en.json" }]);
+  sprache = "en";
+  const controls = { tokens: { order: 1 }, sequencer: { name: "sequencer" } };
+  leiste(controls);
+  assert.equal(controls.gelaendepinsel.title, "Terrain Brush");
+  assert.equal(controls.gelaendepinsel.tools.schwierig.title, "Difficult Terrain: +5 feet per square, can't Step into it");
+  assert.equal(controls.gelaendepinsel.tools.groesse2.title, "Brush 2 squares");
+  assert.deepEqual([...fehlendeSchluessel], []);
+  sprache = "de";
 }
 
 assert.deepEqual(protokoll.fehler, []);

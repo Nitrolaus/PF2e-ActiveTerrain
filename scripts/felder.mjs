@@ -8,12 +8,13 @@
  * - aussenkanten: die Randlinien einer Feldmenge (für die Anzeige, Variante C)
  */
 
+// name ist der Übersetzungsschlüssel (lang/de.json, lang/en.json); übersetzt wird erst beim Anzeigen.
 export const ARTEN = Object.freeze({
-  schwierig: Object.freeze({ schwierigkeit: 2, farbe: "#ffd34d", name: "Schwieriges Gelände" }),
-  sehr: Object.freeze({ schwierigkeit: 3, farbe: "#ff8c3a", name: "Sehr Schwieriges Gelände" }),
-  gefahr: Object.freeze({ schwierigkeit: 1, farbe: "#ff4a4a", name: "Gefährliches Gelände" }),
-  schmal: Object.freeze({ schwierigkeit: 1, farbe: "#5cc8ff", name: "Schmale Oberfläche" }),
-  uneben: Object.freeze({ schwierigkeit: 1, farbe: "#c08cff", name: "Unebener Boden" })
+  schwierig: Object.freeze({ schwierigkeit: 2, farbe: "#ffd34d", name: "GELAENDEPINSEL.Arten.schwierig" }),
+  sehr: Object.freeze({ schwierigkeit: 3, farbe: "#ff8c3a", name: "GELAENDEPINSEL.Arten.sehr" }),
+  gefahr: Object.freeze({ schwierigkeit: 1, farbe: "#ff4a4a", name: "GELAENDEPINSEL.Arten.gefahr" }),
+  schmal: Object.freeze({ schwierigkeit: 1, farbe: "#5cc8ff", name: "GELAENDEPINSEL.Arten.schmal" }),
+  uneben: Object.freeze({ schwierigkeit: 1, farbe: "#c08cff", name: "GELAENDEPINSEL.Arten.uneben" })
 });
 
 export const schluessel = (spalte, zeile) => `${spalte},${zeile}`;

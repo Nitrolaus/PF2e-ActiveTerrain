@@ -30,12 +30,18 @@ export const SYMBOLE = Object.freeze({
 const ABZEICHEN_REIHE = ["sehr", "schwierig", "gefahr", "schmal", "uneben"];
 const InteractionLayer = globalThis.foundry?.canvas?.layers?.InteractionLayer;
 
+// Zweisprachig seit 23.10.2026: Alle sichtbaren Texte stehen als Schlüssel GELAENDEPINSEL.* in
+// lang/de.json und lang/en.json. Foundry lädt sie erst nach init, deshalb halten Konstanten nur den
+// Schlüssel, übersetzt wird beim Anzeigen. Mit daten setzt Foundry {platzhalter} ein.
+const uebersetzen = (schl, daten) => (daten ? game.i18n.format(schl, daten) : game.i18n.localize(schl));
+
 /* ------------------------------------------------------------------ Einstellungen */
 
+// name, hint und choices sind Schlüssel; die übersetzt Foundry im Einstellungsmenü selbst.
 function einstellungenAnmelden() {
   game.settings.register(MODUL, "anzeigen", {
-    name: "Geländepinsel: Gelände anzeigen",
-    hint: "Zeigt die Umrandungen des gemalten Geländes. Auf die Bewegung wirkt es immer.",
+    name: "GELAENDEPINSEL.Einstellung.Anzeigen.Name",
+    hint: "GELAENDEPINSEL.Einstellung.Anzeigen.Hint",
     scope: "client",
     config: false,
     type: Boolean,
@@ -56,8 +62,8 @@ function einstellungenAnmelden() {
   // Deckkraft der Linien je Rechner (0.1.2, 23.10.2026: "es reicht, wenn man es kaum sieht",
   // "wir machen die Darstellung deckend einstellbar"). Vorgabe 40 Prozent.
   game.settings.register(MODUL, "deckkraft", {
-    name: "Erweitert: Deckkraft der Geländelinien",
-    hint: "Wie stark die gestrichelten Umrandungen zu sehen sind. 100 ist voll deckend, 10 kaum sichtbar.",
+    name: "GELAENDEPINSEL.Einstellung.Deckkraft.Name",
+    hint: "GELAENDEPINSEL.Einstellung.Deckkraft.Hint",
     scope: "client",
     config: true,
     type: Number,
@@ -65,20 +71,36 @@ function einstellungenAnmelden() {
     default: 40,
     onChange: () => anzeige.zeichnen()
   });
+  // Strichstärke der Linien je Rechner (23.10.2026), als Faktor auf die bisherige Breite, die mit der
+  // Feldgröße wächst. Vorgabe 100 Prozent zeichnet genau wie vorher.
+  game.settings.register(MODUL, "strichstaerke", {
+    name: "GELAENDEPINSEL.Einstellung.Strichstaerke.Name",
+    hint: "GELAENDEPINSEL.Einstellung.Strichstaerke.Hint",
+    scope: "client",
+    config: true,
+    type: Number,
+    range: { min: 50, max: 300, step: 10 },
+    default: 100,
+    onChange: () => anzeige.zeichnen()
+  });
   // 0.2.0 (23.10.2026): Darstellung je Rechner, weil einige Spieler alte Rechner haben.
   game.settings.register(MODUL, "darstellung", {
-    name: "Geländepinsel: Darstellung",
-    hint: "Weich zeigt den frei gemalten Rand, einfach den Rand am Raster (schont alte Rechner), aus zeigt keine Linien. Gerechnet wird immer.",
+    name: "GELAENDEPINSEL.Einstellung.Darstellung.Name",
+    hint: "GELAENDEPINSEL.Einstellung.Darstellung.Hint",
     scope: "client",
     config: true,
     type: String,
-    choices: { weich: "Weich (Standard)", einfach: "Einfach am Raster", aus: "Aus" },
+    choices: {
+      weich: "GELAENDEPINSEL.Einstellung.Darstellung.Weich",
+      einfach: "GELAENDEPINSEL.Einstellung.Darstellung.Einfach",
+      aus: "GELAENDEPINSEL.Einstellung.Darstellung.Aus"
+    },
     default: "weich",
     onChange: () => anzeige.zeichnen()
   });
   game.settings.register(MODUL, "zaehlendeFelder", {
-    name: "Erweitert: Zählende Felder blass hinterlegen (nur Spielleitung)",
-    hint: "Zeigt, welche Felder zur Hälfte bemalt sind und damit Bewegung kosten.",
+    name: "GELAENDEPINSEL.Einstellung.ZaehlendeFelder.Name",
+    hint: "GELAENDEPINSEL.Einstellung.ZaehlendeFelder.Hint",
     scope: "client",
     config: true,
     type: Boolean,
@@ -86,8 +108,8 @@ function einstellungenAnmelden() {
     onChange: () => anzeige.zeichnen()
   });
   game.settings.register(MODUL, "rasterModus", {
-    name: "Erweitert: Am Raster malen statt frei",
-    hint: "Malt ganze Felder wie bis 0.1.2, etwa für Räume mit geraden Wänden.",
+    name: "GELAENDEPINSEL.Einstellung.RasterModus.Name",
+    hint: "GELAENDEPINSEL.Einstellung.RasterModus.Hint",
     scope: "client",
     config: true,
     type: Boolean,
@@ -179,8 +201,28 @@ async function strichSpeichern(neu, szene = canvas?.scene) {
 // Fenster "Werte" lässt er sich je Fläche höher setzen. Jeder Strich merkt sich die Werte, mit
 // denen er gemalt wurde; am Raster gilt der zuletzt benutzte Wert je Art in der Szene.
 export const SG_NACH_STUFE = Object.freeze([14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50]);
-export const SCHADENSARTEN = Object.freeze({ fire: "Feuer", acid: "Säure", cold: "Kälte", electricity: "Elektrizität", bludgeoning: "Wucht", piercing: "Stich", slashing: "Hieb", poison: "Gift", force: "Kraft", sonic: "Schall", spirit: "Geist", void: "Leere", vitality: "Vitalität" });
-export const RETTUNGSWUERFE = Object.freeze({ reflex: "Reflex, einfach", fortitude: "Zähigkeit, einfach", will: "Willen, einfach", keiner: "kein Rettungswurf" });
+// Je Wahl der Übersetzungsschlüssel der Anzeige.
+export const SCHADENSARTEN = Object.freeze({
+  fire: "GELAENDEPINSEL.Schadensarten.fire",
+  acid: "GELAENDEPINSEL.Schadensarten.acid",
+  cold: "GELAENDEPINSEL.Schadensarten.cold",
+  electricity: "GELAENDEPINSEL.Schadensarten.electricity",
+  bludgeoning: "GELAENDEPINSEL.Schadensarten.bludgeoning",
+  piercing: "GELAENDEPINSEL.Schadensarten.piercing",
+  slashing: "GELAENDEPINSEL.Schadensarten.slashing",
+  poison: "GELAENDEPINSEL.Schadensarten.poison",
+  force: "GELAENDEPINSEL.Schadensarten.force",
+  sonic: "GELAENDEPINSEL.Schadensarten.sonic",
+  spirit: "GELAENDEPINSEL.Schadensarten.spirit",
+  void: "GELAENDEPINSEL.Schadensarten.void",
+  vitality: "GELAENDEPINSEL.Schadensarten.vitality"
+});
+export const RETTUNGSWUERFE = Object.freeze({
+  reflex: "GELAENDEPINSEL.Rettungswuerfe.reflex",
+  fortitude: "GELAENDEPINSEL.Rettungswuerfe.fortitude",
+  will: "GELAENDEPINSEL.Rettungswuerfe.will",
+  keiner: "GELAENDEPINSEL.Rettungswuerfe.keiner"
+});
 
 export function gruppenStufe() {
   const party = globalThis.game?.actors?.party;
@@ -238,17 +280,17 @@ export async function werteFenster() {
   if (!DialogV2 || !game.user?.isGM) return null;
   const jetzt = aktuelleWerte();
   const sgEingestellt = Number(einstellungSicher("sg", 0));
-  const auswahl = (liste, wert) => Object.entries(liste).map(([schl, text]) => `<option value="${schl}"${schl === wert ? " selected" : ""}>${text}</option>`).join("");
+  const auswahl = (liste, wert) => Object.entries(liste).map(([schl, text]) => `<option value="${schl}"${schl === wert ? " selected" : ""}>${uebersetzen(text)}</option>`).join("");
   const ergebnis = await DialogV2.prompt({
-    window: { title: "Geländepinsel: Werte der Fläche" },
-    content: `<p>Gilt für alles, was du ab jetzt schmal, uneben oder gefährlich malst.</p>
-      <label>SG <input name="sg" type="number" min="0" max="60" value="${sgEingestellt > 0 ? sgEingestellt : ""}" placeholder="${stufenSg()}" style="width:5em"></label>
-      <p class="hint">Leer: stufengerecht nach Gruppenstufe ${gruppenStufe()}, also SG ${stufenSg()}.</p>
-      <label>Schaden <input name="schaden" type="text" value="${jetzt.schaden}" style="width:7em"></label>
-      <label>Art <select name="typ">${auswahl(SCHADENSARTEN, jetzt.typ)}</select></label>
-      <label>Rettungswurf <select name="rw">${auswahl(RETTUNGSWUERFE, jetzt.rw)}</select></label>`,
+    window: { title: uebersetzen("GELAENDEPINSEL.Werte.Titel") },
+    content: `<p>${uebersetzen("GELAENDEPINSEL.Werte.Gilt")}</p>
+      <label>${uebersetzen("GELAENDEPINSEL.Werte.SG")} <input name="sg" type="number" min="0" max="60" value="${sgEingestellt > 0 ? sgEingestellt : ""}" placeholder="${stufenSg()}" style="width:5em"></label>
+      <p class="hint">${uebersetzen("GELAENDEPINSEL.Werte.Leer", { stufe: gruppenStufe(), sg: stufenSg() })}</p>
+      <label>${uebersetzen("GELAENDEPINSEL.Werte.Schaden")} <input name="schaden" type="text" value="${jetzt.schaden}" style="width:7em"></label>
+      <label>${uebersetzen("GELAENDEPINSEL.Werte.Art")} <select name="typ">${auswahl(SCHADENSARTEN, jetzt.typ)}</select></label>
+      <label>${uebersetzen("GELAENDEPINSEL.Werte.Rettungswurf")} <select name="rw">${auswahl(RETTUNGSWUERFE, jetzt.rw)}</select></label>`,
     ok: {
-      label: "Übernehmen",
+      label: uebersetzen("GELAENDEPINSEL.Werte.Uebernehmen"),
       callback: (_event, knopf) => ({
         sg: Number(knopf.form.elements.sg.value) || 0,
         schaden: knopf.form.elements.schaden.value,
@@ -343,13 +385,14 @@ async function regionenAbgleichen(felder, szene) {
       await vorhanden.update({ shapes });
       continue;
     }
+    // Namen in der Sprache der Spielleitung, die die Region anlegt; gefunden wird sie über das Flag.
     const daten = {
-      name: `Geländepinsel: ${ARTEN[art].name}`,
+      name: uebersetzen("GELAENDEPINSEL.Region", { art: uebersetzen(ARTEN[art].name) }),
       color: ARTEN[art].farbe,
       shapes,
       visibility: globalThis.CONST?.REGION_VISIBILITY?.LAYER ?? 0,
       behaviors: [{
-        name: ARTEN[art].name,
+        name: uebersetzen(ARTEN[art].name),
         type: "modifyMovementCost",
         system: { difficulties: schwierigkeiten(ARTEN[art].schwierigkeit) }
       }],
@@ -396,6 +439,12 @@ function deckkraft() {
   }
   if (!Number.isFinite(prozent)) prozent = 40;
   return Math.min(1, Math.max(0.1, prozent / 100));
+}
+
+// Faktor auf die Strichstärke der Umrandung aus der Einstellung, 50 bis 300 Prozent.
+function strichFaktor() {
+  const prozent = Number(einstellungSicher("strichstaerke", 100));
+  return Number.isFinite(prozent) ? Math.min(3, Math.max(0.5, prozent / 100)) : 1;
 }
 
 // Gestrichelte Linie entlang eines Zugs (Pixel), Strichlage laeuft ueber die Ecken weiter.
@@ -536,8 +585,8 @@ export const anzeige = {
       }
     }
     if (darstellung === "aus") return;
-    // Seit 0.1.1 gestrichelt und duenn, Deckkraft seit 0.1.2 einstellbar.
-    const breite = Math.max(1.5, groesse * 0.0075);
+    // Seit 0.1.1 gestrichelt und duenn, Deckkraft seit 0.1.2 einstellbar, Strichstärke seit 23.10.2026.
+    const breite = Math.max(1.5, groesse * 0.0075) * strichFaktor();
     const strich = groesse * 0.2;
     const luecke = groesse * 0.12;
     if (darstellung === "einfach" || this.entwurf) {
@@ -828,7 +877,7 @@ async function strichBeenden() {
       }
     } catch (fehler) {
       console.error(`[${MODUL}] Speichern`, fehler);
-      globalThis.ui?.notifications?.error?.("Geländepinsel: Das Gelände konnte nicht gespeichert werden.");
+      globalThis.ui?.notifications?.error?.(uebersetzen("GELAENDEPINSEL.Fehler.Speichern"));
     } finally {
       anzeige.entwurfStrich = null;
       anzeige.zeichnen();
@@ -845,7 +894,7 @@ async function strichBeenden() {
     await felderSpeichern(felder, canvas?.scene, art);
   } catch (fehler) {
     console.error(`[${MODUL}] Speichern`, fehler);
-    globalThis.ui?.notifications?.error?.("Geländepinsel: Das Gelände konnte nicht gespeichert werden.");
+    globalThis.ui?.notifications?.error?.(uebersetzen("GELAENDEPINSEL.Fehler.Speichern"));
   } finally {
     anzeige.entwurf = null;
     anzeige.zeichnen();
@@ -902,15 +951,17 @@ export function ebeneKlasse() {
 
 // Kurzerklärung beim Überfahren der Knöpfe (0.2.6, 23.10.2026: "beim Hover eine Kurzerklärung
 // ausgeben"). Die ausführlichen Regeln stehen im Regelglossar des reaction_monitor unter Kampf,
-// Gelände (Kernregeln: Spieler, S. 423 und S. 233).
+// Gelände (Kernregeln: Spieler, S. 423 und S. 233). Hier nur die Schlüssel, die Texte in lang/.
 export const KURZ = Object.freeze({
-  schwierig: "jedes Feld kostet 5 Fuß mehr, kein Schritt hinein",
-  sehr: "jedes Feld kostet 10 Fuß mehr, kein Schritt hinein",
-  gefahr: "wer hindurchgeht, nimmt Schaden; Art und Menge legt das Gelände fest",
-  schmal: "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Absturz",
-  uneben: "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Liegend",
-  radierer: "nimmt Gelände weg; ein Rechtsklick radiert auch mit jedem anderen Pinsel"
+  schwierig: "GELAENDEPINSEL.Kurz.schwierig",
+  sehr: "GELAENDEPINSEL.Kurz.sehr",
+  gefahr: "GELAENDEPINSEL.Kurz.gefahr",
+  schmal: "GELAENDEPINSEL.Kurz.schmal",
+  uneben: "GELAENDEPINSEL.Kurz.uneben",
+  radierer: "GELAENDEPINSEL.Kurz.radierer"
 });
+
+const werkzeugTitel = (name, kurz) => uebersetzen("GELAENDEPINSEL.Leiste.Werkzeug", { name: uebersetzen(name), kurz: uebersetzen(kurz) });
 
 function groesseName(g) {
   return g === 0.5 ? "groesse05" : `groesse${g}`;
@@ -935,7 +986,7 @@ function gruppeSpielleitung() {
     tools[art] = {
       name: art,
       order: nummer += 1,
-      title: `${info.name}: ${KURZ[art]}`,
+      title: werkzeugTitel(info.name, KURZ[art]),
       icon: SYMBOLE[art] ?? "fa-solid fa-paintbrush",
       onChange: () => game.settings.set(MODUL, "art", art)
     };
@@ -943,14 +994,14 @@ function gruppeSpielleitung() {
   tools.radierer = {
     name: "radierer",
     order: nummer += 1,
-    title: `Radierer: ${KURZ.radierer}`,
+    title: werkzeugTitel("GELAENDEPINSEL.Leiste.Radierer", KURZ.radierer),
     icon: "fa-solid fa-eraser",
     onChange: () => game.settings.set(MODUL, "art", "radierer")
   };
   tools.werte = {
     name: "werte",
     order: nummer += 1,
-    title: "Werte der Fläche: SG, Schaden und Rettungswurf für schmal, uneben und gefährlich",
+    title: uebersetzen("GELAENDEPINSEL.Leiste.Werte"),
     icon: "fa-solid fa-sliders",
     button: true,
     onChange: () => void werteFenster()
@@ -960,7 +1011,8 @@ function gruppeSpielleitung() {
     tools[name] = {
       name,
       order: nummer += 1,
-      title: g === 0.5 ? "Pinsel ½ Feld" : `Pinsel ${g} ${g === 1 ? "Feld" : "Felder"}`,
+      title: g === 0.5 ? uebersetzen("GELAENDEPINSEL.Leiste.PinselHalb")
+        : g === 1 ? uebersetzen("GELAENDEPINSEL.Leiste.PinselEin") : uebersetzen("GELAENDEPINSEL.Leiste.PinselFelder", { anzahl: g }),
       icon: g === 0.5 ? "fa-solid fa-circle-dot" : g === 1 ? "fa-solid fa-square" : g === 2 ? "fa-solid fa-table-cells-large" : "fa-solid fa-table-cells",
       toggle: true,
       active: Number(einstellung("groesse")) === g,
@@ -970,7 +1022,7 @@ function gruppeSpielleitung() {
   const art = einstellung("art");
   return {
     name: MODUL,
-    title: "Geländepinsel",
+    title: uebersetzen("GELAENDEPINSEL.Titel"),
     icon: "fa-solid fa-mountain-sun",
     layer: MODUL,
     visible: true,
@@ -990,7 +1042,7 @@ function gruppeSpieler() {
   const an = Boolean(einstellung("anzeigen"));
   return {
     name: MODUL,
-    title: an ? "Gelände ausblenden" : "Gelände anzeigen",
+    title: uebersetzen(an ? "GELAENDEPINSEL.Leiste.Ausblenden" : "GELAENDEPINSEL.Leiste.Anzeigen"),
     icon: an ? "fa-solid fa-mountain-sun" : "fa-solid fa-mountain",
     visible: true,
     tools: {},
@@ -1094,20 +1146,23 @@ async function betretenPruefen(dokument, alt, optionen) {
     }
   }
   if (!getroffen.size) return;
-  const name = foundry.utils.escapeHTML?.(dokument.name ?? "Jemand") ?? dokument.name ?? "Jemand";
+  const jemand = uebersetzen("GELAENDEPINSEL.Karte.Jemand");
+  const name = foundry.utils.escapeHTML?.(dokument.name ?? jemand) ?? dokument.name ?? jemand;
+  const fett = `<strong>${name}</strong>`;
   // Karte an die Spielleitung und an die, denen die Figur gehört: Sie würfeln über den Knopf selbst.
+  // Der Text kommt in der Sprache der aktiven Spielleitung, die Knöpfe übersetzt PF2e je Betrachter.
   const empfaenger = game.users.filter((n) => n.isGM || dokument.actor?.testUserPermission?.(n, "OWNER")).map((n) => n.id);
-  const karte = (inhalt) => ChatMessage.create({ speaker: { alias: "Geländepinsel" }, content: inhalt, whisper: empfaenger });
+  const karte = (inhalt) => ChatMessage.create({ speaker: { alias: uebersetzen("GELAENDEPINSEL.Titel") }, content: inhalt, whisper: empfaenger });
   for (const art of ["schmal", "uneben"]) {
     if (!getroffen.has(art)) continue;
     const { sg } = werteAn(getroffen.get(art), art, dokument.parent);
-    const was = art === "schmal" ? "eine schmale Oberfläche" : "unebenen Boden";
-    await karte(`<p><strong>${name}</strong> betritt ${was}: Balancieren (Akrobatik). Auf dem Falschen Fuß, solange die Figur darauf steht.</p><p>@Check[acrobatics|dc:${sg}]</p>`);
+    const text = uebersetzen(art === "schmal" ? "GELAENDEPINSEL.Karte.Schmal" : "GELAENDEPINSEL.Karte.Uneben", { name: fett });
+    await karte(`<p>${text}</p><p>@Check[acrobatics|dc:${sg}]</p>`);
   }
   if (getroffen.has("gefahr")) {
     const { sg, schaden, typ, rw } = werteAn(getroffen.get("gefahr"), "gefahr", dokument.parent);
     const wurf = RETTUNGSWUERFE[rw] && rw !== "keiner" ? `<p>@Check[${rw}|dc:${sg}|basic]</p>` : "";
-    await karte(`<p><strong>${name}</strong> geht durch gefährliches Gelände.</p>${wurf}<p>@Damage[${schaden}[${typ}]]</p>`);
+    await karte(`<p>${uebersetzen("GELAENDEPINSEL.Karte.Gefahr", { name: fett })}</p>${wurf}<p>@Damage[${schaden}[${typ}]]</p>`);
   }
 }
 

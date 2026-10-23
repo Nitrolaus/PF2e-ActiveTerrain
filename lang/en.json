@@ -1,0 +1,100 @@
+{
+  "GELAENDEPINSEL": {
+    "Titel": "Terrain Brush",
+    "Arten": {
+      "schwierig": "Difficult Terrain",
+      "sehr": "Greater Difficult Terrain",
+      "gefahr": "Hazardous Terrain",
+      "schmal": "Narrow Surface",
+      "uneben": "Uneven Ground"
+    },
+    "Kurz": {
+      "schwierig": "+5 feet per square, can't Step into it",
+      "sehr": "+10 feet per square, can't Step into it",
+      "gefahr": "moving through it deals damage; the terrain sets type and amount",
+      "schmal": "Balance, Off-Guard; when hit or on a failed save, Reflex save or you fall",
+      "uneben": "Balance, Off-Guard; when hit or on a failed save, Reflex save or fall Prone",
+      "radierer": "removes terrain; right-click erases with any other brush too"
+    },
+    "Einstellung": {
+      "Anzeigen": {
+        "Name": "Terrain Brush: Show terrain",
+        "Hint": "Shows the outlines of the painted terrain. It always affects movement."
+      },
+      "Deckkraft": {
+        "Name": "Advanced: Opacity of the terrain lines",
+        "Hint": "How visible the dashed outlines are. 100 is fully opaque, 10 barely visible."
+      },
+      "Strichstaerke": {
+        "Name": "Advanced: Terrain line width",
+        "Hint": "How thick the outlines are drawn. Applies to the Smooth and Simple displays."
+      },
+      "Darstellung": {
+        "Name": "Terrain Brush: Display",
+        "Hint": "Smooth shows the freely painted edge, simple shows the edge along the grid (easier on old computers), off shows no lines. Terrain is always calculated.",
+        "Weich": "Smooth (default)",
+        "Einfach": "Simple, along the grid",
+        "Aus": "Off"
+      },
+      "ZaehlendeFelder": {
+        "Name": "Advanced: Faintly shade counting squares (GM only)",
+        "Hint": "Shows which squares are at least half painted and therefore cost movement."
+      },
+      "RasterModus": {
+        "Name": "Advanced: Paint on the grid instead of freehand",
+        "Hint": "Paints whole squares as up to 0.1.2, for example for rooms with straight walls."
+      }
+    },
+    "Leiste": {
+      "Werkzeug": "{name}: {kurz}",
+      "Radierer": "Eraser",
+      "Werte": "Area values: DC, damage and saving throw for narrow, uneven and hazardous",
+      "PinselHalb": "Brush ½ square",
+      "PinselEin": "Brush 1 square",
+      "PinselFelder": "Brush {anzahl} squares",
+      "Anzeigen": "Show terrain",
+      "Ausblenden": "Hide terrain"
+    },
+    "Werte": {
+      "Titel": "Terrain Brush: Area values",
+      "Gilt": "Applies to everything you paint as narrow, uneven or hazardous from now on.",
+      "SG": "DC",
+      "Leer": "Empty: level-based DC for party level {stufe}, i.e. DC {sg}.",
+      "Schaden": "Damage",
+      "Art": "Type",
+      "Rettungswurf": "Save",
+      "Uebernehmen": "Apply"
+    },
+    "Schadensarten": {
+      "fire": "Fire",
+      "acid": "Acid",
+      "cold": "Cold",
+      "electricity": "Electricity",
+      "bludgeoning": "Bludgeoning",
+      "piercing": "Piercing",
+      "slashing": "Slashing",
+      "poison": "Poison",
+      "force": "Force",
+      "sonic": "Sonic",
+      "spirit": "Spirit",
+      "void": "Void",
+      "vitality": "Vitality"
+    },
+    "Rettungswuerfe": {
+      "reflex": "basic Reflex",
+      "fortitude": "basic Fortitude",
+      "will": "basic Will",
+      "keiner": "no save"
+    },
+    "Region": "Terrain Brush: {art}",
+    "Karte": {
+      "Jemand": "Someone",
+      "Schmal": "{name} steps onto a narrow surface: Balance (Acrobatics). Off-Guard while standing on it.",
+      "Uneben": "{name} steps onto uneven ground: Balance (Acrobatics). Off-Guard while standing on it.",
+      "Gefahr": "{name} moves through hazardous terrain."
+    },
+    "Fehler": {
+      "Speichern": "Terrain Brush: The terrain could not be saved."
+    }
+  }
+}
