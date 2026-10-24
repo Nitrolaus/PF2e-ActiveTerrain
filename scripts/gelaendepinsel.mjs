@@ -8,12 +8,12 @@
  * Spieler: derselbe Platz in der Leiste ist ein Schalter, der die Umrandungen zeigt oder verbirgt.
  */
 
-import { ARTEN, aussenkanten, pinselFelder, schluessel, spurFelder, zuRechtecken } from "./felder.mjs";
-import { FEIN, flaechenAusStrichen, gelaendeWirkung, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
+import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuRechtecken } from "./felder.mjs";
+import { FEIN, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.2.7";
+const VERSION = "0.2.17";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -26,7 +26,7 @@ export const SYMBOLE = Object.freeze({
   schmal: "gelaendepinsel-symbol gelaendepinsel-symbol-schmal",
   uneben: "gelaendepinsel-symbol gelaendepinsel-symbol-uneben"
 });
-// Reihenfolge der Abzeichen am Token, von rechts oben nach links.
+// Reihenfolge der Abzeichen am Token, vom ersten an der gewählten Lage an (Einstellung abzeichenLage).
 const ABZEICHEN_REIHE = ["sehr", "schwierig", "gefahr", "schmal", "uneben"];
 const InteractionLayer = globalThis.foundry?.canvas?.layers?.InteractionLayer;
 
@@ -53,6 +53,9 @@ function einstellungenAnmelden() {
     }
   });
   game.settings.register(MODUL, "art", { scope: "client", config: false, type: String, default: "schwierig" });
+  // Messung der Fahrten (0.2.15), seit 0.2.17 aus. Wieder an im Browser der Spielleitung mit
+  // game.settings.set("gelaendepinsel", "messung", true).
+  game.settings.register(MODUL, "messung", { scope: "client", config: false, type: Boolean, default: false });
   game.settings.register(MODUL, "groesse", { scope: "client", config: false, type: Number, default: 1 });
   // Werte der bemalten Flächen (0.2.7): SG 0 heißt stufengerecht nach Gruppenstufe.
   game.settings.register(MODUL, "sg", { scope: "client", config: false, type: Number, default: 0 });
@@ -106,6 +109,16 @@ function einstellungenAnmelden() {
     type: Boolean,
     default: true,
     onChange: () => anzeige.zeichnen()
+  });
+  game.settings.register(MODUL, "abzeichenLage", {
+    name: "GELAENDEPINSEL.Einstellung.AbzeichenLage.Name",
+    hint: "GELAENDEPINSEL.Einstellung.AbzeichenLage.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: { ...ABZEICHEN_LAGEN },
+    default: "rechtsOben",
+    onChange: () => abzeichen.alleZeichnen()
   });
   game.settings.register(MODUL, "rasterModus", {
     name: "GELAENDEPINSEL.Einstellung.RasterModus.Name",
@@ -372,12 +385,21 @@ function formenFuer(felderMenge) {
   });
 }
 
+// Schwieriges und sehr schwieriges Gelände überlappen als Region nie (0.2.11): Zählt ein Feld für beide,
+// etwa am Raster sehr schwierig und frei gemalt schwierig, gilt nur das sehr schwierige - 10 Fuß mehr,
+// nicht 15. So hängt es nicht davon ab, wie Foundry übereinanderliegende Regionen verrechnet.
+function kostenFelder(felder) {
+  const sehr = new Set(felder.sehr ?? []);
+  return { schwierig: new Set([...(felder.schwierig ?? [])].filter((feld) => !sehr.has(feld))), sehr };
+}
+
 async function regionenAbgleichen(felder, szene) {
+  const kosten = kostenFelder(felder);
   for (const art of KOSTEN_ARTEN) {
     const vorhanden = szene.regions?.find?.((region) => region.getFlag?.(MODUL, "art") === art) ?? null;
-    const menge = felder[art] ?? new Set();
+    const menge = kosten[art];
     if (menge.size === 0) {
-      if (vorhanden) await vorhanden.delete();
+      if (vorhanden) await vorhanden.delete({ [MODUL]: true });
       continue;
     }
     const shapes = formenFuer(menge);
@@ -415,6 +437,34 @@ function linie(grafik, a, b, { color, width, alpha }) {
   grafik.lineStyle?.(width, color, alpha);
   grafik.moveTo(a.x, a.y);
   grafik.lineTo(b.x, b.y);
+}
+
+// Der laufende Strich als ein durchgehendes Band mit runden Enden und Biegungen (0.2.10, 24.10.2026:
+// "so schaut das waehrend dem Zeichnen aus, wie Bretter verlegen"). Bis dahin war jedes Mausstueck ein
+// eigenes Rechteck in Pinselbreite: In Biegungen faecherten sie auf wie Eisenbahnschwellen, und wo sie
+// sich ueberlappten, wurde es heller. Gerechnet wurde schon immer rund.
+function rundeSpur(grafik, pixel, { color, width, alpha }) {
+  if (!pixel.length) return;
+  if (pixel.length === 1) {
+    const { x, y } = pixel[0];
+    if (typeof grafik.circle === "function" && typeof grafik.fill === "function") {
+      grafik.circle(x, y, width / 2).fill({ color, alpha });
+      return;
+    }
+    grafik.beginFill?.(color, alpha);
+    grafik.drawCircle?.(x, y, width / 2);
+    grafik.endFill?.();
+    return;
+  }
+  if (typeof grafik.stroke === "function") {
+    grafik.moveTo(pixel[0].x, pixel[0].y);
+    for (const punkt of pixel.slice(1)) grafik.lineTo(punkt.x, punkt.y);
+    grafik.stroke({ color, width, alpha, cap: "round", join: "round" });
+    return;
+  }
+  grafik.lineStyle?.({ width, color, alpha, cap: "round", join: "round" });
+  grafik.moveTo(pixel[0].x, pixel[0].y);
+  for (const punkt of pixel.slice(1)) grafik.lineTo(punkt.x, punkt.y);
 }
 
 function rundeFlaeche(grafik, x, y, breite, hoehe, radius, { color, alpha }) {
@@ -487,19 +537,61 @@ function raenderDerSzene(szene) {
   return raender;
 }
 
+// Frei gemalte Punkte einer Art samt ihren Rasterfeldern, so wie die Anzeige sie umrandet.
+function punkteMitRaster(flaechen, raster, art) {
+  const punkte = new Set(flaechen[art]);
+  for (const feld of raster[art]) {
+    const [spalte, zeile] = feld.split(",").map(Number);
+    for (let fy = zeile * FEIN; fy < (zeile + 1) * FEIN; fy += 1) {
+      for (let fx = spalte * FEIN; fx < (spalte + 1) * FEIN; fx += 1) punkte.add(fy * 1000000 + fx);
+    }
+  }
+  return punkte;
+}
+
 function raenderAus(flaechen, raster) {
   const raender = {};
   for (const art of Object.keys(ARTEN)) {
-    const punkte = new Set(flaechen[art]);
-    for (const feld of raster[art]) {
-      const [spalte, zeile] = feld.split(",").map(Number);
-      for (let fy = zeile * FEIN; fy < (zeile + 1) * FEIN; fy += 1) {
-        for (let fx = spalte * FEIN; fx < (spalte + 1) * FEIN; fx += 1) punkte.add(fy * 1000000 + fx);
-      }
-    }
+    const punkte = punkteMitRaster(flaechen, raster, art);
     raender[art] = punkte.size ? weicherRand(punkte) : [];
   }
   return raender;
+}
+
+// Mindestgröße ein Feld je Art (0.2.14, 24.10.2026: "wir brauchen für jede Geländeart eine
+// Mindestgröße, sonst bleiben Linienartefakte, wenn man welche löscht; ein Grid ist Minimum, alles
+// darunter muss sich nach ein paar Sekunden selbst löschen"). Gezählt wird das Stück, wie die Anzeige
+// es umrandet, samt angrenzender Rasterfelder; weggeräumt werden nur frei gemalte Punkte.
+export const AUFRAEUMEN_MS = 3000;
+let aufraeumenUhr = null;
+
+function aufraeumenPlanen() {
+  if (!istAktiveSpielleitung()) return;
+  clearTimeout(aufraeumenUhr);
+  aufraeumenUhr = setTimeout(() => {
+    aufraeumenUhr = null;
+    resteRaeumen(globalThis.canvas?.scene).catch((fehler) => console.warn(`[${MODUL}] Reste räumen`, fehler));
+  }, AUFRAEUMEN_MS);
+}
+
+export async function resteRaeumen(szene) {
+  if (!szene || !istAktiveSpielleitung()) return 0;
+  // Mitten im Malen nicht: später noch einmal.
+  if (strich.punkte || strich.felder) {
+    aufraeumenPlanen();
+    return 0;
+  }
+  const { flaechen } = flaechenDerSzene(szene);
+  const raster = rasterFelderDerSzene(szene);
+  const weg = [];
+  for (const art of Object.keys(ARTEN)) {
+    const k = kleineStuecke(punkteMitRaster(flaechen, raster, art)).filter((punkt) => flaechen[art].has(punkt));
+    if (k.length) weg.push({ art: "weg", von: art, k });
+  }
+  if (!weg.length) return 0;
+  await szene.setFlag(MODUL, "striche", [...stricheDerSzene(szene), ...weg]);
+  await regionenAbgleichen(felderDerSzene(szene), szene);
+  return weg.reduce((summe, eintrag) => summe + eintrag.k.length, 0);
 }
 
 // Radierer (0.2.1, 23.10.2026: "wenn man löscht, ist ein vorhandenes Gelände weiß, das ist nicht
@@ -567,8 +659,7 @@ export const anzeige = {
         const ende = pixel.at(-1);
         kreisLinie(this.grafik, ende.x, ende.y, r * groesse, stil);
       } else {
-        if (pixel.length === 1) pixel.push({ x: pixel[0].x + 0.5, y: pixel[0].y });
-        for (let i = 1; i < pixel.length; i += 1) linie(this.grafik, pixel[i - 1], pixel[i], { color: farbwert(art), width: 2 * r * groesse, alpha: 0.25 });
+        rundeSpur(this.grafik, pixel, { color: farbwert(art), width: 2 * r * groesse, alpha: 0.25 });
       }
     }
     if (!this.sichtbar()) return;
@@ -667,6 +758,35 @@ function zeichenMalen(grafik, art, mx, my, g) {
 // Bilder der Abzeichen (0.2.3, 23.10.2026: "nimm diese Bilder"): je Art 48 mal 48 Pixel, eigens für
 // das Modul gemacht. Geladen bei canvasReady; bis dahin oder wenn ein Bild fehlt, zeichnet das
 // Abzeichen den Stiefel aus symbole.mjs.
+// Lage der Abzeichen am Token (0.2.11, 24.10.2026: "in den Optionen noch einstellbar, wo der
+// grafische Stiefel am Token anzuordnen ist"), je Rechner. Seitlich stehen sie untereinander, über und
+// unter dem Token nebeneinander. Vorgabe ist rechts oben, wie bisher.
+export const ABZEICHEN_LAGEN = Object.freeze({
+  rechtsOben: "GELAENDEPINSEL.Einstellung.AbzeichenLage.RechtsOben",
+  rechtsUnten: "GELAENDEPINSEL.Einstellung.AbzeichenLage.RechtsUnten",
+  linksOben: "GELAENDEPINSEL.Einstellung.AbzeichenLage.LinksOben",
+  linksUnten: "GELAENDEPINSEL.Einstellung.AbzeichenLage.LinksUnten",
+  oben: "GELAENDEPINSEL.Einstellung.AbzeichenLage.Oben",
+  unten: "GELAENDEPINSEL.Einstellung.AbzeichenLage.Unten"
+});
+
+/** Linke obere Ecke des Abzeichens Nummer index (ab 0) mit Seitenlänge g. */
+export function abzeichenPunkt(lage, token, index, g) {
+  const x = Number(token.x);
+  const y = Number(token.y);
+  const breite = Number(token.w ?? canvas.grid.size);
+  const hoehe = Number(token.h ?? canvas.grid.size);
+  const schritt = index * g * 1.1;
+  switch (lage) {
+    case "rechtsUnten": return { x: x + breite + g * 0.1, y: y + hoehe - g - schritt };
+    case "linksOben": return { x: x - g * 1.1, y: y + schritt };
+    case "linksUnten": return { x: x - g * 1.1, y: y + hoehe - g - schritt };
+    case "oben": return { x: x + schritt, y: y - g * 1.1 };
+    case "unten": return { x: x + schritt, y: y + hoehe + g * 0.1 };
+    default: return { x: x + breite + g * 0.1, y: y + schritt };
+  }
+}
+
 export const BILDER = Object.freeze(Object.fromEntries(Object.keys(ZEICHEN).map((art) => [art, `modules/${MODUL}/assets/symbole/${art}.png`])));
 const texturen = new Map();
 
@@ -760,13 +880,12 @@ export const abzeichen = {
     }
     grafik.clear();
     const g = canvas.grid.size * 0.24;
-    const links = Number(token.x) + Number(token.w ?? canvas.grid.size) + g * 0.1;
-    const oben = Number(token.y);
+    const lage = einstellungSicher("abzeichenLage", "rechtsOben");
     const mitBildern = typeof PIXI.Sprite === "function" && arten.every((art) => texturen.has(art));
     const bild = mitBildern ? this.bildHolen(id, behaelter) : null;
     if (!bild) this.bildEntfernen(id);
     arten.forEach((art, index) => {
-      const y = oben + index * g * 1.1;
+      const { x: links, y } = abzeichenPunkt(lage, token, index, g);
       const wirkung = gelaendeWirkung(token.actor, art, token.document?.movementAction ?? "walk", globalThis.CONFIG?.Token?.movement?.actions ?? {});
       if (bild) {
         const sprite = new PIXI.Sprite(texturen.get(art));
@@ -817,8 +936,9 @@ function stempeln(feld) {
     if (art === "radierer") {
       for (const menge of Object.values(strich.felder)) menge.delete(schl);
     } else if (ARTEN[art]) {
-      // Ein Feld hat genau eine Geländeart; neu Gemaltes ersetzt die alte.
-      for (const [andere, menge] of Object.entries(strich.felder)) if (andere !== art) menge.delete(schl);
+      // Ein Feld hat je Gruppe eine Geländeart (0.2.11): neu Gemaltes ersetzt die seiner Gruppe,
+      // gefährliches Gelände etwa bleibt über schwierigem liegen.
+      for (const [andere, menge] of Object.entries(strich.felder)) if (andere !== art && ersetzt(art, andere)) menge.delete(schl);
       strich.felder[art].add(schl);
     }
   }
@@ -1097,73 +1217,302 @@ function istAktiveSpielleitung() {
   return aktive ? aktive.id === game.user.id : true;
 }
 
-function eckFeld(punkt) {
-  const o = canvas.grid.getOffset({ x: punkt.x + 1, y: punkt.y + 1 });
-  return { spalte: o.j, zeile: o.i };
+const groesseIn = (wert) => Math.max(1, Math.round(Number(wert) || 1));
+
+// Wohin ein Zug geht (0.2.16): Foundry 14 führt beim Fahren auch die Lage im Dokument mit (gemessen
+// 24.10.2026: dokument.x folgt Bild für Bild der gezeichneten Lage, beim Speichern steht dort noch der
+// Anfang). Das Ziel steht im letzten Wegpunkt des Zugs, sonst in den Änderungen.
+function zugZiel(dokument, optionen, aenderung = {}) {
+  const letzter = optionen?._movement?.[dokument.id]?.passed?.waypoints?.at?.(-1);
+  const wert = (achse) => [letzter?.[achse], aenderung?.[achse], dokument[achse]].map(Number).find(Number.isFinite);
+  return { x: wert("x"), y: wert("y") };
+}
+
+// Die Felder, die ein Token mit linker oberer Ecke (x, y) mindestens zur Hälfte bedeckt (0.2.16,
+// 24.10.2026: "erst wenn er mindestens 50 % in einem Feld steht, soll das auslösen").
+function halbBedeckteFelder(x, y, breite, hoehe) {
+  const g = canvas.grid.size;
+  const rechts = x + breite * g;
+  const unten = y + hoehe * g;
+  const erstes = canvas.grid.getOffset({ x: x + 1, y: y + 1 });
+  const letztes = canvas.grid.getOffset({ x: rechts - 1, y: unten - 1 });
+  const felder = [];
+  for (let i = erstes.i; i <= letztes.i; i += 1) {
+    for (let j = erstes.j; j <= letztes.j; j += 1) {
+      const ecke = canvas.grid.getTopLeftPoint({ i, j });
+      const b = Math.min(rechts, ecke.x + g) - Math.max(x, ecke.x);
+      const h = Math.min(unten, ecke.y + g) - Math.max(y, ecke.y);
+      if (b > 0 && h > 0 && 2 * b * h >= g * g - 1e-6) felder.push(schluessel(j, i));
+    }
+  }
+  return felder;
+}
+
+// Lagen von a nach b in Schritten von höchstens einem Achtelfeld, a ausgenommen, b eingeschlossen.
+function zwischenLagen(a, b) {
+  const von = { x: Number(a.x), y: Number(a.y) };
+  const nach = { x: Number(b.x), y: Number(b.y) };
+  const schritte = Math.max(1, Math.ceil(Math.hypot(nach.x - von.x, nach.y - von.y) / (canvas.grid.size / 8)));
+  const lagen = [];
+  for (let k = 1; k <= schritte; k += 1) lagen.push({ x: von.x + ((nach.x - von.x) * k) / schritte, y: von.y + ((nach.y - von.y) * k) / schritte });
+  return lagen;
 }
 
 /**
- * Felder, die ein Token bei diesem Zug neu betritt. Grundlage sind Foundrys Wegpunkte des Zugs
- * (options._movement[id].passed.waypoints, Foundry 13 und 14), sonst Anfang und Ende. Große Tokens
- * zählen mit ihrer ganzen Fläche. Ein Teleport betritt nichts.
+ * Die Felder, die ein Token auf seinem Weg nacheinander mindestens zur Hälfte bedeckt, je Achtelfeld
+ * eine Liste, die Startlage zuerst. Grundlage sind Foundrys Wegpunkte des Zugs
+ * (options._movement[id].passed.waypoints, Foundry 13 und 14), sonst Anfang und Ziel. Große Tokens
+ * zählen mit ihrer ganzen Fläche. Per Teleport nur die Startlage: Er betritt nichts dazwischen.
  */
-export function betreteneFelder(dokument, alt, optionen = {}) {
-  const breite = Math.max(1, Math.round(Number(dokument.width) || 1));
-  const hoehe = Math.max(1, Math.round(Number(dokument.height) || 1));
+function wegFlaechen(dokument, alt, optionen = {}, ziel = zugZiel(dokument, optionen)) {
+  const breite = groesseIn(dokument.width);
+  const hoehe = groesseIn(dokument.height);
   const wegpunkte = optionen?._movement?.[dokument.id]?.passed?.waypoints;
   const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
-  if (Array.isArray(wegpunkte) && wegpunkte.length > 0 && wegpunkte.every((punkt) => aktionen[punkt?.action]?.teleport)) {
-    return new Set();
-  }
-  const lagen = [alt, ...(Array.isArray(wegpunkte) && wegpunkte.length ? wegpunkte : [{ x: dokument.x, y: dokument.y }])]
+  const lagen = [alt, ...(Array.isArray(wegpunkte) && wegpunkte.length ? wegpunkte : [ziel])]
     .filter((punkt) => Number.isFinite(Number(punkt?.x)) && Number.isFinite(Number(punkt?.y)));
-  const flaeche = (ecke) => {
-    const felder = [];
-    for (let dz = 0; dz < hoehe; dz += 1) for (let ds = 0; ds < breite; ds += 1) felder.push(schluessel(ecke.spalte + ds, ecke.zeile + dz));
-    return felder;
-  };
-  const start = new Set(flaeche(eckFeld(lagen[0])));
-  const betreten = new Set();
+  if (!lagen.length) return [];
+  const flaeche = (lage) => halbBedeckteFelder(Number(lage.x), Number(lage.y), breite, hoehe);
+  const weg = [flaeche(lagen[0])];
+  if (Array.isArray(wegpunkte) && wegpunkte.length > 0 && wegpunkte.every((punkt) => aktionen[punkt?.action]?.teleport)) return weg;
   for (let index = 1; index < lagen.length; index += 1) {
-    for (const ecke of spurFelder(eckFeld(lagen[index - 1]), eckFeld(lagen[index]))) {
-      for (const feld of flaeche(ecke)) if (!start.has(feld)) betreten.add(feld);
-    }
+    for (const lage of zwischenLagen(lagen[index - 1], lagen[index])) weg.push(flaeche(lage));
   }
-  return betreten;
+  return weg;
 }
 
-async function betretenPruefen(dokument, alt, optionen) {
-  const felder = felderDerSzene(dokument.parent);
-  const wegpunkte = optionen?._movement?.[dokument.id]?.passed?.waypoints;
-  const aktion = (Array.isArray(wegpunkte) ? wegpunkte.at(-1)?.action : null) ?? dokument.movementAction ?? "walk";
-  const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
-  // Je Art das erste betretene Feld; dessen Fläche liefert SG und Schaden (0.2.7).
+/**
+ * Je Art das Feld, mit dem der Token eine Fläche dieser Art von außen betritt (0.2.12, 24.10.2026:
+ * "sonst müsste ich jeden Schritt neu würfeln, das ist viel zu viel; ich will bei Bewegung durch so
+ * ein Gebiet nur eine Probe, jede weitere fordert die Spielleitung anders an, keinesfalls
+ * automatisch"). Wer schon darin steht und sich darin bewegt, betritt nichts, auch über mehrere Züge
+ * und Runden. Wer die Fläche verlässt und wieder hineingeht, betritt sie neu.
+ */
+export function betreteneArten(dokument, alt, optionen = {}, felder = felderDerSzene(dokument?.parent), arten = PROBEN_ARTEN, ziel = zugZiel(dokument, optionen)) {
+  const weg = wegFlaechen(dokument, alt, optionen, ziel);
   const getroffen = new Map();
-  for (const feld of betreteneFelder(dokument, alt, optionen)) {
-    for (const art of PROBEN_ARTEN) {
-      // Fliegend oder per Teleport kein Balancieren und keine Gefahr am Boden (wie PF2e).
-      if (!getroffen.has(art) && felder[art].has(feld) && gelaendeWirkung(dokument.actor, art, aktion, aktionen) > 0) getroffen.set(art, feld);
+  for (const art of arten) {
+    const menge = felder[art];
+    if (!menge?.size || !weg.length) continue;
+    let drin = weg[0].some((feld) => menge.has(feld));
+    for (const schritt of weg.slice(1)) {
+      const feld = schritt.find((schl) => menge.has(schl)) ?? null;
+      if (feld && !drin) {
+        getroffen.set(art, feld);
+        break;
+      }
+      drin = Boolean(feld);
     }
   }
-  if (!getroffen.size) return;
+  return getroffen;
+}
+
+// Wann die Karte kommt (0.2.13, 24.10.2026: "kommt die Karte, wenn die Reise beginnt oder wenn der
+// Token sichtbar das gefährliche Gelände erreicht? Ich glaube, sie kommt zu Beginn des Zuges"): Foundry
+// speichert einen Zug beim Loslassen, gefahren wird danach; bis 0.2.12 kam die Karte deshalb beim
+// Losfahren. Jetzt merkt sich die aktive Spielleitung den Zug als Fahrt und prüft am gezeichneten Token,
+// Bild für Bild (refreshToken): Die Karte kommt, wenn er zur Hälfte auf der Fläche steht. Wird er vorher
+// angehalten, kommt keine. Was zwischen zwei Bildern durchgerutscht ist, kommt spätestens am Ziel.
+// Gemessen wird am echten Token (0.2.14, gemeldet: "es kommt nun gar keine Karte mehr"): Beim Ziehen zeichnet
+// Foundry eine Vorschau mit derselben ID; 0.2.13 hielt deren Lage am Ziel für die des Tokens.
+const fahrten = new Map();
+// Je Token, der gerade sichtbar fährt, sein Ziel. Ein neuer Zug davor ist ein Anhalten oder Umlenken.
+const unterwegs = new Map();
+
+const gleicheLage = (a, b) => Boolean(a && b) && Math.abs(Number(a.x) - Number(b.x)) <= 1 && Math.abs(Number(a.y) - Number(b.y)) <= 1;
+
+function istVorschau(token, id) {
+  if (token?.isPreview || token?._original) return true;
+  const echt = globalThis.canvas?.tokens?.get?.(id);
+  return Boolean(echt && echt !== token);
+}
+
+function gezeichneteLage(dokument) {
+  const token = globalThis.canvas?.tokens?.get?.(dokument.id) ?? dokument.object ?? null;
+  const lage = { x: Number(token?.x), y: Number(token?.y) };
+  return token && Number.isFinite(lage.x) && Number.isFinite(lage.y) ? lage : null;
+}
+
+// Messung (0.2.15, 24.10.2026: "die Meldung kommt wieder gleich zu Beginn der Reise"): Wo Foundry 14
+// den Token während einer Fahrt führt, ist nicht belegt; 0.2.13 und 0.2.14 haben es angenommen. Je Zug
+// durch eine Fläche hält die aktive Spielleitung fest, was beim Speichern und in jedem Bild zu sehen
+// war und wann die Karte kam, und legt es unter modules/gelaendepinsel/storage/diagnostics ab, fünf
+// Dateien im Wechsel. Die Bilder kurz vor dem Speichern zeigen, ob Foundry schon vorher gezeichnet hat.
+// Seit 0.2.17 aus (24.10.2026: "Messung abschalten"), die Einstellung "messung" schaltet sie wieder an.
+const messungAn = () => Boolean(einstellungSicher("messung", false));
+const DIAGNOSE_DATEIEN = 5;
+const DIAGNOSE_BILDER = 400;
+const DIAGNOSE_MS = 30000;
+const vorBildern = new Map();
+const diagnosen = new Map();
+let diagnoseNummer = 0;
+
+function tokenBild(token) {
+  const zahl = (wert) => (Number.isFinite(Number(wert)) ? Math.round(Number(wert) * 10) / 10 : null);
+  return {
+    x: zahl(token?.x),
+    y: zahl(token?.y),
+    vorschau: Boolean(token?.isPreview || token?._original),
+    dokX: zahl(token?.document?.x),
+    dokY: zahl(token?.document?.y),
+    meshX: zahl(token?.mesh?.x),
+    meshY: zahl(token?.mesh?.y),
+    animationen: token?.animationContexts?.size ?? null
+  };
+}
+
+function diagnoseBild(id, token) {
+  if (!messungAn() || !istAktiveSpielleitung()) return;
+  const jetzt = globalThis.performance?.now?.() ?? Date.now();
+  const laufend = diagnosen.get(id);
+  if (laufend) {
+    if (laufend.bilder.length < DIAGNOSE_BILDER) laufend.bilder.push({ t: Math.round(jetzt - laufend.t0), ...tokenBild(token) });
+    return;
+  }
+  const liste = vorBildern.get(id) ?? [];
+  liste.push({ zeit: jetzt, ...tokenBild(token) });
+  if (liste.length > 5) liste.shift();
+  vorBildern.set(id, liste);
+}
+
+function diagnoseBeginnen(dokument, kopf) {
+  if (!messungAn()) return;
+  const id = dokument.id;
+  if (diagnosen.has(id)) diagnoseBeenden(id, "neuer-zug");
+  const t0 = globalThis.performance?.now?.() ?? Date.now();
+  const echt = globalThis.canvas?.tokens?.get?.(id) ?? dokument.object ?? null;
+  const vorher = (vorBildern.get(id) ?? []).map(({ zeit, ...rest }) => ({ t: Math.round(zeit - t0), ...rest }));
+  const eintrag = { t0, kopf: { token: dokument.name ?? id, ...kopf, beimSpeichern: tokenBild(echt), vorher }, bilder: [], karten: [], uhr: null };
+  diagnosen.set(id, eintrag);
+  eintrag.uhr = setTimeout(() => diagnoseBeenden(id, "zeit"), DIAGNOSE_MS);
+  eintrag.uhr?.unref?.();
+}
+
+function diagnoseKarte(id, art, feld, grund) {
+  const eintrag = diagnosen.get(id);
+  if (!eintrag) return;
+  const jetzt = globalThis.performance?.now?.() ?? Date.now();
+  eintrag.karten.push({ t: Math.round(jetzt - eintrag.t0), art, feld, grund, bildNr: eintrag.bilder.length });
+}
+
+function diagnoseBeenden(id, grund) {
+  const eintrag = diagnosen.get(id);
+  if (!eintrag) return;
+  diagnosen.delete(id);
+  clearTimeout(eintrag.uhr);
+  const { kopf, bilder, karten } = eintrag;
+  console.info(`[${MODUL}] Messung ${kopf.token}: ${karten.length} Karte(n), ${bilder.length} Bilder, Ende ${grund}`);
+  void diagnoseSchreiben({ ende: grund, kopf, karten, bilder });
+}
+
+async function diagnoseSchreiben(inhalt) {
+  const Auswahl = globalThis.foundry?.applications?.apps?.FilePicker ?? globalThis.FilePicker;
+  if (!game.user?.isGM || typeof Auswahl?.uploadPersistent !== "function" || typeof File !== "function") return;
+  diagnoseNummer += 1;
+  const name = `gelaendepinsel-diagnose-${String(((diagnoseNummer - 1) % DIAGNOSE_DATEIEN) + 1).padStart(2, "0")}.json`;
+  const text = JSON.stringify({ modul: MODUL, version: VERSION, foundry: game.version ?? null, geschrieben: new Date().toISOString(), ...inhalt }, null, 1);
+  try {
+    await Auswahl.uploadPersistent(MODUL, "diagnostics", new File([text], name, { type: "application/json" }), {}, { notify: false });
+  } catch (fehler) {
+    console.warn(`[${MODUL}] Messung nicht gespeichert`, fehler);
+  }
+}
+
+function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optionen)) {
+  const id = dokument.id;
+  const gezeichnet = gezeichneteLage(dokument);
+  const laufend = unterwegs.has(id);
+  // Eine laufende Fahrt endet hier: Was sie bis zur gezeichneten Lage erreicht hat, zählt noch.
+  if (gezeichnet) fahrtPruefen(id, gezeichnet);
+  fahrten.delete(id);
+  unterwegs.delete(id);
+  // Losgefahren wird, wo der Token gezeichnet ist. Steht er dort schon am Ziel, war es während einer
+  // Fahrt ein Anhalten, sonst ein Sprung ohne Fahrt: Dann gilt die alte Lage, und die Karte kommt gleich.
+  let start = gezeichnet && !gleicheLage(gezeichnet, ziel) ? gezeichnet : null;
+  if (!start && laufend) return;
+  const sofort = !start || optionen?.animate === false;
+  start ??= alt;
+  if (!start || gleicheLage(start, ziel)) return;
+  if (!sofort) unterwegs.set(id, ziel);
+  const felder = felderDerSzene(dokument.parent);
+  const wegpunkte = optionen?._movement?.[id]?.passed?.waypoints;
+  const aktion = (Array.isArray(wegpunkte) ? wegpunkte.at(-1)?.action : null) ?? dokument.movementAction ?? "walk";
+  const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
+  // Je Art das Feld, mit dem die Fläche betreten wird; es liefert SG und Schaden (0.2.7).
+  const erwartet = new Map();
+  for (const [art, feld] of betreteneArten(dokument, start, optionen, felder, PROBEN_ARTEN, ziel)) {
+    // Fliegend oder per Teleport kein Balancieren und keine Gefahr am Boden (wie PF2e).
+    if (gelaendeWirkung(dokument.actor, art, aktion, aktionen) > 0) erwartet.set(art, feld);
+  }
+  if (!erwartet.size) return;
+  const bewegung = optionen?._movement?.[id] ?? null;
+  diagnoseBeginnen(dokument, {
+    alt, ziel, gezeichnet, start, laufend, sofort,
+    erwartet: Object.fromEntries(erwartet),
+    animate: optionen?.animate ?? null,
+    animation: optionen?.animation ?? bewegung?.animation ?? null,
+    methode: bewegung?.method ?? null,
+    wegpunkte: Array.isArray(wegpunkte) ? wegpunkte.length : null,
+    modulzug: Boolean(optionen?.aiBewegungsanzeigeModuleMove)
+  });
+  const breite = groesseIn(dokument.width);
+  const hoehe = groesseIn(dokument.height);
+  const anfang = halbBedeckteFelder(Number(start.x), Number(start.y), breite, hoehe);
+  const drin = new Map([...erwartet.keys()].map((art) => [art, anfang.some((feld) => felder[art].has(feld))]));
+  fahrten.set(id, { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin });
+  // Ohne Fahrt gesetzt: Es kommt kein Bild dazwischen, die Karte gleich.
+  if (sofort) fahrtPruefen(id, ziel, "sofort");
+}
+
+function fahrtPruefen(id, lage, grund = "bild") {
+  const fahrt = fahrten.get(id);
+  if (!fahrt || !lage) return;
+  for (const zwischen of zwischenLagen(fahrt.letzte, lage)) {
+    const schritt = halbBedeckteFelder(zwischen.x, zwischen.y, fahrt.breite, fahrt.hoehe);
+    for (const art of [...fahrt.erwartet.keys()]) {
+      const feld = schritt.find((schl) => fahrt.felder[art].has(schl)) ?? null;
+      if (feld && !fahrt.drin.get(art)) {
+        fahrt.erwartet.delete(art);
+        diagnoseKarte(id, art, feld, grund);
+        karteAusloesen(fahrt.dokument, art, feld);
+      } else {
+        fahrt.drin.set(art, Boolean(feld));
+      }
+    }
+  }
+  fahrt.letzte = { x: Number(lage.x), y: Number(lage.y) };
+  if (gleicheLage(lage, fahrt.ziel)) {
+    for (const [art, feld] of fahrt.erwartet) {
+      diagnoseKarte(id, art, feld, `${grund}-ziel`);
+      karteAusloesen(fahrt.dokument, art, feld);
+    }
+    fahrt.erwartet.clear();
+  }
+  if (!fahrt.erwartet.size) fahrten.delete(id);
+}
+
+function karteAusloesen(dokument, art, feld) {
+  karteSchicken(dokument, art, feld).catch((fehler) => console.error(`[${MODUL}] Karte`, fehler));
+}
+
+async function karteSchicken(dokument, art, feld) {
   const jemand = uebersetzen("GELAENDEPINSEL.Karte.Jemand");
   const name = foundry.utils.escapeHTML?.(dokument.name ?? jemand) ?? dokument.name ?? jemand;
   const fett = `<strong>${name}</strong>`;
   // Karte an die Spielleitung und an die, denen die Figur gehört: Sie würfeln über den Knopf selbst.
   // Der Text kommt in der Sprache der aktiven Spielleitung, die Knöpfe übersetzt PF2e je Betrachter.
   const empfaenger = game.users.filter((n) => n.isGM || dokument.actor?.testUserPermission?.(n, "OWNER")).map((n) => n.id);
-  const karte = (inhalt) => ChatMessage.create({ speaker: { alias: uebersetzen("GELAENDEPINSEL.Titel") }, content: inhalt, whisper: empfaenger });
-  for (const art of ["schmal", "uneben"]) {
-    if (!getroffen.has(art)) continue;
-    const { sg } = werteAn(getroffen.get(art), art, dokument.parent);
-    const text = uebersetzen(art === "schmal" ? "GELAENDEPINSEL.Karte.Schmal" : "GELAENDEPINSEL.Karte.Uneben", { name: fett });
-    await karte(`<p>${text}</p><p>@Check[acrobatics|dc:${sg}]</p>`);
-  }
-  if (getroffen.has("gefahr")) {
-    const { sg, schaden, typ, rw } = werteAn(getroffen.get("gefahr"), "gefahr", dokument.parent);
+  let inhalt;
+  if (art === "gefahr") {
+    const { sg, schaden, typ, rw } = werteAn(feld, art, dokument.parent);
     const wurf = RETTUNGSWUERFE[rw] && rw !== "keiner" ? `<p>@Check[${rw}|dc:${sg}|basic]</p>` : "";
-    await karte(`<p>${uebersetzen("GELAENDEPINSEL.Karte.Gefahr", { name: fett })}</p>${wurf}<p>@Damage[${schaden}[${typ}]]</p>`);
+    inhalt = `<p>${uebersetzen("GELAENDEPINSEL.Karte.Gefahr", { name: fett })}</p>${wurf}<p>@Damage[${schaden}[${typ}]]</p>`;
+  } else {
+    const { sg } = werteAn(feld, art, dokument.parent);
+    const text = uebersetzen(art === "schmal" ? "GELAENDEPINSEL.Karte.Schmal" : "GELAENDEPINSEL.Karte.Uneben", { name: fett });
+    inhalt = `<p>${text}</p><p>@Check[acrobatics|dc:${sg}]</p>`;
   }
+  await ChatMessage.create({ speaker: { alias: uebersetzen("GELAENDEPINSEL.Titel") }, content: inhalt, whisper: empfaenger });
 }
 
 /* ------------------------------------------------------------------ Start */
@@ -1191,27 +1540,85 @@ if (typeof InteractionLayer !== "function") {
     abzeichen.alleZeichnen();
     void bilderLaden();
   });
+  // Geländeregionen gehören dem Modul (0.2.10, 24.10.2026: "wenn man bei Foundry in die Regionen
+  // geht, sehe ich viele gelbe Flächen; öfters löscht man hier Zauberschablonen und damit auch meine
+  // Bereiche"): In der Regionen-Ebene unsichtbar und nicht anklickbar, Löschen nur durch das Modul
+  // selbst (Radierer), und beim Laden der Szene legt die Spielleitung fehlende Regionen neu an.
+  const eigeneRegion = (region) => Boolean(region?.document?.getFlag?.(MODUL, "art") ?? region?.getFlag?.(MODUL, "art"));
+  const verbergen = (region) => {
+    if (!eigeneRegion(region)) return;
+    region.renderable = false;
+    region.eventMode = "none";
+  };
+  Hooks.on("drawRegion", verbergen);
+  Hooks.on("refreshRegion", verbergen);
+  Hooks.on("preDeleteRegion", (dokument, optionen) => {
+    if (!eigeneRegion(dokument) || optionen?.[MODUL]) return true;
+    globalThis.ui?.notifications?.warn?.(uebersetzen("GELAENDEPINSEL.Fehler.RegionGeschuetzt"));
+    return false;
+  });
+  // Geht eine Geländeregion trotzdem verloren (etwa mit "Alle löschen" in der Regionen-Ebene), legt die
+  // aktive Spielleitung sie sofort neu an (0.2.11, gemeldet: "wenn ich in Regionen alles lösche, darf das uns
+  // nicht stören"). Radierer und rechte Maustaste löschen über das Modul und sind davon nicht betroffen.
+  Hooks.on("deleteRegion", (dokument, optionen) => {
+    const szene = dokument?.parent;
+    const aktiveSl = game.users?.activeGM ?? null;
+    if (!eigeneRegion(dokument) || optionen?.[MODUL] || !szene || !game.user?.isGM || (aktiveSl && aktiveSl.id !== game.user.id)) return;
+    void regionenAbgleichen(felderDerSzene(szene), szene).catch((fehler) => console.warn(`${MODUL} | Regionen`, fehler));
+  });
+  Hooks.on("canvasReady", () => {
+    const szene = canvas?.scene;
+    const aktiveSl = game.users?.activeGM ?? null;
+    if (!szene || !game.user?.isGM || (aktiveSl && aktiveSl.id !== game.user.id)) return;
+    const felder = kostenFelder(felderDerSzene(szene));
+    const fehlt = KOSTEN_ARTEN.some((art) => (felder[art]?.size ?? 0) > 0
+      && !szene.regions?.find?.((region) => region.getFlag?.(MODUL, "art") === art));
+    if (fehlt) void regionenAbgleichen(felder, szene).catch((fehler) => console.warn(`${MODUL} | Regionen`, fehler));
+  });
   Hooks.on("updateScene", (szene, aenderung) => {
     if (szene.id !== canvas?.scene?.id || !foundry.utils.hasProperty(aenderung, `flags.${MODUL}`)) return;
     anzeige.zeichnen();
     abzeichen.alleZeichnen();
+    aufraeumenPlanen();
   });
-  // Folgt dem Token auch während der Fahrt: refreshToken kommt bei jeder sichtbaren Änderung.
-  Hooks.on("refreshToken", (token) => abzeichen.zeichnen(token));
-  Hooks.on("deleteToken", (dokument) => abzeichen.entfernen(dokument.id));
+  Hooks.on("canvasReady", () => aufraeumenPlanen());
+  // Folgt dem Token auch während der Fahrt: refreshToken kommt bei jeder sichtbaren Änderung. Dort
+  // prüft die aktive Spielleitung auch, ob der Token eine Fläche erreicht hat (0.2.13).
+  Hooks.on("refreshToken", (token) => {
+    abzeichen.zeichnen(token);
+    const id = token?.id ?? token?.document?.id;
+    if (id) diagnoseBild(id, token);
+    const lage = { x: Number(token?.x), y: Number(token?.y) };
+    if (!id || istVorschau(token, id) || !Number.isFinite(lage.x) || !Number.isFinite(lage.y)) return;
+    const ziel = unterwegs.get(id);
+    fahrtPruefen(id, lage);
+    if (gleicheLage(lage, ziel)) {
+      unterwegs.delete(id);
+      // Messung kurz nach der Ankunft abschließen, damit die letzten Bilder dabei sind.
+      if (diagnosen.has(id)) setTimeout(() => diagnoseBeenden(id, "ziel"), 300)?.unref?.();
+    }
+  });
+  Hooks.on("deleteToken", (dokument) => {
+    abzeichen.entfernen(dokument.id);
+    fahrten.delete(dokument.id);
+    unterwegs.delete(dokument.id);
+  });
   // Die alte Lage merkt sich jeder Client selbst: preUpdateToken läuft nur beim Ziehenden, die
   // Prüfung aber bei der aktiven Spielleitung, auch wenn ein Spieler zieht.
   Hooks.on("canvasReady", () => {
     alteLagen.clear();
+    fahrten.clear();
+    unterwegs.clear();
     for (const dokument of canvas?.scene?.tokens ?? []) alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y });
   });
   Hooks.on("createToken", (dokument) => alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y }));
   Hooks.on("updateToken", (dokument, aenderung, optionen) => {
     if (!("x" in aenderung || "y" in aenderung)) return;
     const alt = alteLagen.get(dokument.id);
-    alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y });
+    const ziel = zugZiel(dokument, optionen, aenderung);
+    alteLagen.set(dokument.id, ziel);
     if (!alt || dokument.parent?.id !== canvas?.scene?.id || !istAktiveSpielleitung()) return;
-    betretenPruefen(dokument, alt, optionen).catch((fehler) => console.error(`[${MODUL}] Betreten prüfen`, fehler));
+    fahrtBeginnen(dokument, alt, optionen, ziel);
   });
   Hooks.once("ready", () => console.info(`[${MODUL}] Version ${VERSION} bereit.`));
 }

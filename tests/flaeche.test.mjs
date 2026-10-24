@@ -1,7 +1,7 @@
 // Frei gemalte Flächen (0.2.0) ohne Foundry. Aufruf: node --test tests/flaeche.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FEIN, bedeckung, flaechenAusStrichen, gelaendeWirkung, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "../scripts/flaeche.mjs";
+import { FEIN, bedeckung, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "../scripts/flaeche.mjs";
 
 const strich = (art, r, ...p) => ({ art, r, p });
 
@@ -33,6 +33,43 @@ test("Radierer nimmt allen Arten, neue Art ersetzt die alte", () => {
   assert.equal(schwierig.has("7,2"), false, "Radiert");
   assert.ok(schwierig.has("6,2") && schwierig.has("3,2"), "Der Rest bleibt");
   for (const k of flaechen.sehr) assert.equal(flaechen.schwierig.has(k), false, "Ein Punkt hat eine Art");
+});
+
+test("Arten verschiedener Gruppen liegen übereinander (0.2.11)", () => {
+  const striche = [
+    strich("schwierig", 1, 2.5, 2.5, 8.5, 2.5),
+    strich("gefahr", 0.5, 5.5, 2.5, 5.5, 2.5),
+    strich("uneben", 0.5, 3.5, 2.5, 3.5, 2.5),
+    strich("schmal", 0.5, 3.5, 2.5, 3.5, 2.5),
+    strich("gefahr", 0.5, 7.5, 2.5, 7.5, 2.5),
+    strich("schmal", 0.5, 7.5, 2.5, 7.5, 2.5)
+  ];
+  const zaehlend = (flaechen) => Object.fromEntries(Object.entries(flaechen).map(([art, menge]) => [art, zaehlendeFelder(menge)]));
+  const felder = zaehlend(flaechenAusStrichen(striche));
+  assert.ok(felder.schwierig.has("5,2") && felder.gefahr.has("5,2"), "Gefährlich auf schwierigem: beides");
+  assert.ok(felder.schwierig.has("3,2") && felder.schmal.has("3,2"), "Schmal bleibt über schwierigem");
+  assert.equal(felder.uneben.has("3,2"), false, "Schmal ersetzt uneben, beides ist Balancieren");
+  assert.ok(felder.schwierig.has("7,2") && felder.gefahr.has("7,2") && felder.schmal.has("7,2"), "Alle drei Gruppen auf einem Feld");
+  const radiert = zaehlend(flaechenAusStrichen([...striche, strich("radierer", 0.5, 7.5, 2.5, 7.5, 2.5)]));
+  assert.equal(["schwierig", "gefahr", "schmal"].some((art) => radiert[art].has("7,2")), false, "Der Radierer nimmt allen");
+});
+
+test("Reste unter einem Feld (0.2.14)", () => {
+  const tupfer = strichPunkte(strich("schmal", 0.25, 9.05, 2.5, 9.05, 2.5));
+  const band = strichPunkte(strich("schmal", 0.5, 2.5, 2.5, 5.5, 2.5));
+  assert.ok(tupfer.size < FEIN * FEIN && band.size >= FEIN * FEIN);
+  assert.deepEqual(kleineStuecke(new Set([...tupfer, ...band])).sort(), [...tupfer].sort(), "Nur der Tupfer ist zu klein");
+  // Schräg berühren reicht nicht: zwei Punkte, die sich nur an der Ecke treffen, sind zwei Stücke.
+  assert.equal(kleineStuecke(new Set([0, 1000001]), 2).length, 2);
+  // "weg" nimmt die genannten Punkte nur der genannten Art.
+  const weg = [...band].slice(0, 5);
+  const flaechen = flaechenAusStrichen([
+    strich("schmal", 0.5, 2.5, 2.5, 5.5, 2.5),
+    strich("gefahr", 0.5, 2.5, 2.5, 5.5, 2.5),
+    { art: "weg", von: "schmal", k: weg }
+  ]);
+  assert.equal(flaechen.schmal.size, band.size - 5);
+  assert.equal(flaechen.gefahr.size, band.size, "Die andere Art bleibt ganz");
 });
 
 test("Weicher Rand: geschlossener Zug um einen Fleck, ohne Treppenstufen der Feldgröße", () => {

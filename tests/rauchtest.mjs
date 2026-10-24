@@ -8,6 +8,8 @@ const hooks = new Map();
 const einmal = new Map();
 const protokoll = { regionen: [], chat: [], dialoge: 0, wuerfe: [], aktiviert: [], fehler: [] };
 
+// Das Bild des Tokens am Ziel seines Zugs (refreshToken), wie Foundry es nach der Fahrt zeichnet.
+const angekommen = (token) => hookAusloesen("refreshToken", { id: token.id, x: token.x, y: token.y });
 function hookAusloesen(name, ...args) {
   for (const fn of einmal.get(name) ?? []) fn(...args);
   einmal.delete(name);
@@ -132,6 +134,11 @@ globalThis.canvas = {
   }
 };
 const ruhe = async () => { for (let i = 0; i < 6; i += 1) await new Promise((r) => setTimeout(r, 0)); };
+// Aufräumen nach drei Sekunden (0.2.14): Die Attrappe sammelt diese Uhren, statt zu warten; der Test
+// unten löst eine davon selbst aus.
+const echteUhr = globalThis.setTimeout;
+const aufraeumUhren = [];
+globalThis.setTimeout = (fn, ms, ...rest) => (ms === 3000 ? aufraeumUhren.push(fn) : echteUhr(fn, ms, ...rest));
 const maus = (spalte, zeile) => { canvas.mousePosition = { x: spalte * FELD + 50, y: zeile * FELD + 50 }; };
 
 const modul = await import("../scripts/gelaendepinsel.mjs");
@@ -254,6 +261,15 @@ assert.deepEqual(flags.gelaendepinsel.felder.sehr, ["4,3"]);
 assert.equal(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "schwierig").daten.shapes.length, 2);
 assert.deepEqual(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "sehr").daten.behaviors[0].system.difficulties.walk, 3);
 
+// Gefährlich über ein Feld (0.2.11): liegt über dem sehr schwierigen, das bleibt.
+await game.settings.set("gelaendepinsel", "art", "gefahr");
+maus(4, 3);
+ebene._onClickLeft({});
+await ruhe();
+assert.deepEqual(flags.gelaendepinsel.felder.sehr, ["4,3"], "Sehr schwierig bleibt unter dem gefährlichen");
+assert.deepEqual(flags.gelaendepinsel.felder.gefahr, ["4,3"]);
+assert.deepEqual(flags.gelaendepinsel.felder.schwierig, ["2,3", "3,3", "5,3", "6,3"]);
+
 // Radierer mit Stempel 3: entfernt alles um (5,3); sehr schwieriges leer -> Region weg
 await game.settings.set("gelaendepinsel", "art", "radierer");
 await game.settings.set("gelaendepinsel", "groesse", 3);
@@ -262,6 +278,7 @@ ebene._onClickLeft({});
 await ruhe();
 assert.deepEqual(flags.gelaendepinsel.felder.schwierig, ["2,3", "6,3"]);
 assert.deepEqual(flags.gelaendepinsel.felder.sehr, []);
+assert.deepEqual(flags.gelaendepinsel.felder.gefahr, [], "Der Radierer nimmt auch das gefährliche");
 assert.ok(protokoll.regionen.some(([was, art]) => was === "delete" && art === "sehr"));
 
 // Anzeige seit 0.1.1: für alle gestrichelt, ein Zehntel so dick wie in 0.1.0 (hier die einfache Darstellung)
@@ -353,6 +370,23 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.ok(grafikDuncan.flaechen[1].punkte.every((wert, index) => index % 2
     ? wert >= 1000 && wert <= 1024 : wert >= 1102 && wert <= 1126), "Der Stiefel bleibt im Abzeichen");
   assert.equal(modul.abzeichen.je.get("riese").flaechen.length, 4);
+  // Lage einstellbar (0.2.11): Grund des ersten und des zweiten Abzeichens am großen Token.
+  const erwartet = {
+    rechtsOben: [[1202.4, 1000], [1202.4, 1026.4]],
+    rechtsUnten: [[1202.4, 1176], [1202.4, 1149.6]],
+    linksOben: [[973.6, 1000], [973.6, 1026.4]],
+    linksUnten: [[973.6, 1176], [973.6, 1149.6]],
+    oben: [[1000, 973.6], [1026.4, 973.6]],
+    unten: [[1000, 1202.4], [1026.4, 1202.4]]
+  };
+  assert.deepEqual(Object.keys(erwartet), Object.keys(modul.ABZEICHEN_LAGEN), "Sechs Lagen zur Wahl");
+  assert.equal(einstellungen.get("abzeichenLage").default, "rechtsOben", "Vorgabe wie bisher");
+  for (const [lage, punkte] of Object.entries(erwartet)) {
+    await game.settings.set("gelaendepinsel", "abzeichenLage", lage);
+    const grund = modul.abzeichen.je.get("riese").flaechen.filter((_f, i) => i % 2 === 0);
+    assert.deepEqual(grund.map((f) => [Math.round(f.x * 10) / 10, Math.round(f.y * 10) / 10]), punkte, `Lage ${lage}`);
+  }
+  await game.settings.set("gelaendepinsel", "abzeichenLage", "rechtsOben");
   assert.equal(modul.abzeichen.je.has("versteckt"), false, "Unsichtbare Tokens bekommen keins");
   assert.equal(modul.abzeichen.je.has("kiste"), false, "Schatzkiste (Beute) bekommt keins");
   assert.equal(modul.abzeichen.je.has("marke"), false, "Kartenmarke ohne Akteur bekommt keins");
@@ -394,6 +428,7 @@ szene.tokens.push({ ...silvor });
 hookAusloesen("canvasReady");
 silvor.x = 700;
 hookAusloesen("updateToken", silvor, { x: 700 }, {});
+angekommen(silvor);
 await ruhe();
 // Seit 0.2.7 statt Nachfrage eine Karte mit Rettungswurf und Schadenswurf zum Anklicken.
 assert.equal(protokoll.dialoge, 0, "Keine Nachfrage mehr");
@@ -409,12 +444,14 @@ silvor.x = 300;
 hookAusloesen("updateToken", silvor, { x: 300 }, { _movement: { silvor: { passed: { waypoints: [
   { x: 600, y: 600, action: "walk" }, { x: 400, y: 600, action: "walk" }, { x: 300, y: 500, action: "walk" }
 ] } } } });
+angekommen(silvor);
 await ruhe();
 assert.equal(protokoll.chat.length, chatNachGefahr, "Weg führt nicht durch das gefährliche Feld");
 
 // Teleport betritt nichts
 silvor.x = 700;
 hookAusloesen("updateToken", silvor, { x: 700 }, { _movement: { silvor: { passed: { waypoints: [{ x: 700, y: 500, action: "displace" }] } } } });
+angekommen(silvor);
 await ruhe();
 assert.equal(protokoll.chat.length, chatNachGefahr, "Teleport ohne Karte");
 
@@ -423,6 +460,7 @@ assert.equal(protokoll.chat.length, chatNachGefahr, "Teleport ohne Karte");
 silvor.x = 500;
 silvor.y = 700;
 hookAusloesen("updateToken", silvor, { x: 500, y: 700 }, {});
+angekommen(silvor);
 await ruhe();
 assert.equal(protokoll.chat.length, chatNachGefahr + 1);
 assert.deepEqual(protokoll.chat.at(-1).whisper, ["gm"]);
@@ -435,6 +473,7 @@ silvor.y = 500;
 silvor.x = 300;
 const chatVorGm2 = protokoll.chat.length;
 hookAusloesen("updateToken", silvor, { x: 300, y: 500 }, {});
+angekommen(silvor);
 await ruhe();
 assert.equal(protokoll.chat.length, chatVorGm2);
 game.user = spielleitung;
@@ -442,8 +481,11 @@ game.user = spielleitung;
 // Große Tokens zählen mit ihrer ganzen Fläche
 {
   const troll = { id: "troll", x: 300, y: 300, width: 2, height: 2, parent: szene };
-  const felder = modul.betreteneFelder(troll, { x: 100, y: 300 }, {});
-  assert.deepEqual([...felder].sort(), ["3,3", "3,4", "4,3", "4,4"], "Neu betreten: die Felder ohne die Startfläche");
+  const steg = { schmal: new Set(["3,4", "4,4", "5,4"]) };
+  assert.deepEqual([...modul.betreteneArten(troll, { x: 100, y: 300 }, {}, steg, ["schmal"])], [["schmal", "3,4"]],
+    "Betritt mit der rechten Kante, schon beim ersten Schritt");
+  troll.x = 400;
+  assert.equal(modul.betreteneArten(troll, { x: 300, y: 300 }, {}, steg, ["schmal"]).size, 0, "Schon darin: betritt nichts");
 }
 
 // Fliegend: Abzeichen blass, keine Nachfrage bei Gefahr
@@ -459,6 +501,7 @@ game.user = spielleitung;
   hookAusloesen("canvasReady");
   flieger.x = 700;
   hookAusloesen("updateToken", flieger, { x: 700 }, { _movement: { flieger: { passed: { waypoints: [{ x: 700, y: 500, action: "fly" }] } } } });
+  angekommen(flieger);
   await ruhe();
   assert.equal(protokoll.chat.length, vorher, "Ueber gefaehrliches Gelaende geflogen: keine Karte");
 }
@@ -474,6 +517,14 @@ for (const x of [400, 550, 700, 850]) {
   ebene._onDragLeftMove({});
 }
 assert.ok(modul.anzeige.entwurfStrich, "Waehrend des Malens eine Vorschau");
+// Seit 0.2.10 ein durchgehendes rundes Band statt eines Rechtecks je Mausstueck ("wie Bretter verlegen").
+{
+  const band = modul.anzeige.grafik.striche.filter((strich) => strich.alpha === 0.25);
+  assert.equal(band.length, 1, "Ein Band, nicht ein Stueck je Mausbewegung");
+  assert.equal(band[0].cap, "round", "Runde Enden");
+  assert.equal(band[0].join, "round", "Runde Biegungen");
+  assert.deepEqual([band[0].von.x, band[0].nach.x], [250, 850], "Vom ersten bis zum letzten Mauspunkt");
+}
 ebene._onDragLeftDrop({});
 await ruhe();
 assert.equal(flags.gelaendepinsel.striche.length, 1);
@@ -614,6 +665,311 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.equal(modul.haltAn({ x: 400, y: 1200, w: 100, h: 100, actor: { isOfType: () => false }, document: {} }), null, "Kiste");
   assert.equal(modul.haltAn({ x: 400, y: 2000, w: 100, h: 100, actor: lebewesen, document: {} }), null, "Daneben");
   await game.settings.set("gelaendepinsel", "sg", 0);
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+}
+
+// Eine Karte je Betreten, nicht je Schritt (0.2.12): Wer sich in der Fläche weiterbewegt, bekommt
+// keine neue, auch nicht über mehrere Züge. Erst wer sie verlässt und wieder betritt.
+{
+  await game.settings.set("gelaendepinsel", "rasterModus", true);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  await game.settings.set("gelaendepinsel", "art", "uneben");
+  maus(2, 18);
+  ebene._onDragLeftStart({});
+  maus(8, 18);
+  ebene._onDragLeftMove({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  assert.deepEqual(flags.gelaendepinsel.felder.uneben, ["2,18", "3,18", "4,18", "5,18", "6,18", "7,18", "8,18"]);
+  const geroell = { id: "geroell", name: "Brandy", x: 100, y: 1800, width: 1, height: 1, parent: szene };
+  szene.tokens.push({ ...geroell });
+  hookAusloesen("canvasReady");
+  const zug = async (x, y) => {
+    const vorher = protokoll.chat.length;
+    geroell.x = x;
+    geroell.y = y;
+    hookAusloesen("updateToken", geroell, { x, y }, {});
+    angekommen(geroell);
+    await ruhe();
+    return protokoll.chat.length - vorher;
+  };
+  assert.equal(await zug(200, 1800), 1, "Hinein: eine Karte");
+  assert.match(protokoll.chat.at(-1).content, /Brandy<\/strong> betritt unebenen Boden: Balancieren/);
+  assert.equal(await zug(300, 1800), 0, "Ein Feld weiter: keine");
+  assert.equal(await zug(600, 1800), 0, "Drei Felder weiter: keine");
+  assert.equal(await zug(600, 1900), 0, "Hinaus: keine");
+  assert.equal(await zug(700, 1800), 1, "Wieder hinein: eine neue Karte");
+  assert.equal(await zug(1000, 1800), 0, "Hinaus über das Ende");
+  assert.equal(await zug(100, 1800), 1, "In einem Zug quer hindurch: eine Karte, nicht sieben");
+  // Eine zweite Fläche derselben Art bei (11,18): im selben Zug hinaus und dort hinein gibt eine neue Karte.
+  maus(11, 18);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.equal(await zug(500, 1800), 1, "Hinein");
+  assert.equal(await zug(1100, 1800), 1, "Aus der ersten Fläche in die zweite, im selben Zug");
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+}
+
+// Die Karte kommt, wenn der Token die Fläche sichtbar erreicht, nicht beim Losfahren (0.2.13). Gemessen
+// am echten Token (object), nicht an Foundrys Vorschau beim Ziehen, die dieselbe ID trägt (0.2.14).
+{
+  await game.settings.set("gelaendepinsel", "rasterModus", true);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  await game.settings.set("gelaendepinsel", "art", "gefahr");
+  maus(4, 22);
+  ebene._onClickLeft({});
+  await ruhe();
+  const laeufer = { id: "laeufer", name: "Isadora", x: 100, y: 2200, width: 1, height: 1, parent: szene };
+  laeufer.object = { id: "laeufer", x: 100, y: 2200 };
+  szene.tokens.push({ id: "laeufer", x: 100, y: 2200 });
+  hookAusloesen("canvasReady");
+  const bild = async (x, y = 2200) => {
+    laeufer.object.x = x;
+    laeufer.object.y = y;
+    hookAusloesen("refreshToken", laeufer.object);
+    await ruhe();
+  };
+  const vorschau = async (x) => {
+    hookAusloesen("refreshToken", { id: "laeufer", x, y: 2200, isPreview: true });
+    await ruhe();
+  };
+  let vorher = protokoll.chat.length;
+  // Ziehen: Die Vorschau steht beim Loslassen am Ziel, der Token noch am Start.
+  await vorschau(400);
+  await vorschau(600);
+  laeufer.x = 600;
+  hookAusloesen("updateToken", laeufer, { x: 600 }, {});
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher, "Beim Losfahren noch keine Karte");
+  await vorschau(600);
+  await bild(200);
+  await bild(340);
+  assert.equal(protokoll.chat.length, vorher, "Kurz vor der Fläche: keine, auch nicht durch die Vorschau");
+  await bild(360);
+  assert.equal(protokoll.chat.length, vorher + 1, "Zur Hälfte auf der Fläche: die Karte");
+  assert.match(protokoll.chat.at(-1).content, /Isadora<\/strong> geht durch gefährliches Gelände/);
+  await bild(500);
+  await bild(600);
+  assert.equal(protokoll.chat.length, vorher + 1, "Am Ziel keine zweite");
+
+  // Vor der Fläche angehalten: keine Karte, auch nicht durch den Zug, der das Anhalten speichert.
+  vorher = protokoll.chat.length;
+  laeufer.x = 100;
+  hookAusloesen("updateToken", laeufer, { x: 100 }, {});
+  await bild(560);
+  await bild(520);
+  laeufer.x = 520;
+  hookAusloesen("updateToken", laeufer, { x: 520 }, {});
+  await bild(520);
+  assert.equal(protokoll.chat.length, vorher, "Vor der Fläche angehalten: keine Karte");
+
+  // Sprung ohne Fahrt, schon am Ziel gezeichnet: die Karte gleich.
+  vorher = protokoll.chat.length;
+  laeufer.object.x = 100;
+  laeufer.x = 100;
+  hookAusloesen("updateToken", laeufer, { x: 100 }, {});
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Sprung ohne Fahrt: die Karte gleich");
+
+  // Umweg über Wegpunkte, gezeichnet nur am Ziel: Was zwischen zwei Bildern liegt, kommt am Ziel.
+  const umweg = { id: "umweg", name: "Lucne", x: 200, y: 2500, width: 1, height: 1, parent: szene };
+  umweg.object = { id: "umweg", x: 200, y: 2500 };
+  szene.tokens.push({ id: "umweg", x: 200, y: 2500 });
+  hookAusloesen("canvasReady");
+  vorher = protokoll.chat.length;
+  umweg.x = 600;
+  hookAusloesen("updateToken", umweg, { x: 600 }, { _movement: { umweg: { passed: { waypoints: [
+    { x: 400, y: 2200, action: "walk" }, { x: 600, y: 2500, action: "walk" }
+  ] } } } });
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher, "Noch unterwegs");
+  umweg.object.x = 600;
+  hookAusloesen("refreshToken", umweg.object);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Am Ziel: die Karte vom Umweg");
+
+  // Ohne Fahrt gesetzt (animate: false): kein Bild dazwischen, die Karte gleich.
+  vorher = protokoll.chat.length;
+  umweg.x = 200;
+  hookAusloesen("updateToken", umweg, { x: 200 }, { animate: false, _movement: { umweg: { passed: { waypoints: [
+    { x: 400, y: 2200, action: "walk" }, { x: 200, y: 2500, action: "walk" }
+  ] } } } });
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Ohne Fahrt: die Karte sofort");
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+}
+
+// Wie in Foundry 14 gemessen (0.2.16): Beim Speichern steht im Dokument noch der Anfang, das Ziel steht
+// im letzten Wegpunkt und in den Änderungen; während der Fahrt folgen Dokument und Bild gemeinsam. Die
+// Karte kommt, wenn der Token das Feld mindestens zur Hälfte bedeckt.
+{
+  const f14 = { id: "f14", name: "Dero", x: 100, y: 2200, width: 1, height: 1, parent: szene };
+  f14.object = { id: "f14", x: 100, y: 2200, document: f14 };
+  szene.tokens.push({ id: "f14", x: 100, y: 2200 });
+  hookAusloesen("canvasReady");
+  const bild = (x) => {
+    f14.x = x;
+    f14.object.x = x;
+    hookAusloesen("refreshToken", f14.object);
+  };
+  const vorher = protokoll.chat.length;
+  hookAusloesen("updateToken", f14, { x: 600 }, { _movement: { f14: { passed: { waypoints: [{ x: 600, y: 2200, action: "walk" }] } } } });
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher, "Beim Speichern keine Karte, obwohl das Dokument noch am Anfang steht");
+  bild(340);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher, "Zu 40 Prozent auf dem Feld: noch keine");
+  bild(350);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Genau zur Hälfte: die Karte");
+  for (const x of [450, 600]) bild(x);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Bis zum Ziel keine zweite");
+  // Der nächste Zug fährt vom Ziel los, nicht von der Lage beim letzten Speichern.
+  hookAusloesen("updateToken", f14, { x: 900 }, { _movement: { f14: { passed: { waypoints: [{ x: 900, y: 2200, action: "walk" }] } } } });
+  bild(900);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Vom Ziel weiter, weg von der Fläche: keine Karte");
+}
+
+// Messung (0.2.15): Ein Zug durch eine Fläche schreibt eine Datei in den Modulspeicher, mit der Lage
+// beim Speichern, den Bildern davor und danach und dem Zeitpunkt der Karte.
+{
+  // Messungen der Züge weiter oben enden vorher, ohne Ablage.
+  await new Promise((fertig) => echteUhr(fertig, 400));
+  const hochgeladen = [];
+  foundry.applications.apps = { FilePicker: { uploadPersistent: async (...werte) => hochgeladen.push(werte) } };
+  const manifest = JSON.parse(readFileSync(new URL("../module.json", import.meta.url), "utf8"));
+  assert.equal(manifest.persistentStorage, true, "Modulspeicher angemeldet");
+  // Seit 0.2.17 aus: Ein Zug durch die Fläche schreibt nichts.
+  const stumm = { id: "stumm", name: "Brandy", x: 100, y: 2200, width: 1, height: 1, parent: szene };
+  stumm.object = { id: "stumm", x: 100, y: 2200, document: stumm };
+  szene.tokens.push({ id: "stumm", x: 100, y: 2200 });
+  hookAusloesen("canvasReady");
+  hookAusloesen("updateToken", stumm, { x: 600 }, { _movement: { stumm: { passed: { waypoints: [{ x: 600, y: 2200, action: "walk" }] } } } });
+  for (const x of [360, 600]) {
+    stumm.x = x;
+    stumm.object.x = x;
+    hookAusloesen("refreshToken", stumm.object);
+  }
+  await new Promise((fertig) => echteUhr(fertig, 400));
+  await ruhe();
+  assert.equal(hochgeladen.length, 0, "Messung aus: keine Datei");
+  await game.settings.set("gelaendepinsel", "messung", true);
+  const messer = { id: "messer", name: "Silvor", x: 100, y: 2200, width: 1, height: 1, parent: szene };
+  messer.object = { id: "messer", x: 100, y: 2200, document: messer };
+  szene.tokens.push({ id: "messer", x: 100, y: 2200 });
+  hookAusloesen("canvasReady");
+  hookAusloesen("refreshToken", messer.object);
+  messer.x = 600;
+  hookAusloesen("updateToken", messer, { x: 600 }, {});
+  for (const x of [200, 360, 600]) {
+    messer.object.x = x;
+    hookAusloesen("refreshToken", messer.object);
+  }
+  await new Promise((fertig) => echteUhr(fertig, 400));
+  await ruhe();
+  assert.equal(hochgeladen.length, 1, "Eine Messung geschrieben");
+  const [modulId, ordner, datei, , optionen] = hochgeladen[0];
+  assert.deepEqual([modulId, ordner, datei.name, optionen.notify], ["gelaendepinsel", "diagnostics", "gelaendepinsel-diagnose-01.json", false]);
+  const messung = JSON.parse(await datei.text());
+  assert.equal(messung.version, manifest.version, "Fassung aus dem Manifest");
+  assert.equal(messung.ende, "ziel");
+  assert.deepEqual(messung.kopf.beimSpeichern.x, 100, "Lage des echten Tokens beim Speichern");
+  assert.equal(messung.kopf.vorher.length, 1, "Das Bild vor dem Speichern");
+  assert.deepEqual(messung.bilder.map((bild) => bild.x), [200, 360, 600]);
+  assert.deepEqual(messung.karten.map(({ art, grund, bildNr }) => [art, grund, bildNr]), [["gefahr", "bild", 2]], "Karte beim zweiten Bild");
+  delete foundry.applications.apps;
+  await game.settings.set("gelaendepinsel", "messung", false);
+}
+
+// Reste unter einem Feld räumen sich nach drei Sekunden selbst weg (0.2.14). Ein Stück zählt mit den
+// Rasterfeldern, an die es grenzt.
+{
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  await game.settings.set("gelaendepinsel", "art", "schmal");
+  canvas.mousePosition = { x: 250, y: 2850 };
+  ebene._onDragLeftStart({});
+  canvas.mousePosition = { x: 550, y: 2850 };
+  ebene._onDragLeftMove({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  const tupfen = async (x, y) => {
+    canvas.mousePosition = { x, y };
+    ebene._onDragLeftStart({});
+    ebene._onDragLeftDrop({});
+    await ruhe();
+  };
+  await game.settings.set("gelaendepinsel", "groesse", 0.5);
+  await tupfen(905, 2850);
+  await game.settings.set("gelaendepinsel", "rasterModus", true);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  maus(12, 28);
+  ebene._onClickLeft({});
+  await ruhe();
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "groesse", 0.5);
+  await tupfen(1305, 2850);
+  const punkteIn = (menge, spalte, zeile) => [...menge].filter((k) => Math.floor((k % 1000000) / 8) === spalte && Math.floor(Math.floor(k / 1000000) / 8) === zeile).length;
+  let schmal = modul.flaechenDerSzene(szene).flaechen.schmal;
+  assert.ok(punkteIn(schmal, 9, 28) > 0, "Der Tupfer ist erst einmal da");
+  aufraeumUhren.length = 0;
+  hookAusloesen("updateScene", szene, { flags: { gelaendepinsel: {} } });
+  assert.equal(aufraeumUhren.length, 1, "Aufräumen nach drei Sekunden geplant");
+  assert.equal(modul.AUFRAEUMEN_MS, 3000);
+  aufraeumUhren.pop()();
+  await ruhe();
+  schmal = modul.flaechenDerSzene(szene).flaechen.schmal;
+  assert.equal(punkteIn(schmal, 9, 28), 0, "Der Tupfer allein ist weg");
+  assert.ok(punkteIn(schmal, 3, 28) > 0 && punkteIn(schmal, 5, 28) > 0, "Der Strich über drei Felder bleibt");
+  assert.ok(punkteIn(schmal, 13, 28) > 0, "Der Tupfer am Rasterfeld bleibt, beide sind ein Stück");
+  assert.equal(flags.gelaendepinsel.striche.at(-1).art, "weg");
+  assert.equal(flags.gelaendepinsel.striche.at(-1).von, "schmal");
+  assert.equal(await modul.resteRaeumen(szene), 0, "Ein zweiter Lauf findet nichts mehr");
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+}
+
+// Übereinander (0.2.11): Gefährliches Gelände auf schwierigem nimmt das schwierige nicht weg, beides
+// wirkt. Sehr schwierig über schwierig zählt nur einmal: 10 Fuß mehr, nicht 15.
+{
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  const ziehen = async (art, von, bis, y) => {
+    await game.settings.set("gelaendepinsel", "art", art);
+    canvas.mousePosition = { x: von, y };
+    ebene._onDragLeftStart({});
+    canvas.mousePosition = { x: bis, y };
+    ebene._onDragLeftMove({});
+    ebene._onDragLeftDrop({});
+    await ruhe();
+  };
+  await ziehen("schwierig", 250, 850, 1550);
+  await ziehen("gefahr", 450, 550, 1550);
+  let felder = modul.felderDerSzene();
+  assert.ok(felder.schwierig.has("4,15") && felder.gefahr.has("4,15"), "Gefährlich auf schwierigem: beides");
+  await ziehen("sehr", 650, 750, 1550);
+  felder = modul.felderDerSzene();
+  assert.ok(felder.sehr.has("6,15") && !felder.schwierig.has("6,15"), "Sehr schwierig ersetzt das schwierige");
+  assert.ok(felder.gefahr.has("4,15") && felder.schwierig.has("4,15"), "Das gefährliche und das schwierige daneben bleiben");
+  // Am Raster sehr schwierig, wo frei gemalt schwierig zählt: Die Regionen überlappen trotzdem nicht.
+  await game.settings.set("gelaendepinsel", "rasterModus", true);
+  await game.settings.set("gelaendepinsel", "art", "sehr");
+  maus(3, 15);
+  ebene._onClickLeft({});
+  await ruhe();
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  felder = modul.felderDerSzene();
+  assert.ok(felder.schwierig.has("3,15") && felder.sehr.has("3,15"), "Frei schwierig, am Raster sehr schwierig");
+  const formen = (art) => szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === art).daten.shapes;
+  const deckt = (liste, spalte, zeile) => liste.some((f) => f.x <= spalte * 100 && spalte * 100 < f.x + f.width && f.y <= zeile * 100 && zeile * 100 < f.y + f.height);
+  assert.equal(deckt(formen("schwierig"), 3, 15), false, "Wo beides zählt, keine schwierige Region darunter");
+  assert.equal(deckt(formen("schwierig"), 6, 15), false, "Frei übermalt: auch dort nicht");
+  assert.ok(deckt(formen("sehr"), 3, 15) && deckt(formen("sehr"), 6, 15), "Sehr schwierig an beiden Stellen");
+  assert.ok(deckt(formen("schwierig"), 2, 15) && deckt(formen("schwierig"), 4, 15), "Schwierig daneben und unter dem gefährlichen");
   await game.settings.set("gelaendepinsel", "art", "schwierig");
 }
 

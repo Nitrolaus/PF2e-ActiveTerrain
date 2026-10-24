@@ -9,15 +9,25 @@
  */
 
 // name ist der Übersetzungsschlüssel (lang/de.json, lang/en.json); übersetzt wird erst beim Anzeigen.
+// gruppe (0.2.11, 24.10.2026: "kann ich ein sehr schwieriges Gelände in ein schwieriges setzen oder
+// ein gefährliches Gelände"): Arten einer Gruppe schließen sich aus, neu Gemaltes ersetzt dort die alte.
+// Arten verschiedener Gruppen liegen übereinander und wirken beide. Kosten: schwierig oder sehr
+// schwierig. Halt: schmal oder uneben, beides Balancieren. Gefahr für sich.
 export const ARTEN = Object.freeze({
-  schwierig: Object.freeze({ schwierigkeit: 2, farbe: "#ffd34d", name: "GELAENDEPINSEL.Arten.schwierig" }),
-  sehr: Object.freeze({ schwierigkeit: 3, farbe: "#ff8c3a", name: "GELAENDEPINSEL.Arten.sehr" }),
-  gefahr: Object.freeze({ schwierigkeit: 1, farbe: "#ff4a4a", name: "GELAENDEPINSEL.Arten.gefahr" }),
-  schmal: Object.freeze({ schwierigkeit: 1, farbe: "#5cc8ff", name: "GELAENDEPINSEL.Arten.schmal" }),
-  uneben: Object.freeze({ schwierigkeit: 1, farbe: "#c08cff", name: "GELAENDEPINSEL.Arten.uneben" })
+  schwierig: Object.freeze({ schwierigkeit: 2, farbe: "#ffd34d", name: "GELAENDEPINSEL.Arten.schwierig", gruppe: "kosten" }),
+  sehr: Object.freeze({ schwierigkeit: 3, farbe: "#ff8c3a", name: "GELAENDEPINSEL.Arten.sehr", gruppe: "kosten" }),
+  gefahr: Object.freeze({ schwierigkeit: 1, farbe: "#ff4a4a", name: "GELAENDEPINSEL.Arten.gefahr", gruppe: "gefahr" }),
+  schmal: Object.freeze({ schwierigkeit: 1, farbe: "#5cc8ff", name: "GELAENDEPINSEL.Arten.schmal", gruppe: "halt" }),
+  uneben: Object.freeze({ schwierigkeit: 1, farbe: "#c08cff", name: "GELAENDEPINSEL.Arten.uneben", gruppe: "halt" })
 });
 
 export const schluessel = (spalte, zeile) => `${spalte},${zeile}`;
+
+/** Nimmt Malen mit neu (Art oder "radierer") der Art alt ihre Stelle? Der Radierer nimmt allen. */
+export function ersetzt(neu, alt) {
+  if (neu === "radierer") return true;
+  return Boolean(ARTEN[neu] && ARTEN[alt] && ARTEN[neu].gruppe === ARTEN[alt].gruppe);
+}
 
 export function zerlege(feld) {
   const [spalte, zeile] = String(feld).split(",").map(Number);

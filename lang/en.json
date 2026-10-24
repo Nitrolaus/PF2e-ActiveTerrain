@@ -40,6 +40,16 @@
         "Name": "Advanced: Faintly shade counting squares (GM only)",
         "Hint": "Shows which squares are at least half painted and therefore cost movement."
       },
+      "AbzeichenLage": {
+        "Name": "Advanced: Position of the badges at the token",
+        "Hint": "Where the boot badges for the terrain under a token are shown. Applies to this computer only.",
+        "RechtsOben": "Right side, from the top (default)",
+        "RechtsUnten": "Right side, from the bottom",
+        "LinksOben": "Left side, from the top",
+        "LinksUnten": "Left side, from the bottom",
+        "Oben": "Above, side by side",
+        "Unten": "Below, side by side"
+      },
       "RasterModus": {
         "Name": "Advanced: Paint on the grid instead of freehand",
         "Hint": "Paints whole squares as up to 0.1.2, for example for rooms with straight walls."
@@ -94,7 +104,8 @@
       "Gefahr": "{name} moves through hazardous terrain."
     },
     "Fehler": {
-      "Speichern": "Terrain Brush: The terrain could not be saved."
+      "Speichern": "Terrain Brush: The terrain could not be saved.",
+      "RegionGeschuetzt": "Terrain regions can only be removed with the Terrain Brush eraser."
     }
   }
 }

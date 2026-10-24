@@ -7,7 +7,7 @@
  * mindestens die Hälfte seiner Punkte bemalt ist (23.10.2026).
  */
 
-import { ARTEN, schluessel } from "./felder.mjs";
+import { ARTEN, ersetzt, schluessel } from "./felder.mjs";
 
 export const FEIN = 8;
 const FEIN_FLAECHE = FEIN * FEIN;
@@ -46,21 +46,54 @@ export function strichPunkte(strich) {
 }
 
 /**
- * Alle Striche der Reihe nach: Malen setzt die Punkte für seine Art und nimmt sie den anderen
- * (ein Punkt hat eine Art), der Radierer nimmt sie allen. Ergebnis: { art: Set(feine Punkte) }.
+ * Alle Striche der Reihe nach: Malen setzt die Punkte für seine Art und nimmt sie den anderen Arten
+ * seiner Gruppe (ein Punkt hat je Gruppe eine Art, seit 0.2.11), der Radierer nimmt sie allen.
+ * Ergebnis: { art: Set(feine Punkte) }.
  */
 export function flaechenAusStrichen(striche = []) {
   const flaechen = {};
   for (const art of Object.keys(ARTEN)) flaechen[art] = new Set();
   for (const strich of striche) {
+    // Weggeräumte Reste (0.2.14): { art: "weg", von: Art, k: feine Punkte }.
+    if (strich?.art === "weg") {
+      for (const k of strich.k ?? []) flaechen[strich.von]?.delete(k);
+      continue;
+    }
     const punkte = strichPunkte(strich);
     for (const [art, menge] of Object.entries(flaechen)) {
-      if (art === strich.art) continue;
+      if (art === strich.art || !ersetzt(strich.art, art)) continue;
       for (const k of punkte) menge.delete(k);
     }
     if (flaechen[strich.art]) for (const k of punkte) flaechen[strich.art].add(k);
   }
   return flaechen;
+}
+
+/**
+ * Feine Punkte aller zusammenhängenden Stücke (Nachbarn links, rechts, oben, unten) mit weniger als
+ * mindest Punkten. Vorgabe ist ein Feld (0.2.14): Kleinere Reste räumen sich selbst weg.
+ */
+export function kleineStuecke(punkte, mindest = FEIN_FLAECHE) {
+  const offen = new Set(punkte);
+  const klein = [];
+  for (const anfang of punkte) {
+    if (!offen.has(anfang)) continue;
+    offen.delete(anfang);
+    const stueck = [anfang];
+    for (let i = 0; i < stueck.length; i += 1) {
+      const { fx, fy } = punktAus(stueck[i]);
+      const nachbarn = [punktSchluessel(fx + 1, fy), punktSchluessel(fx, fy + 1)];
+      if (fx > 0) nachbarn.push(punktSchluessel(fx - 1, fy));
+      if (fy > 0) nachbarn.push(punktSchluessel(fx, fy - 1));
+      for (const nachbar of nachbarn) {
+        if (!offen.has(nachbar)) continue;
+        offen.delete(nachbar);
+        stueck.push(nachbar);
+      }
+    }
+    if (stueck.length < mindest) klein.push(...stueck);
+  }
+  return klein;
 }
 
 /** Felder mit mindestens der Hälfte bemalt, als Schlüssel "spalte,zeile". */

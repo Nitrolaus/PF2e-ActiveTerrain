@@ -40,6 +40,16 @@
         "Name": "Erweitert: Zählende Felder blass hinterlegen (nur Spielleitung)",
         "Hint": "Zeigt, welche Felder zur Hälfte bemalt sind und damit Bewegung kosten."
       },
+      "AbzeichenLage": {
+        "Name": "Erweitert: Lage der Abzeichen am Token",
+        "Hint": "Wo die Stiefel-Abzeichen für das Gelände unter einem Token stehen. Gilt nur für diesen Rechner.",
+        "RechtsOben": "Rechts daneben, von oben (Standard)",
+        "RechtsUnten": "Rechts daneben, von unten",
+        "LinksOben": "Links daneben, von oben",
+        "LinksUnten": "Links daneben, von unten",
+        "Oben": "Darüber, nebeneinander",
+        "Unten": "Darunter, nebeneinander"
+      },
       "RasterModus": {
         "Name": "Erweitert: Am Raster malen statt frei",
         "Hint": "Malt ganze Felder wie bis 0.1.2, etwa für Räume mit geraden Wänden."
@@ -94,7 +104,8 @@
       "Gefahr": "{name} geht durch gefährliches Gelände."
     },
     "Fehler": {
-      "Speichern": "Geländepinsel: Das Gelände konnte nicht gespeichert werden."
+      "Speichern": "Geländepinsel: Das Gelände konnte nicht gespeichert werden.",
+      "RegionGeschuetzt": "Geländeregionen lassen sich nur mit dem Radierer des Geländepinsels entfernen."
     }
   }
 }
