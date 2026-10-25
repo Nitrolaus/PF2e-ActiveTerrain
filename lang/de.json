@@ -1,6 +1,6 @@
 {
   "GELAENDEPINSEL": {
-    "Titel": "Geländepinsel",
+    "Titel": "PF2e-ActiveTerrain",
     "Arten": {
       "schwierig": "Schwieriges Gelände",
       "sehr": "Sehr Schwieriges Gelände",
@@ -18,7 +18,7 @@
     },
     "Einstellung": {
       "Anzeigen": {
-        "Name": "Geländepinsel: Gelände anzeigen",
+        "Name": "PF2e-ActiveTerrain: Gelände anzeigen",
         "Hint": "Zeigt die Umrandungen des gemalten Geländes. Auf die Bewegung wirkt es immer."
       },
       "Deckkraft": {
@@ -30,7 +30,7 @@
         "Hint": "Wie dick die Umrandungen gezeichnet werden. Wirkt bei der Darstellung Weich und Einfach am Raster."
       },
       "Darstellung": {
-        "Name": "Geländepinsel: Darstellung",
+        "Name": "PF2e-ActiveTerrain: Darstellung",
         "Hint": "Weich zeigt den frei gemalten Rand, einfach den Rand am Raster (schont alte Rechner), aus zeigt keine Linien. Gerechnet wird immer.",
         "Weich": "Weich (Standard)",
         "Einfach": "Einfach am Raster",
@@ -66,7 +66,7 @@
       "Ausblenden": "Gelände ausblenden"
     },
     "Werte": {
-      "Titel": "Geländepinsel: Werte der Fläche",
+      "Titel": "PF2e-ActiveTerrain: Werte der Fläche",
       "Gilt": "Gilt für alles, was du ab jetzt schmal, uneben oder gefährlich malst.",
       "SG": "SG",
       "Leer": "Leer: stufengerecht nach Gruppenstufe {stufe}, also SG {sg}.",
@@ -96,7 +96,7 @@
       "will": "Willen, einfach",
       "keiner": "kein Rettungswurf"
     },
-    "Region": "Geländepinsel: {art}",
+    "Region": "PF2e-ActiveTerrain: {art}",
     "Karte": {
       "Jemand": "Jemand",
       "Schmal": "{name} betritt eine schmale Oberfläche: Balancieren (Akrobatik). Auf dem Falschen Fuß, solange die Figur darauf steht.",
@@ -104,8 +104,7 @@
       "Gefahr": "{name} geht durch gefährliches Gelände."
     },
     "Fehler": {
-      "Speichern": "Geländepinsel: Das Gelände konnte nicht gespeichert werden.",
-      "RegionGeschuetzt": "Geländeregionen lassen sich nur mit dem Radierer des Geländepinsels entfernen."
+      "Speichern": "PF2e-ActiveTerrain: Das Gelände konnte nicht gespeichert werden."
     }
   }
 }

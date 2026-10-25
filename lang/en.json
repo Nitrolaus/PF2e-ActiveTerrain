@@ -1,6 +1,6 @@
 {
   "GELAENDEPINSEL": {
-    "Titel": "Terrain Brush",
+    "Titel": "PF2e-ActiveTerrain",
     "Arten": {
       "schwierig": "Difficult Terrain",
       "sehr": "Greater Difficult Terrain",
@@ -18,7 +18,7 @@
     },
     "Einstellung": {
       "Anzeigen": {
-        "Name": "Terrain Brush: Show terrain",
+        "Name": "PF2e-ActiveTerrain: Show terrain",
         "Hint": "Shows the outlines of the painted terrain. It always affects movement."
       },
       "Deckkraft": {
@@ -30,7 +30,7 @@
         "Hint": "How thick the outlines are drawn. Applies to the Smooth and Simple displays."
       },
       "Darstellung": {
-        "Name": "Terrain Brush: Display",
+        "Name": "PF2e-ActiveTerrain: Display",
         "Hint": "Smooth shows the freely painted edge, simple shows the edge along the grid (easier on old computers), off shows no lines. Terrain is always calculated.",
         "Weich": "Smooth (default)",
         "Einfach": "Simple, along the grid",
@@ -66,7 +66,7 @@
       "Ausblenden": "Hide terrain"
     },
     "Werte": {
-      "Titel": "Terrain Brush: Area values",
+      "Titel": "PF2e-ActiveTerrain: Area values",
       "Gilt": "Applies to everything you paint as narrow, uneven or hazardous from now on.",
       "SG": "DC",
       "Leer": "Empty: level-based DC for party level {stufe}, i.e. DC {sg}.",
@@ -96,7 +96,7 @@
       "will": "basic Will",
       "keiner": "no save"
     },
-    "Region": "Terrain Brush: {art}",
+    "Region": "PF2e-ActiveTerrain: {art}",
     "Karte": {
       "Jemand": "Someone",
       "Schmal": "{name} steps onto a narrow surface: Balance (Acrobatics). Off-Guard while standing on it.",
@@ -104,8 +104,7 @@
       "Gefahr": "{name} moves through hazardous terrain."
     },
     "Fehler": {
-      "Speichern": "Terrain Brush: The terrain could not be saved.",
-      "RegionGeschuetzt": "Terrain regions can only be removed with the Terrain Brush eraser."
+      "Speichern": "PF2e-ActiveTerrain: The terrain could not be saved."
     }
   }
 }

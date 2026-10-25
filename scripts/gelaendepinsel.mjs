@@ -13,7 +13,7 @@ import { FEIN, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.2.17";
+const VERSION = "0.2.28";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -403,13 +403,17 @@ async function regionenAbgleichen(felder, szene) {
       continue;
     }
     const shapes = formenFuer(menge);
+    // Namen in der Sprache der Spielleitung, die die Region anlegt; gefunden wird sie über das Flag.
+    const name = uebersetzen("GELAENDEPINSEL.Region", { art: uebersetzen(ARTEN[art].name) });
     if (vorhanden) {
-      await vorhanden.update({ shapes });
+      // Umbenannt in PF2e-ActiveTerrain (0.2.28, 24.10.2026): Regionen mit dem alten Namen ziehen beim
+      // nächsten Abgleich mit; die Kennung "gelaendepinsel" und damit Flags und Einstellungen bleiben.
+      const alt = /^(Geländepinsel|Terrain Brush):/.test(String(vorhanden.name ?? ""));
+      await vorhanden.update(alt ? { shapes, name } : { shapes });
       continue;
     }
-    // Namen in der Sprache der Spielleitung, die die Region anlegt; gefunden wird sie über das Flag.
     const daten = {
-      name: uebersetzen("GELAENDEPINSEL.Region", { art: uebersetzen(ARTEN[art].name) }),
+      name,
       color: ARTEN[art].farbe,
       shapes,
       visibility: globalThis.CONST?.REGION_VISIBILITY?.LAYER ?? 0,
@@ -1230,22 +1234,38 @@ function zugZiel(dokument, optionen, aenderung = {}) {
 
 // Die Felder, die ein Token mit linker oberer Ecke (x, y) mindestens zur Hälfte bedeckt (0.2.16,
 // 24.10.2026: "erst wenn er mindestens 50 % in einem Feld steht, soll das auslösen").
-function halbBedeckteFelder(x, y, breite, hoehe) {
+// Dazu die Felder, die er überhaupt berührt (alle), für das Verlassen (0.2.26).
+function bedeckung(x, y, breite, hoehe) {
   const g = canvas.grid.size;
   const rechts = x + breite * g;
   const unten = y + hoehe * g;
   const erstes = canvas.grid.getOffset({ x: x + 1, y: y + 1 });
   const letztes = canvas.grid.getOffset({ x: rechts - 1, y: unten - 1 });
-  const felder = [];
+  const alle = [];
+  const halb = [];
   for (let i = erstes.i; i <= letztes.i; i += 1) {
     for (let j = erstes.j; j <= letztes.j; j += 1) {
       const ecke = canvas.grid.getTopLeftPoint({ i, j });
       const b = Math.min(rechts, ecke.x + g) - Math.max(x, ecke.x);
       const h = Math.min(unten, ecke.y + g) - Math.max(y, ecke.y);
-      if (b > 0 && h > 0 && 2 * b * h >= g * g - 1e-6) felder.push(schluessel(j, i));
+      if (!(b > 0 && h > 0) || b * h < 1e-6) continue;
+      alle.push(schluessel(j, i));
+      if (2 * b * h >= g * g - 1e-6) halb.push(schluessel(j, i));
     }
   }
-  return felder;
+  return { alle, halb };
+}
+
+// Betreten mit Hysterese (0.2.26, 24.10.2026: "die Figur hat in dem Feld ein weiteres Mal gestoppt").
+// Haltmessung 17:09: Start auf 40,70, Halt auf 41,70, beides dieselbe gefährliche Fläche. Schräg über die
+// Ecke deckt der Token zwischen zwei Feldern keines zur Hälfte; das galt bis 0.2.25 als Verlassen. Jetzt:
+// hinein ab der Hälfte eines Feldes, hinaus erst, wenn er die Fläche gar nicht mehr berührt.
+function betretenSchritt(menge, schritt, drin) {
+  if (!drin) {
+    const feld = schritt.halb.find((schl) => menge.has(schl)) ?? null;
+    return { drin: Boolean(feld), feld };
+  }
+  return { drin: schritt.alle.some((schl) => menge.has(schl)), feld: null };
 }
 
 // Lagen von a nach b in Schritten von höchstens einem Achtelfeld, a ausgenommen, b eingeschlossen.
@@ -1272,7 +1292,7 @@ function wegFlaechen(dokument, alt, optionen = {}, ziel = zugZiel(dokument, opti
   const lagen = [alt, ...(Array.isArray(wegpunkte) && wegpunkte.length ? wegpunkte : [ziel])]
     .filter((punkt) => Number.isFinite(Number(punkt?.x)) && Number.isFinite(Number(punkt?.y)));
   if (!lagen.length) return [];
-  const flaeche = (lage) => halbBedeckteFelder(Number(lage.x), Number(lage.y), breite, hoehe);
+  const flaeche = (lage) => bedeckung(Number(lage.x), Number(lage.y), breite, hoehe);
   const weg = [flaeche(lagen[0])];
   if (Array.isArray(wegpunkte) && wegpunkte.length > 0 && wegpunkte.every((punkt) => aktionen[punkt?.action]?.teleport)) return weg;
   for (let index = 1; index < lagen.length; index += 1) {
@@ -1294,14 +1314,14 @@ export function betreteneArten(dokument, alt, optionen = {}, felder = felderDerS
   for (const art of arten) {
     const menge = felder[art];
     if (!menge?.size || !weg.length) continue;
-    let drin = weg[0].some((feld) => menge.has(feld));
+    let drin = weg[0].alle.some((feld) => menge.has(feld));
     for (const schritt of weg.slice(1)) {
-      const feld = schritt.find((schl) => menge.has(schl)) ?? null;
-      if (feld && !drin) {
-        getroffen.set(art, feld);
+      const neu = betretenSchritt(menge, schritt, drin);
+      if (neu.feld) {
+        getroffen.set(art, neu.feld);
         break;
       }
-      drin = Boolean(feld);
+      drin = neu.drin;
     }
   }
   return getroffen;
@@ -1457,27 +1477,168 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
   });
   const breite = groesseIn(dokument.width);
   const hoehe = groesseIn(dokument.height);
-  const anfang = halbBedeckteFelder(Number(start.x), Number(start.y), breite, hoehe);
+  const anfang = bedeckung(Number(start.x), Number(start.y), breite, hoehe).alle;
   const drin = new Map([...erwartet.keys()].map((art) => [art, anfang.some((feld) => felder[art].has(feld))]));
   fahrten.set(id, { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin });
   // Ohne Fahrt gesetzt: Es kommt kein Bild dazwischen, die Karte gleich.
   if (sofort) fahrtPruefen(id, ziel, "sofort");
 }
 
+// Halt an der Fläche (0.2.21, 24.10.2026: "wenn ein Token durch eine Reise in ein Gebiet kommt, das
+// eine Probe verlangt, muss die Reise an dem Platz, wo es rechnerisch ausgelöst wird, gestoppt werden").
+// Mit dem Hook "gelaendepinselAnhalten" bricht die AI-Bewegungsanzeige auf jedem Client ihre eigene
+// Fahrt ab, sonst setzte sie die Figur nach dem Halt noch ans Routenende; die Bitte geht deshalb an
+// alle Clients. stopMovement ruft der Pinsel seit 0.2.23 nicht mehr: Foundry setzt damit an eine
+// selbst gerechnete Stelle und überschrieb so das Setzen auf das Feld (Aufzeichnung 24.10.2026
+// 12:31:43, die Figur vier Felder weiter bei (8701,13719); vermutet, nicht gemessen).
+function tokenAnhalten(tokenId, szeneId) {
+  if (szeneId && globalThis.canvas?.scene?.id && szeneId !== globalThis.canvas.scene.id) return;
+  globalThis.Hooks?.callAll?.("gelaendepinselAnhalten", { tokenId, sceneId: szeneId ?? null });
+}
+
+// Wo der Token hält (0.2.22): ganz auf dem Feld, das die Karte ausgelöst hat, so nah wie möglich an der
+// Lage beim Auslösen (bei großen Tokens die nächste Rasterlage, die dieses Feld bedeckt).
+function haltLage(feld, lage, breite, hoehe) {
+  const [spalte, zeile] = String(feld).split(",").map(Number);
+  let beste = null;
+  for (let dz = 0; dz < hoehe; dz += 1) {
+    for (let ds = 0; ds < breite; ds += 1) {
+      const ecke = canvas.grid.getTopLeftPoint({ i: zeile - dz, j: spalte - ds });
+      const weite = Math.hypot(ecke.x - lage.x, ecke.y - lage.y);
+      if (!beste || weite < beste.weite) beste = { x: ecke.x, y: ecke.y, weite };
+    }
+  }
+  return beste ? { x: beste.x, y: beste.y } : null;
+}
+
+// Foundry 14 hält einen gespeicherten Zug mit stopMovement nicht an (0.2.22, gemessen 24.10.2026: die Figur
+// stand nach dem Halt an seinem alten Ziel). Das Dokument steht beim Loslassen schon am Ziel; die aktive
+// Spielleitung setzt den Token deshalb ohne Fahrt auf das Feld der Karte. Die Kennung
+// aiBewegungsanzeigeModuleMove lässt die Änderung durch die Sperre der AI-Bewegungsanzeige, die fremde
+// Positionsänderungen während ihrer Fahrten abfängt, und beendet kein Folgen.
+function ueberallAnhalten(dokument, lage = null, feld = null) {
+  const szeneId = dokument.parent?.id ?? null;
+  tokenAnhalten(dokument.id, szeneId);
+  game.socket?.emit?.(`module.${MODUL}`, { typ: "anhalten", token: dokument.id, szene: szeneId });
+  if (!lage || (typeof dokument.update !== "function" && typeof dokument.move !== "function")) return;
+  haltMessungBeginnen(dokument, lage, feld);
+  haltWachen.set(dokument.id, { lage, bis: Date.now() + HALT_WACHE_MS, nachgesetzt: false });
+  haltSetzen(dokument, lage, "halt");
+}
+
+// Ohne Fahrt und ohne Wandprüfung setzen (0.2.24, 24.10.2026: "beide haben gestoppt, sind aber in eine
+// Wand gefahren; sie sollten im Feld 'gefahren' stehen bleiben"). Haltmessung 13:28: (8200,14000)
+// erbeten, (8124,14301) angekommen; ein update wertet Foundry 14 als Zug vom gespeicherten Ziel aus und
+// bremst an Wänden. move mit ignoreWalls und Dauer 0 wie bei der AI-Bewegungsanzeige, sonst update.
+// Laufende Fahrt sichtbar beenden (0.2.25, 24.10.2026: "der Token ist die Linie zu Ende gefahren und
+// dann ins richtige Hindernis geportet"). Haltmessung 16:08: Das Setzen stand nach 64 ms im Dokument, das
+// Bild fuhr die alte Fahrt bis zum Ende weiter; ein move mit Dauer 0 reiht sich hinter sie. Mit
+// animate:false brach das update in 0.2.23 sofort ab. Dazu beendet jeder Client beim Eintreffen des
+// Setzens die noch laufende Animation dieses Tokens.
+function haltAnimationBeenden(dokument) {
+  const token = globalThis.canvas?.tokens?.get?.(dokument.id) ?? dokument.object ?? null;
+  if (!token || !(token.animationContexts?.size > 0)) return;
+  try {
+    token.stopAnimation?.({ reset: true });
+  } catch (fehler) {
+    console.warn(`[${MODUL}] Animation beenden`, fehler);
+  }
+}
+
+function haltSetzen(dokument, lage, art) {
+  const kennung = { aiBewegungsanzeigeModuleMove: true, [MODUL]: { halt: true } };
+  const perUpdate = () => dokument.update({ x: lage.x, y: lage.y }, { animate: false, ...kennung });
+  const setzen = typeof dokument.move === "function"
+    ? Promise.resolve(dokument.move([{ x: lage.x, y: lage.y, elevation: Number(dokument.elevation ?? 0) }], {
+      method: "api",
+      showRuler: false,
+      autoRotate: false,
+      animate: false,
+      animation: { duration: 0 },
+      constrainOptions: { ignoreWalls: true, ignoreCost: true },
+      ...kennung
+    })).then((bewegt) => (bewegt === false ? perUpdate() : bewegt))
+    : Promise.resolve(perUpdate());
+  setzen
+    .then(() => haltMessungEreignis(dokument.id, { art: `${art}-gesetzt`, x: Number(dokument.x), y: Number(dokument.y) }))
+    .catch((fehler) => {
+      haltMessungEreignis(dokument.id, { art: `${art}-fehler`, meldung: String(fehler?.message ?? fehler) });
+      console.warn(`[${MODUL}] Halt setzen`, fehler);
+    });
+}
+
+// Netz hinter dem Setzen (0.2.23): Kommt kurz danach noch eine fremde Lageänderung, die weder vom Ziehen
+// mit Maus oder Tastatur noch von der AI-Bewegungsanzeige stammt (etwa eine verspätete Haltestelle von
+// Foundry; die kam am 24.10.2026 nach 70 ms), setzt die aktive Spielleitung den Token einmal erneut auf
+// das Feld.
+const HALT_WACHE_MS = 800;
+const haltWachen = new Map();
+
+// Haltmessung (0.2.23): Beim Halt hält die aktive Spielleitung 2,5 s lang fest, was mit dem Token
+// geschieht (Setzen, jede Lageänderung mit ihren Optionen, die gezeichnete Lage), und legt es nach
+// storage/diagnostics/gelaendepinsel-halt-0N.json, drei im Wechsel. Seit 0.2.27 aus (24.10.2026:
+// "Haltmessung abschalten", der Halt stimmt), die Einstellung "messung" schaltet sie wieder an.
+const HALT_MESSUNG_MS = 2500;
+const haltMessungen = new Map();
+let haltMessungNummer = 0;
+
+function haltMessungBeginnen(dokument, lage, feld) {
+  if (!messungAn()) return;
+  const t0 = globalThis.performance?.now?.() ?? Date.now();
+  const echt = globalThis.canvas?.tokens?.get?.(dokument.id) ?? dokument.object ?? null;
+  haltMessungen.set(dokument.id, { t0, token: dokument.name ?? dokument.id, lage, feld, beimHalt: { x: Number(echt?.x), y: Number(echt?.y), dokX: Number(dokument.x), dokY: Number(dokument.y) }, ereignisse: [], letztesBild: -1000 });
+  setTimeout(() => haltMessungBeenden(dokument.id), HALT_MESSUNG_MS)?.unref?.();
+}
+
+function haltMessungEreignis(id, ereignis) {
+  const messung = haltMessungen.get(id);
+  if (!messung || messung.ereignisse.length >= 300) return;
+  const t = Math.round((globalThis.performance?.now?.() ?? Date.now()) - messung.t0);
+  if (ereignis.art === "bild") {
+    if (t - messung.letztesBild < 100) return;
+    messung.letztesBild = t;
+  }
+  messung.ereignisse.push({ t, ...ereignis });
+}
+
+async function haltMessungBeenden(id) {
+  const messung = haltMessungen.get(id);
+  if (!messung) return;
+  haltMessungen.delete(id);
+  const Auswahl = globalThis.foundry?.applications?.apps?.FilePicker ?? globalThis.FilePicker;
+  if (!game.user?.isGM || typeof Auswahl?.uploadPersistent !== "function" || typeof File !== "function") return;
+  haltMessungNummer += 1;
+  const name = `gelaendepinsel-halt-${String(((haltMessungNummer - 1) % 3) + 1).padStart(2, "0")}.json`;
+  const inhalt = { token: messung.token, lage: messung.lage, feld: messung.feld, beimHalt: messung.beimHalt, ereignisse: messung.ereignisse };
+  const text = JSON.stringify({ modul: MODUL, version: VERSION, foundry: game.version ?? null, geschrieben: new Date().toISOString(), ...inhalt }, null, 1);
+  try {
+    await Auswahl.uploadPersistent(MODUL, "diagnostics", new File([text], name, { type: "application/json" }), {}, { notify: false });
+  } catch (fehler) {
+    console.warn(`[${MODUL}] Haltmessung nicht gespeichert`, fehler);
+  }
+}
+
 function fahrtPruefen(id, lage, grund = "bild") {
   const fahrt = fahrten.get(id);
   if (!fahrt || !lage) return;
   for (const zwischen of zwischenLagen(fahrt.letzte, lage)) {
-    const schritt = halbBedeckteFelder(zwischen.x, zwischen.y, fahrt.breite, fahrt.hoehe);
+    const schritt = bedeckung(zwischen.x, zwischen.y, fahrt.breite, fahrt.hoehe);
+    let erreicht = null;
     for (const art of [...fahrt.erwartet.keys()]) {
-      const feld = schritt.find((schl) => fahrt.felder[art].has(schl)) ?? null;
-      if (feld && !fahrt.drin.get(art)) {
-        fahrt.erwartet.delete(art);
-        diagnoseKarte(id, art, feld, grund);
-        karteAusloesen(fahrt.dokument, art, feld);
-      } else {
-        fahrt.drin.set(art, Boolean(feld));
-      }
+      const neu = betretenSchritt(fahrt.felder[art], schritt, fahrt.drin.get(art));
+      fahrt.drin.set(art, neu.drin);
+      if (!neu.feld) continue;
+      fahrt.erwartet.delete(art);
+      diagnoseKarte(id, art, neu.feld, grund);
+      karteAusloesen(fahrt.dokument, art, neu.feld);
+      erreicht ??= neu.feld;
+    }
+    // Während der sichtbaren Fahrt hält der Token, wo die Karte ausgelöst wird. Nicht bei Zügen ohne
+    // Fahrt und nicht am Ziel: Dort steht er schon.
+    if (erreicht && grund === "bild" && !gleicheLage(lage, fahrt.ziel)) {
+      fahrten.delete(id);
+      ueberallAnhalten(fahrt.dokument, haltLage(erreicht, zwischen, fahrt.breite, fahrt.hoehe), erreicht);
+      return;
     }
   }
   fahrt.letzte = { x: Number(lage.x), y: Number(lage.y) };
@@ -1544,19 +1705,61 @@ if (typeof InteractionLayer !== "function") {
   // geht, sehe ich viele gelbe Flächen; öfters löscht man hier Zauberschablonen und damit auch meine
   // Bereiche"): In der Regionen-Ebene unsichtbar und nicht anklickbar, Löschen nur durch das Modul
   // selbst (Radierer), und beim Laden der Szene legt die Spielleitung fehlende Regionen neu an.
+  // In der Regionen-Ebene gar nichts vom Modul (0.2.18, 24.10.2026: "im Regionen-Modus ist das immer
+  // noch durch unser Modul gelb, es kommt eine Fehlermeldung, die ich nicht will; hier soll von unserem
+  // Modul gar nichts zu sehen sein"). 0.2.10 setzte nur renderable; das setzt Foundry beim Ausblenden
+  // außerhalb des Bildausschnitts jedes Bild neu (aus dem Code geschlossen, nicht gemessen). Jetzt aus:
+  // die Region, ihre Teile und Zeichenobjekte anderswo, die zu ihr gehören, und ihr Eintrag in der Liste.
   const eigeneRegion = (region) => Boolean(region?.document?.getFlag?.(MODUL, "art") ?? region?.getFlag?.(MODUL, "art"));
+  const ausblenden = (objekt) => {
+    if (!objekt) return;
+    objekt.visible = false;
+    objekt.renderable = false;
+    objekt.eventMode = "none";
+  };
+  // Befund der Regionenmessung (0.2.19, Foundry 14.369, 24.10.2026): Die Region selbst war schon
+  // unsichtbar. Die gelbe Schraffur zeichnet Foundry als eigenes RegionMesh in einem Behälter der
+  // Regionen-Ebene (stage/.../RegionLayerPF2e/ia#0/RegionMesh, region = die Geländeregion), eine Stufe
+  // tiefer, als 0.2.18 gesucht hat; Foundry hielt die Region zudem weiter für sichtbar (isVisible).
+  // Jetzt: isVisible für die eigene Region aus, und in der ganzen Regionen-Ebene alles, was zu ihr gehört.
+  const zugehoerig = (region) => {
+    const gefunden = [];
+    const schlange = [globalThis.canvas?.regions, globalThis.canvas?.primary].filter(Boolean);
+    let besucht = 0;
+    while (schlange.length && besucht < 20000) {
+      const objekt = schlange.shift();
+      besucht += 1;
+      if (objekt !== region && (objekt?.region === region || objekt?.object === region)) gefunden.push(objekt);
+      if (objekt !== region) for (const kind of objekt?.children ?? []) schlange.push(kind);
+    }
+    return gefunden;
+  };
   const verbergen = (region) => {
     if (!eigeneRegion(region)) return;
-    region.renderable = false;
-    region.eventMode = "none";
+    if (!Object.prototype.hasOwnProperty.call(region, "isVisible")) {
+      try {
+        Object.defineProperty(region, "isVisible", { configurable: true, get: () => false });
+      } catch (_fehler) {
+        // Lässt Foundry das nicht zu, bleibt das Ausblenden unten.
+      }
+    }
+    ausblenden(region);
+    for (const teil of region.children ?? []) ausblenden(teil);
+    for (const objekt of zugehoerig(region)) ausblenden(objekt);
   };
   Hooks.on("drawRegion", verbergen);
   Hooks.on("refreshRegion", verbergen);
-  Hooks.on("preDeleteRegion", (dokument, optionen) => {
-    if (!eigeneRegion(dokument) || optionen?.[MODUL]) return true;
-    globalThis.ui?.notifications?.warn?.(uebersetzen("GELAENDEPINSEL.Fehler.RegionGeschuetzt"));
-    return false;
+  Hooks.on("renderRegionLegend", (_anwendung, html) => {
+    const wurzel = typeof html?.querySelectorAll === "function" ? html : html?.[0];
+    const eigene = new Set(Array.from(globalThis.canvas?.scene?.regions ?? []).filter((region) => region.getFlag?.(MODUL, "art")).map((region) => region.id));
+    if (!eigene.size || typeof wurzel?.querySelectorAll !== "function") return;
+    for (const eintrag of wurzel.querySelectorAll("[data-region-id], [data-document-id], [data-id]")) {
+      const id = eintrag.dataset?.regionId ?? eintrag.dataset?.documentId ?? eintrag.dataset?.id;
+      if (eigene.has(id)) eintrag.remove();
+    }
   });
+  // Löschen nur durch das Modul selbst, ohne Meldung (seit 0.2.18).
+  Hooks.on("preDeleteRegion", (dokument, optionen) => !eigeneRegion(dokument) || Boolean(optionen?.[MODUL]));
   // Geht eine Geländeregion trotzdem verloren (etwa mit "Alle löschen" in der Regionen-Ebene), legt die
   // aktive Spielleitung sie sofort neu an (0.2.11, gemeldet: "wenn ich in Regionen alles lösche, darf das uns
   // nicht stören"). Radierer und rechte Maustaste löschen über das Modul und sind davon nicht betroffen.
@@ -1588,6 +1791,7 @@ if (typeof InteractionLayer !== "function") {
     abzeichen.zeichnen(token);
     const id = token?.id ?? token?.document?.id;
     if (id) diagnoseBild(id, token);
+    if (id && haltMessungen.has(id) && !istVorschau(token, id)) haltMessungEreignis(id, { art: "bild", x: Number(token?.x), y: Number(token?.y) });
     const lage = { x: Number(token?.x), y: Number(token?.y) };
     if (!id || istVorschau(token, id) || !Number.isFinite(lage.x) || !Number.isFinite(lage.y)) return;
     const ziel = unterwegs.get(id);
@@ -1614,11 +1818,40 @@ if (typeof InteractionLayer !== "function") {
   Hooks.on("createToken", (dokument) => alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y }));
   Hooks.on("updateToken", (dokument, aenderung, optionen) => {
     if (!("x" in aenderung || "y" in aenderung)) return;
+    if (optionen?.[MODUL]?.halt) haltAnimationBeenden(dokument);
     const alt = alteLagen.get(dokument.id);
     const ziel = zugZiel(dokument, optionen, aenderung);
     alteLagen.set(dokument.id, ziel);
+    const methode = optionen?._movement?.[dokument.id]?.method ?? null;
+    haltMessungEreignis(dokument.id, { art: "aenderung", x: ziel.x, y: ziel.y, halt: Boolean(optionen?.[MODUL]?.halt), methode, optionen: Object.keys(optionen ?? {}).slice(0, 20) });
+    const wache = haltWachen.get(dokument.id);
+    // Das eigene Setzen erkennt der Pinsel an seiner Kennung oder, falls Foundry sie unterwegs verliert,
+    // an der Stelle, auf die er gesetzt hat (0.2.24).
+    const eigenesSetzen = Boolean(optionen?.[MODUL]?.halt) || Boolean(wache && gleicheLage(ziel, wache.lage));
+    if (wache && !eigenesSetzen) {
+      const gezogen = methode === "dragging" || methode === "keyboard" || Boolean(optionen?.aiBewegungsanzeigeModuleMove);
+      const nachsetzen = Date.now() <= wache.bis && !wache.nachgesetzt && !gezogen
+        && !gleicheLage(ziel, wache.lage) && istAktiveSpielleitung();
+      if (Date.now() > wache.bis || gezogen) haltWachen.delete(dokument.id);
+      if (nachsetzen) {
+        wache.nachgesetzt = true;
+        haltSetzen(dokument, wache.lage, "nach");
+        return;
+      }
+    }
+    // Das Setzen beim Halt (0.2.22) ist kein neuer Zug.
+    if (eigenesSetzen) {
+      fahrten.delete(dokument.id);
+      unterwegs.delete(dokument.id);
+      return;
+    }
     if (!alt || dokument.parent?.id !== canvas?.scene?.id || !istAktiveSpielleitung()) return;
     fahrtBeginnen(dokument, alt, optionen, ziel);
   });
-  Hooks.once("ready", () => console.info(`[${MODUL}] Version ${VERSION} bereit.`));
+  Hooks.once("ready", () => {
+    console.info(`[${MODUL}] Version ${VERSION} bereit.`);
+    game.socket?.on?.(`module.${MODUL}`, (nachricht) => {
+      if (nachricht?.typ === "anhalten" && nachricht.token) tokenAnhalten(nachricht.token, nachricht.szene ?? null);
+    });
+  });
 }

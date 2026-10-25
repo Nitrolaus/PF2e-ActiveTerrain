@@ -35,9 +35,13 @@ check is posted to chat.
 - **Check cards**: one card when a creature enters an area from outside, at the moment it visibly
   covers a square of the area at least halfway during its move, not when the move starts. Moving on
   inside the area gives no further card, even over several turns; leaving and entering again gives a
-  new one. Further checks are up to the gamemaster, the roll on the card can be clicked again. Cards
-  are whispered to the gamemaster and the token's owners; the gamemaster applies damage. Flying or
-  teleporting creatures get no card.
+  new one. A creature only counts as having left when it no longer touches the area at all, so cutting
+  across a corner inside the area gives no second card. Further checks are up to the gamemaster, the
+  roll on the card can be clicked again. Cards are whispered to the gamemaster and the token's owners;
+  the gamemaster applies damage. Flying or teleporting creatures get no card.
+- **The move stops at the check**: on a narrow surface, uneven ground or hazardous terrain the move
+  ends exactly where the card is triggered, with the token fully on that square. Difficult and
+  greater difficult terrain never stop a move, they only cost movement.
 - **Badges**: creatures standing on terrain show a small badge with the terrain's symbol. Chests,
   loot and map markers get none. Where the badges sit at the token can be set.
 - **Player display**: each player shows or hides the outlines. Movement costs always apply.
@@ -46,7 +50,7 @@ check is posted to chat.
 
 ### Gamemaster
 
-1. Choose the "Terrain Brush" tool in the left toolbar (mountain with sun).
+1. Choose the "PF2e-ActiveTerrain" tool in the left toolbar (mountain with sun).
 2. Choose a terrain type. Hovering a button shows the rule in short.
 3. Choose the brush size: ½, 1, 2 or 3 squares. Exactly one size is active; the default is one square.
 4. Paint with the left mouse button held down. Fast strokes leave no gaps. To combine terrain, paint
@@ -99,6 +103,10 @@ Then enable the module in your world under "Manage Modules".
 The module runs on its own. If the reaction_monitor module is active, a Reflex card is added when a
 creature on a narrow surface or uneven ground is hit or fails a saving throw.
 
+When a move stops at a check, the module calls the hook `gelaendepinselAnhalten` with
+`{ tokenId, sceneId }` on every client, so modules that move tokens themselves can stop their own
+movement there.
+
 ## Bugs and requests
 
 Please report them here on GitHub under "Issues". Helpful: the versions of Foundry, PF2e and this
@@ -131,9 +139,8 @@ MIT, see `LICENSE`.
 
 # Deutsch
 
-Gelände für Pathfinder 2e in Foundry VTT 14 malen, mit Pinsel und Stempel statt mit Wegpunkten. Auf
-Deutsch heißt das Modul Geländepinsel. Es gibt das Modul auf Deutsch und Englisch; Foundry nimmt die
-Sprache, die jeder Spieler eingestellt hat.
+Gelände für Pathfinder 2e in Foundry VTT 14 malen, mit Pinsel und Stempel statt mit Wegpunkten. Es
+gibt das Modul auf Deutsch und Englisch; Foundry nimmt die Sprache, die jeder Spieler eingestellt hat.
 
 Die Spielleitung malt Gelände direkt auf die Karte, frei mit weichem Rand oder Feld für Feld am
 Raster. Das Modul legt daraus Foundry-Regionen mit den passenden Bewegungskosten an. Foundry und das
@@ -165,10 +172,15 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
 - **Würfelkarten**: eine Karte, wenn eine Figur eine Fläche von außen betritt, und zwar in dem
   Augenblick, in dem sie während des Zugs ein Feld der Fläche sichtbar mindestens zur Hälfte bedeckt,
   nicht schon beim Losfahren. Wer sich in der Fläche weiterbewegt, bekommt keine weitere, auch nicht
-  über mehrere Züge; wer sie verlässt und wieder betritt, bekommt eine neue. Weitere Würfe verlangt die
-  Spielleitung selbst, der Wurf auf der Karte lässt sich noch einmal anklicken. Die Karten gehen
-  geflüstert an die Spielleitung und an die, denen die Figur gehört; den Schaden wendet die
-  Spielleitung selbst an. Wer fliegt oder sich teleportiert, bekommt keine Karte.
+  über mehrere Züge; wer sie verlässt und wieder betritt, bekommt eine neue. Verlassen hat eine Figur
+  die Fläche erst, wenn sie sie gar nicht mehr berührt; wer innerhalb der Fläche schräg über eine Ecke
+  zieht, bekommt keine zweite Karte. Weitere Würfe verlangt die Spielleitung selbst, der Wurf auf der
+  Karte lässt sich noch einmal anklicken. Die Karten gehen geflüstert an die Spielleitung und an die,
+  denen die Figur gehört; den Schaden wendet die Spielleitung selbst an. Wer fliegt oder sich
+  teleportiert, bekommt keine Karte.
+- **Der Zug hält an der Probe**: Bei schmaler Oberfläche, unebenem Boden und gefährlichem Gelände endet
+  der Zug genau dort, wo die Karte ausgelöst wird, mit dem Token ganz auf diesem Feld. Schwieriges und
+  sehr schwieriges Gelände halten nie an, sie kosten nur Bewegung.
 - **Abzeichen**: Kreaturen, die auf Gelände stehen, tragen ein kleines Abzeichen mit dem Symbol der
   Geländeart. Kisten, Beute und Kartenmarken bekommen keins. Wo die Abzeichen am Token stehen, lässt
   sich einstellen.
@@ -179,7 +191,7 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
 
 ### Für die Spielleitung
 
-1. In der Leiste links das Werkzeug "Geländepinsel" wählen (Berg mit Sonne).
+1. In der Leiste links das Werkzeug "PF2e-ActiveTerrain" wählen (Berg mit Sonne).
 2. Die Geländeart wählen. Beim Überfahren der Knöpfe steht die Regel kurz dabei.
 3. Die Pinselgröße wählen: ½, 1, 2 oder 3 Felder. Es ist immer genau eine Größe an, Vorgabe ist
    ein Feld.

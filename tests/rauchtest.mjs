@@ -57,6 +57,7 @@ szene.createEmbeddedDocuments = async (typ, daten) => {
       typ,
       daten: structuredClone(eintrag),
       getFlag: (modul, schl) => eintrag.flags?.[modul]?.[schl],
+      get name() { return region.daten.name; },
       update: async (aenderung) => { region.daten = { ...region.daten, ...structuredClone(aenderung) }; protokoll.regionen.push(["update", eintrag.flags.gelaendepinsel.art]); },
       delete: async () => { szene.regions.splice(szene.regions.indexOf(region), 1); protokoll.regionen.push(["delete", eintrag.flags.gelaendepinsel.art]); }
     };
@@ -81,6 +82,7 @@ globalThis.foundry = {
   applications: { api: { DialogV2: { prompt: async () => { protokoll.dialoge += 1; return { formel: "2d6", art: "fire" }; } } } }
 };
 globalThis.Hooks = {
+  callAll: (name, ...args) => hookAusloesen(name, ...args),
   on: (name, fn) => { if (!hooks.has(name)) hooks.set(name, []); hooks.get(name).push(fn); },
   once: (name, fn) => { if (!einmal.has(name)) einmal.set(name, []); einmal.get(name).push(fn); }
 };
@@ -250,6 +252,9 @@ assert.equal(region.behaviors[0].type, "modifyMovementCost");
 assert.deepEqual(region.behaviors[0].system.difficulties, { walk: 2, fly: 1, swim: 2, climb: 2, burrow: 2, displace: 2 });
 assert.deepEqual(region.levels, ["ebene1"]);
 assert.equal(region.visibility, 0);
+assert.equal(region.name, "PF2e-ActiveTerrain: Schwieriges Gelände", "Neue Regionen mit dem neuen Namen (0.2.28)");
+// Alte Regionen ziehen beim nächsten Abgleich mit; Namen von Hand bleiben.
+szene.regions[0].daten.name = "Geländepinsel: Schwieriges Gelände";
 
 // Sehr schwierig über ein Feld: ersetzt dort das schwierige
 await game.settings.set("gelaendepinsel", "art", "sehr");
@@ -260,6 +265,8 @@ assert.deepEqual(flags.gelaendepinsel.felder.schwierig, ["2,3", "3,3", "5,3", "6
 assert.deepEqual(flags.gelaendepinsel.felder.sehr, ["4,3"]);
 assert.equal(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "schwierig").daten.shapes.length, 2);
 assert.deepEqual(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "sehr").daten.behaviors[0].system.difficulties.walk, 3);
+assert.equal(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "schwierig").daten.name, "PF2e-ActiveTerrain: Schwieriges Gelände", "Alter Name umgezogen");
+szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "sehr").daten.name = "Moor";
 
 // Gefährlich über ein Feld (0.2.11): liegt über dem sehr schwierigen, das bleibt.
 await game.settings.set("gelaendepinsel", "art", "gefahr");
@@ -269,6 +276,7 @@ await ruhe();
 assert.deepEqual(flags.gelaendepinsel.felder.sehr, ["4,3"], "Sehr schwierig bleibt unter dem gefährlichen");
 assert.deepEqual(flags.gelaendepinsel.felder.gefahr, ["4,3"]);
 assert.deepEqual(flags.gelaendepinsel.felder.schwierig, ["2,3", "3,3", "5,3", "6,3"]);
+assert.equal(szene.regions.find((r) => r.daten.flags.gelaendepinsel.art === "sehr").daten.name, "Moor", "Eigener Name bleibt");
 
 // Radierer mit Stempel 3: entfernt alles um (5,3); sehr schwieriges leer -> Region weg
 await game.settings.set("gelaendepinsel", "art", "radierer");
@@ -486,6 +494,16 @@ game.user = spielleitung;
     "Betritt mit der rechten Kante, schon beim ersten Schritt");
   troll.x = 400;
   assert.equal(modul.betreteneArten(troll, { x: 300, y: 300 }, {}, steg, ["schmal"]).size, 0, "Schon darin: betritt nichts");
+  // Hysterese (0.2.26, gemeldet: "Silvor hat in dem Feld ein weiteres Mal gestoppt"): Schräg über die Ecke von
+  // einem Feld der Fläche ins nächste deckt er zwischendurch keines zur Hälfte; das ist kein Verlassen.
+  const block = { gefahr: new Set(["4,30", "5,30", "4,31", "5,31"]) };
+  const schraeg = { id: "schraeg", x: 500, y: 3100, width: 1, height: 1, parent: szene };
+  assert.equal(modul.betreteneArten(schraeg, { x: 400, y: 3000 }, {}, block, ["gefahr"]).size, 0, "Schräg innerhalb der Fläche: kein neues Betreten");
+  // Wer sie ganz verlässt und wiederkommt, betritt sie neu.
+  schraeg.x = 400;
+  schraeg.y = 3000;
+  const hinausHinein = { _movement: { schraeg: { passed: { waypoints: [{ x: 700, y: 3000, action: "walk" }, { x: 400, y: 3000, action: "walk" }] } } } };
+  assert.equal(modul.betreteneArten(schraeg, { x: 400, y: 3000 }, hinausHinein, block, ["gefahr"]).get("gefahr"), "5,30", "Ganz hinaus und zurück: neu");
 }
 
 // Fliegend: Abzeichen blass, keine Nachfrage bei Gefahr
@@ -720,7 +738,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   maus(4, 22);
   ebene._onClickLeft({});
   await ruhe();
-  const laeufer = { id: "laeufer", name: "Isadora", x: 100, y: 2200, width: 1, height: 1, parent: szene };
+  const laeufer = { id: "laeufer", name: "Isadora", x: 100, y: 2200, width: 1, height: 1, parent: szene, async update(_daten, optionen) { if (optionen?.gelaendepinsel?.halt) this.angehalten = (this.angehalten ?? 0) + 1; } };
   laeufer.object = { id: "laeufer", x: 100, y: 2200 };
   szene.tokens.push({ id: "laeufer", x: 100, y: 2200 });
   hookAusloesen("canvasReady");
@@ -748,15 +766,17 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.equal(protokoll.chat.length, vorher, "Kurz vor der Fläche: keine, auch nicht durch die Vorschau");
   await bild(360);
   assert.equal(protokoll.chat.length, vorher + 1, "Zur Hälfte auf der Fläche: die Karte");
+  assert.equal(laeufer.angehalten, 1, "Und hält dort (0.2.21)");
   assert.match(protokoll.chat.at(-1).content, /Isadora<\/strong> geht durch gefährliches Gelände/);
   await bild(500);
   await bild(600);
   assert.equal(protokoll.chat.length, vorher + 1, "Am Ziel keine zweite");
 
-  // Vor der Fläche angehalten: keine Karte, auch nicht durch den Zug, der das Anhalten speichert.
+  // Vor der Fläche angehalten: keine Karte, auch nicht durch den Zug, der das Anhalten speichert. Der
+  // neue Zug kommt als Ziehen mit der Maus, das Netz hinter dem Halt (0.2.23) lässt ihn durch.
   vorher = protokoll.chat.length;
   laeufer.x = 100;
-  hookAusloesen("updateToken", laeufer, { x: 100 }, {});
+  hookAusloesen("updateToken", laeufer, { x: 100 }, { _movement: { laeufer: { method: "dragging" } } });
   await bild(560);
   await bild(520);
   laeufer.x = 520;
@@ -771,9 +791,10 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   hookAusloesen("updateToken", laeufer, { x: 100 }, {});
   await ruhe();
   assert.equal(protokoll.chat.length, vorher + 1, "Sprung ohne Fahrt: die Karte gleich");
+  assert.equal(laeufer.angehalten, 1, "Sprung ohne Fahrt: kein Halt");
 
   // Umweg über Wegpunkte, gezeichnet nur am Ziel: Was zwischen zwei Bildern liegt, kommt am Ziel.
-  const umweg = { id: "umweg", name: "Lucne", x: 200, y: 2500, width: 1, height: 1, parent: szene };
+  const umweg = { id: "umweg", name: "Lucne", x: 200, y: 2500, width: 1, height: 1, parent: szene, async update(_daten, optionen) { if (optionen?.gelaendepinsel?.halt) this.angehalten = (this.angehalten ?? 0) + 1; } };
   umweg.object = { id: "umweg", x: 200, y: 2500 };
   szene.tokens.push({ id: "umweg", x: 200, y: 2500 });
   hookAusloesen("canvasReady");
@@ -788,6 +809,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   hookAusloesen("refreshToken", umweg.object);
   await ruhe();
   assert.equal(protokoll.chat.length, vorher + 1, "Am Ziel: die Karte vom Umweg");
+  assert.equal(umweg.angehalten ?? 0, 0, "Am Ziel kein Halt");
 
   // Ohne Fahrt gesetzt (animate: false): kein Bild dazwischen, die Karte gleich.
   vorher = protokoll.chat.length;
@@ -797,6 +819,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   ] } } } });
   await ruhe();
   assert.equal(protokoll.chat.length, vorher + 1, "Ohne Fahrt: die Karte sofort");
+  assert.equal(umweg.angehalten ?? 0, 0, "Ohne Fahrt kein Halt");
   await game.settings.set("gelaendepinsel", "rasterModus", false);
   await game.settings.set("gelaendepinsel", "art", "schwierig");
 }
@@ -821,12 +844,83 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   bild(340);
   await ruhe();
   assert.equal(protokoll.chat.length, vorher, "Zu 40 Prozent auf dem Feld: noch keine");
+  // Halt an der Fläche (0.2.21): Mit der Karte hält der Token an, hier und über alle Clients.
+  const gestoppt = [];
+  const gemeldet = [];
+  const gesendet = [];
+  f14.stopMovement = () => gestoppt.push(f14.x);
+  const gesetzt = [];
+  f14.move = async (wege, optionen) => { gesetzt.push({ ...wege[0], ...optionen }); return true; };
+  hooks.set("gelaendepinselAnhalten", [(daten) => gemeldet.push(daten)]);
+  game.socket = { emit: (kanal, daten) => gesendet.push({ kanal, daten }), on: (kanal, fn) => { game.socket.hoerer = [kanal, fn]; } };
   bild(350);
   await ruhe();
   assert.equal(protokoll.chat.length, vorher + 1, "Genau zur Hälfte: die Karte");
+  assert.deepEqual(gestoppt, [], "Kein stopMovement mehr (0.2.23): Foundry setzte damit an eine eigene Stelle");
+  // Foundry 14 hält mit stopMovement nicht an (0.2.22): Die Spielleitung setzt ihn ohne Fahrt ganz auf
+  // das Feld der Karte, mit der Kennung, die die AI-Bewegungsanzeige durchlässt.
+  // Seit 0.2.24 ohne Fahrt und ohne Wandprüfung, sonst bremst Foundry an Wänden.
+  assert.deepEqual(gesetzt, [{
+    x: 400, y: 2200, elevation: 0, method: "api", showRuler: false, autoRotate: false, animate: false, animation: { duration: 0 },
+    constrainOptions: { ignoreWalls: true, ignoreCost: true }, aiBewegungsanzeigeModuleMove: true, gelaendepinsel: { halt: true }
+  }]);
+  assert.deepEqual(gemeldet, [{ tokenId: "f14", sceneId: "szene" }], "Die Bewegungsanzeige erfährt es");
+  assert.deepEqual(gesendet, [{ kanal: "module.gelaendepinsel", daten: { typ: "anhalten", token: "f14", szene: "szene" } }], "Alle Clients erfahren es");
   for (const x of [450, 600]) bild(x);
   await ruhe();
   assert.equal(protokoll.chat.length, vorher + 1, "Bis zum Ziel keine zweite");
+  assert.equal(gesetzt.length, 1, "Nur einmal gesetzt");
+  // Das Setzen kommt als Änderung zurück: kein neuer Zug, keine Karte, und der nächste Zug fährt dort los.
+  // Netz (0.2.23): Eine verspätete fremde Lageänderung setzt ihn einmal erneut auf das Feld; Ziehen nicht.
+  const hochgeladen = [];
+  foundry.applications.apps = { FilePicker: { uploadPersistent: async (...werte) => hochgeladen.push(werte) } };
+  hookAusloesen("updateToken", f14, { x: 520 }, {});
+  assert.equal(gesetzt.length, 2, "Fremde Änderung kurz danach: erneut gesetzt");
+  assert.deepEqual([gesetzt[1].x, gesetzt[1].y], [400, 2200]);
+  hookAusloesen("updateToken", f14, { x: 540 }, {});
+  assert.equal(gesetzt.length, 2, "Nur einmal nachgesetzt");
+  // Kommt das Setzen mit Kennung an, beendet jeder Client die noch laufende Animation (0.2.25).
+  const beendet = [];
+  f14.object.animationContexts = new Map([["fahrt", {}]]);
+  f14.object.stopAnimation = (optionen) => beendet.push(optionen);
+  hookAusloesen("updateToken", f14, { x: 400 }, { gelaendepinsel: { halt: true } });
+  assert.deepEqual(beendet, [{ reset: true }], "Die alte Fahrt endet sofort, sichtbar");
+  f14.object.animationContexts = new Map();
+  hookAusloesen("updateToken", f14, { x: 400 }, { gelaendepinsel: { halt: true } });
+  assert.equal(beendet.length, 1, "Ohne laufende Animation nichts zu beenden");
+  delete f14.object.animationContexts;
+  delete f14.object.stopAnimation;
+  // Das Setzen kommt zurück, hier ohne die Kennung (falls Foundry sie bei move nicht weiterreicht): an der
+  // Stelle erkannt (0.2.24).
+  hookAusloesen("updateToken", f14, { x: 400 }, {});
+  // Foundry zeichnet ihn danach an der gesetzten Stelle.
+  f14.x = 400;
+  f14.object.x = 400;
+  hookAusloesen("refreshToken", f14.object);
+  await ruhe();
+  assert.equal(protokoll.chat.length, vorher + 1, "Das Setzen ist kein Zug, keine zweite Karte");
+  f14.x = 600;
+  f14.object.x = 600;
+  // Ein anderer Client bekommt die Bitte und hält den Token an, den er findet.
+  hookAusloesen("ready");
+  const [kanal, hoerer] = game.socket.hoerer;
+  assert.equal(kanal, "module.gelaendepinsel");
+  canvas.tokens.get = (id) => (id === "f14" ? { document: f14 } : undefined);
+  hoerer({ typ: "anhalten", token: "f14", szene: "szene" });
+  assert.equal(gemeldet.length, 2, "Beim Empfänger erfährt es die Bewegungsanzeige");
+  assert.deepEqual(gestoppt, [], "Auch dort kein stopMovement");
+  hoerer({ typ: "anhalten", token: "f14", szene: "andere" });
+  assert.equal(gemeldet.length, 2, "Andere Szene: nichts");
+  delete canvas.tokens.get;
+  hooks.delete("gelaendepinselAnhalten");
+  delete game.socket;
+  delete f14.stopMovement;
+  delete f14.move;
+  // Haltmessung (0.2.23) seit 0.2.27 aus (Wunsch: "Haltmessung abschalten"): nach 2,5 s keine Datei.
+  await new Promise((fertig) => echteUhr(fertig, 2700));
+  await ruhe();
+  assert.equal(hochgeladen.filter((werte) => werte[2].name.startsWith("gelaendepinsel-halt-")).length, 0, "Keine Haltmessung, solange die Messung aus ist");
+  delete foundry.applications.apps;
   // Der nächste Zug fährt vom Ziel los, nicht von der Lage beim letzten Speichern.
   hookAusloesen("updateToken", f14, { x: 900 }, { _movement: { f14: { passed: { waypoints: [{ x: 900, y: 2200, action: "walk" }] } } } });
   bild(900);
@@ -973,6 +1067,60 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   await game.settings.set("gelaendepinsel", "art", "schwierig");
 }
 
+// Regionen-Ebene (0.2.18): Von den Geländeregionen ist nichts zu sehen, weder die Fläche noch ihre Teile
+// noch Zeichenobjekte anderswo, die zu ihr gehören, noch der Eintrag in der Regionenliste. Löschen ohne
+// das Modul wird still abgelehnt, ohne Meldung; fremde Regionen bleiben, wie sie sind.
+{
+  const eigeneDaten = szene.regions.find((region) => region.daten.flags.gelaendepinsel.art);
+  const eigeneId = "eigen1";
+  eigeneDaten.id = eigeneId;
+  const fremd = { id: "fremd1", getFlag: () => undefined };
+  const teil = { visible: true, renderable: true };
+  const platz = { document: eigeneDaten, visible: true, renderable: true, eventMode: "static", children: [teil] };
+  const anderswo = { region: platz, visible: true, renderable: true };
+  const fremdPlatz = { document: fremd, visible: true, renderable: true, children: [] };
+  // Wie in Foundry 14 gemessen (0.2.19): Die Schraffur liegt als RegionMesh in einem Behälter der
+  // Regionen-Ebene, nicht in der Region.
+  const schraffur = { region: platz, visible: true, renderable: true, children: [] };
+  const fremdeSchraffur = { region: fremdPlatz, visible: true, renderable: true, children: [] };
+  canvas.regions = { children: [{ children: [schraffur, fremdeSchraffur] }, { children: [platz, fremdPlatz] }] };
+  canvas.primary = { children: [anderswo] };
+  hookAusloesen("drawRegion", platz);
+  hookAusloesen("drawRegion", fremdPlatz);
+  assert.equal(schraffur.visible, false, "Die Schraffur im Behälter der Regionen-Ebene");
+  assert.equal(fremdeSchraffur.visible, true, "Fremde Schraffur bleibt");
+  assert.equal(platz.isVisible, false, "Foundry hält die Region für unsichtbar");
+  assert.equal(fremdPlatz.isVisible, undefined, "Fremde Region unberührt");
+  assert.deepEqual([platz.visible, platz.renderable, platz.eventMode], [false, false, "none"], "Die Region selbst");
+  assert.equal(teil.visible, false, "Ihre Teile");
+  assert.equal(anderswo.visible, false, "Was anderswo zu ihr gehört");
+  assert.equal(fremdPlatz.visible, true, "Fremde Regionen bleiben sichtbar");
+  // Foundry stellt beim nächsten Bild wieder an: refreshRegion blendet erneut aus.
+  platz.visible = true;
+  platz.renderable = true;
+  hookAusloesen("refreshRegion", platz);
+  assert.equal(platz.visible, false, "Nach jeder Auffrischung wieder aus");
+  // Die Regionenliste
+  const zeilen = [eigeneId, "fremd1"].map((id) => ({ dataset: { regionId: id }, weg: false, remove() { this.weg = true; } }));
+  hookAusloesen("renderRegionLegend", {}, { querySelectorAll: () => zeilen });
+  assert.deepEqual(zeilen.map((zeile) => zeile.weg), [true, false], "Nur der eigene Eintrag verschwindet");
+  // Löschen
+  const meldungen = [];
+  const alteMeldung = globalThis.ui?.notifications?.warn;
+  globalThis.ui ??= {};
+  globalThis.ui.notifications ??= {};
+  globalThis.ui.notifications.warn = (text) => meldungen.push(text);
+  const antworten = (hooks.get("preDeleteRegion") ?? []).map((fn) => fn(eigeneDaten, {}));
+  assert.ok(antworten.length > 0 && antworten.every((antwort) => antwort === false), "Löschen ohne das Modul abgelehnt");
+  assert.ok((hooks.get("preDeleteRegion") ?? []).every((fn) => fn(eigeneDaten, { gelaendepinsel: true }) === true), "Das Modul selbst darf löschen");
+  assert.ok((hooks.get("preDeleteRegion") ?? []).every((fn) => fn(fremd, {}) === true), "Fremde Regionen löschen wie immer");
+  assert.deepEqual(meldungen, [], "Keine Meldung");
+  globalThis.ui.notifications.warn = alteMeldung;
+
+  delete canvas.regions;
+  delete canvas.primary;
+}
+
 // Sprachdateien: jeder Schlüssel im Code steht in de.json und en.json, beide haben dieselben
 // Schlüssel und Platzhalter, keiner ist unbenutzt, und Englisch kommt auch an.
 {
@@ -998,7 +1146,7 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   sprache = "en";
   const controls = { tokens: { order: 1 }, sequencer: { name: "sequencer" } };
   leiste(controls);
-  assert.equal(controls.gelaendepinsel.title, "Terrain Brush");
+  assert.equal(controls.gelaendepinsel.title, "PF2e-ActiveTerrain", "Sichtbarer Name seit 0.2.28");
   assert.equal(controls.gelaendepinsel.tools.schwierig.title, "Difficult Terrain: +5 feet per square, can't Step into it");
   assert.equal(controls.gelaendepinsel.tools.groesse2.title, "Brush 2 squares");
   assert.deepEqual([...fehlendeSchluessel], []);
