@@ -105,6 +105,69 @@
     },
     "Fehler": {
       "Speichern": "PF2e-ActiveTerrain: Das Gelände konnte nicht gespeichert werden."
+    },
+    "Gefahr": {
+      "Knopf": "Gefahr: auslösen, aufdecken, entschärfen",
+      "AufDemFeld": "Im Wirkungsbereich der Gefahr: {anzahl} Figur(en).",
+      "Ausloesen": "Auslösen: {name}",
+      "Aufdecken": "Aufdecken (für alle sichtbar)",
+      "EntschaerfenAnbieten": "Entschärfen anbieten",
+      "Entschaerfen": "Entschärfen",
+      "IstEntschaerft": "entschärft",
+      "Niemand": "Niemand steht im Wirkungsbereich der Gefahr.",
+      "Betrifft": "Betrifft {name}.",
+      "BetrifftMehrere": "Betrifft {anzahl} Figuren, jede würfelt in ihrer Zeile:",
+      "Entdeckt": "Gefahr entdeckt: {name}.",
+      "DurchSuchen": "{name} hat sie beim Suchen gefunden.",
+      "DurchBetreten": "{name} ist hineingeraten.",
+      "DurchMagie": "Magie entdecken von {name}.",
+      "KeinAngriff": "Zum Angriff {name} findet PF2e keine Angriffsdaten.",
+      "KeinSchaden": "{name}: {grad}, kein Schaden.",
+      "SchadenFuer": "{name}: {grad}.",
+      "Schaden": {
+        "voll": "Voller Schaden.",
+        "halb": "Halben Schaden anwenden.",
+        "doppelt": "Doppelten Schaden anwenden."
+      },
+      "Grad": {
+        "criticalSuccess": "Kritischer Erfolg",
+        "success": "Erfolg",
+        "failure": "Fehlschlag",
+        "criticalFailure": "Kritischer Fehlschlag"
+      },
+      "KeinEntschaerfen": "Im Entschärfen-Eintrag dieser Gefahr steht kein Wurf.",
+      "ErfolgeStand": "Erfolge beim Entschärfen: {stand} von {noetig}.",
+      "Entschaerft": "{name} ist entschärft.",
+      "ZaehltNicht": "{name}: Der Wurf zählt nicht, der nötige Übungsgrad fehlt.",
+      "LoestAus": "{name}: Kritischer Fehlschlag beim Entschärfen, die Gefahr löst aus.",
+      "Magie": {
+        "Keine": "Magie entdecken von {name}: keine magische Gefahr in 9 m.",
+        "Da": "Magie entdecken von {name}: Magie in 9 m ({anzahl} magische Gefahr(en)).",
+        "Stufe": "Stärkste Magie: Stufe {stufe}.",
+        "Quelle": "Quelle der stärksten Magie: {gefahr}, eingegrenzt auf ein Feld von 1,5 m, ohne genaue Lage."
+      },
+      "Einstellung": {
+        "Magie": {
+          "Name": "Erweitert: Magie entdecken deckt magische Fallen in 9 m auf",
+          "Hinweis": "Nach den Regeln meldet Magie entdecken nur, ob Magie da ist (ab Grad 3 die Stufe, ab Grad 4 grob die Quelle); die Meldung geht an die Spielleitung. Eingeschaltet deckt der Zauber versteckte magische Fallen in 9 m zusätzlich für alle auf."
+        }
+      },
+      "FernAusloesen": "Aus der Ferne auslösen",
+      "FernAusgeloest": "{name} wird aus der Ferne ausgelöst.",
+      "BereichEinstellen": "Auslöser und Wirkung einstellen",
+      "Bereich": {
+        "Ausloeser": "Auslöser in Fuß um die Falle (0 = nur ihr Feld)",
+        "Wirkung": "Wirkung in Fuß um die Falle (0 = nur ihr Feld)",
+        "Speichern": "Speichern",
+        "Stand": "Auslöser {ausloeser} Fuß, Wirkung {wirkung} Fuß um die Falle."
+      },
+      "ZuWeit": "{name} steht nicht neben der Gefahr, der Wurf zählt nicht.",
+      "NurDaneben": "Es zählt nur, wer neben der Gefahr steht."
+    },
+    "Suchen": {
+      "Einschalten": "Suchen (Erkundung) einschalten, {minuten} Minuten Spielzeit",
+      "Ausschalten": "Suchen ausschalten, noch {minuten} Minuten",
+      "Fehlt": "Die Aktion Suchen fehlt im PF2e-Kompendium."
     }
   }
 }

@@ -105,6 +105,69 @@
     },
     "Fehler": {
       "Speichern": "PF2e-ActiveTerrain: The terrain could not be saved."
+    },
+    "Gefahr": {
+      "Knopf": "Hazard: trigger, reveal, disable",
+      "AufDemFeld": "In the hazard's area of effect: {anzahl} creature(s).",
+      "Ausloesen": "Trigger: {name}",
+      "Aufdecken": "Reveal (visible to everyone)",
+      "EntschaerfenAnbieten": "Offer disabling",
+      "Entschaerfen": "Disable",
+      "IstEntschaerft": "disabled",
+      "Niemand": "Nobody is in the hazard's area of effect.",
+      "Betrifft": "Affects {name}.",
+      "BetrifftMehrere": "Affects {anzahl} creatures, each rolls on its own line:",
+      "Entdeckt": "Hazard found: {name}.",
+      "DurchSuchen": "{name} found it while searching.",
+      "DurchBetreten": "{name} walked into it.",
+      "DurchMagie": "Detect magic by {name}.",
+      "KeinAngriff": "PF2e has no strike data for {name}.",
+      "KeinSchaden": "{name}: {grad}, no damage.",
+      "SchadenFuer": "{name}: {grad}.",
+      "Schaden": {
+        "voll": "Full damage.",
+        "halb": "Apply half damage.",
+        "doppelt": "Apply double damage."
+      },
+      "Grad": {
+        "criticalSuccess": "Critical success",
+        "success": "Success",
+        "failure": "Failure",
+        "criticalFailure": "Critical failure"
+      },
+      "KeinEntschaerfen": "This hazard's Disable entry has no check.",
+      "ErfolgeStand": "Successes toward disabling: {stand} of {noetig}.",
+      "Entschaerft": "{name} is disabled.",
+      "ZaehltNicht": "{name}: The check doesn't count, the required proficiency is missing.",
+      "LoestAus": "{name}: Critical failure while disabling, the hazard triggers.",
+      "Magie": {
+        "Keine": "Detect magic by {name}: no magical hazard within 30 feet.",
+        "Da": "Detect magic by {name}: magic within 30 feet ({anzahl} magical hazard(s)).",
+        "Stufe": "Most powerful magic: level {stufe}.",
+        "Quelle": "Source of the most powerful magic: {gefahr}, narrowed to a 5-foot square, no exact location."
+      },
+      "Einstellung": {
+        "Magie": {
+          "Name": "Advanced: Detect magic reveals magical traps within 30 feet",
+          "Hinweis": "By the rules, detect magic only tells whether magic is present (rank 3: its level, rank 4: roughly its source); the notice goes to the GM. When enabled, the spell also reveals hidden magical traps within 30 feet to everyone."
+        }
+      },
+      "FernAusloesen": "Trigger from afar",
+      "FernAusgeloest": "{name} is triggered from afar.",
+      "BereichEinstellen": "Set trigger and effect area",
+      "Bereich": {
+        "Ausloeser": "Trigger in feet around the trap (0 = its square only)",
+        "Wirkung": "Effect in feet around the trap (0 = its square only)",
+        "Speichern": "Save",
+        "Stand": "Trigger {ausloeser} feet, effect {wirkung} feet around the trap."
+      },
+      "ZuWeit": "{name} is not adjacent to the hazard, the roll doesn't count.",
+      "NurDaneben": "Only someone adjacent to the hazard counts."
+    },
+    "Suchen": {
+      "Einschalten": "Start Search (exploration), {minuten} minutes of game time",
+      "Ausschalten": "Stop Search, {minuten} minutes left",
+      "Fehlt": "The Search action is missing from the PF2e compendium."
     }
   }
 }

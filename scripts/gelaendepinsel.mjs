@@ -11,9 +11,11 @@
 import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuRechtecken } from "./felder.mjs";
 import { FEIN, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
+import * as gefahren from "./gefahren.mjs";
+import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.2.28";
+const VERSION = "0.3.10";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -1453,18 +1455,38 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
   const sofort = !start || optionen?.animate === false;
   start ??= alt;
   if (!start || gleicheLage(start, ziel)) return;
+  // Absuchen (0.3.5): Der Weg eines suchenden Helden kostet Spielzeit, 45 m pro Minute.
+  suchen.wegKostet(dokument, start, optionen, ziel);
   if (!sofort) unterwegs.set(id, ziel);
-  const felder = felderDerSzene(dokument.parent);
+  // Versteckte Fallen zählen wie Flächen (0.3.0, Gefahren-Karte): Wer ihr Feld erreicht, hält dort, die
+  // Falle wird aufgedeckt und löst aus. Nur Kreaturen, keine Gefahr löst eine andere aus.
+  const fallen = dokument.actor?.isOfType?.("creature") ? gefahren.versteckteFallen(dokument.parent) : new Map();
+  // Erkundung "Suchen" entlang des Wegs (0.3.3): Die Suchzonen um versteckte Fallen zählen wie Flächen,
+  // vor den Fallen, damit ein Fund im selben Schritt vorgeht.
+  const zonen = gefahren.suchZonen(dokument);
+  const felder = { ...felderDerSzene(dokument.parent), ...Object.fromEntries(zonen), ...Object.fromEntries(fallen) };
   const wegpunkte = optionen?._movement?.[id]?.passed?.waypoints;
   const aktion = (Array.isArray(wegpunkte) ? wegpunkte.at(-1)?.action : null) ?? dokument.movementAction ?? "walk";
   const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
   // Je Art das Feld, mit dem die Fläche betreten wird; es liefert SG und Schaden (0.2.7).
   const erwartet = new Map();
-  for (const [art, feld] of betreteneArten(dokument, start, optionen, felder, PROBEN_ARTEN, ziel)) {
-    // Fliegend oder per Teleport kein Balancieren und keine Gefahr am Boden (wie PF2e).
-    if (gelaendeWirkung(dokument.actor, art, aktion, aktionen) > 0) erwartet.set(art, feld);
+  for (const [art, feld] of betreteneArten(dokument, start, optionen, felder, [...PROBEN_ARTEN, ...zonen.keys(), ...fallen.keys()], ziel)) {
+    // Fliegend oder per Teleport kein Balancieren und keine Gefahr am Boden (wie PF2e); eine Falle wie
+    // gefährliches Gelände. Suchen geht auch fliegend, nur nicht per Teleport.
+    const wirkung = art.startsWith("suche:") ? (aktionen[aktion]?.teleport ? 0 : 1)
+      : gelaendeWirkung(dokument.actor, art.startsWith("falle:") ? "gefahr" : art, aktion, aktionen);
+    if (wirkung > 0) erwartet.set(art, feld);
   }
-  if (!erwartet.size) return;
+  const breite = groesseIn(dokument.width);
+  const hoehe = groesseIn(dokument.height);
+  const anfang = bedeckung(Number(start.x), Number(start.y), breite, hoehe).alle;
+  // Steht der Held schon in einer Suchzone, gilt sein Wurf gleich am Anfang.
+  const schonDrin = [...zonen].filter(([art, menge]) => !erwartet.has(art) && anfang.some((feld) => menge.has(feld)));
+  for (const art of erwartet.keys()) if (art.startsWith("suche:")) gefahren.sucheVorbereiten(dokument, art.slice(6));
+  if (!erwartet.size) {
+    for (const [art] of schonDrin) void gefahren.sucheErreicht(dokument, art.slice(6));
+    return;
+  }
   const bewegung = optionen?._movement?.[id] ?? null;
   diagnoseBeginnen(dokument, {
     alt, ziel, gezeichnet, start, laufend, sofort,
@@ -1475,13 +1497,51 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
     wegpunkte: Array.isArray(wegpunkte) ? wegpunkte.length : null,
     modulzug: Boolean(optionen?.aiBewegungsanzeigeModuleMove)
   });
-  const breite = groesseIn(dokument.width);
-  const hoehe = groesseIn(dokument.height);
-  const anfang = bedeckung(Number(start.x), Number(start.y), breite, hoehe).alle;
   const drin = new Map([...erwartet.keys()].map((art) => [art, anfang.some((feld) => felder[art].has(feld))]));
-  fahrten.set(id, { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin });
+  const fahrt = { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin, suche: new Map(), haltFalle: null };
+  fahrten.set(id, fahrt);
+  for (const [art, menge] of schonDrin) {
+    const feld = anfang.find((schl) => menge.has(schl));
+    if (sucheAmRand(id, fahrt, art.slice(6), feld, sofort ? null : start) && !sofort) {
+      fahrten.delete(id);
+      ueberallAnhalten(dokument, haltLage(feld, start, breite, hoehe), feld);
+      return;
+    }
+  }
   // Ohne Fahrt gesetzt: Es kommt kein Bild dazwischen, die Karte gleich.
   if (sofort) fahrtPruefen(id, ziel, "sofort");
+}
+
+// Erkundung "Suchen" am Rand der Suchzone (0.3.3): Findet der Held die Falle, hält er hier, vor ihr, und sie
+// löst nicht aus. Läuft der Wurf noch, entscheidet er nachträglich; bis dahin wartet die Falle auf ihn. Ohne
+// Lage (Zug ohne Fahrt, Ziel erreicht) hält er nicht, die Falle bleibt trotzdem still.
+function sucheAmRand(id, fahrt, gefahrId, feld, lage) {
+  const gefunden = gefahren.sucheErreicht(fahrt.dokument, gefahrId);
+  if (gefunden === true) {
+    fahrt.erwartet.delete(`falle:${gefahrId}`);
+    return true;
+  }
+  if (typeof gefunden?.then !== "function") return false;
+  fahrt.suche.set(gefahrId, gefunden);
+  void gefunden.then((ja) => {
+    fahrt.suche.delete(gefahrId);
+    if (!ja) return;
+    fahrt.erwartet.delete(`falle:${gefahrId}`);
+    // Weiter halten, solange die Fahrt läuft oder sie an eben dieser Falle hielt.
+    if (!lage || (fahrten.get(id) !== fahrt && fahrt.haltFalle !== gefahrId)) return;
+    fahrten.delete(id);
+    ueberallAnhalten(fahrt.dokument, haltLage(feld, lage, fahrt.breite, fahrt.hoehe), feld);
+  });
+  return false;
+}
+
+// Erreicht der Held die Falle, während sein Suchwurf noch läuft, löst sie erst aus, wenn er misslingt.
+function falleNachSuche(fahrt, art, feld) {
+  const gefahrId = art.slice(6);
+  fahrt.haltFalle = gefahrId;
+  void fahrt.suche.get(gefahrId).then((ja) => {
+    if (!ja) karteAusloesen(fahrt.dokument, art, feld);
+  });
 }
 
 // Halt an der Fläche (0.2.21, 24.10.2026: "wenn ein Token durch eine Reise in ein Gebiet kommt, das
@@ -1625,12 +1685,19 @@ function fahrtPruefen(id, lage, grund = "bild") {
     const schritt = bedeckung(zwischen.x, zwischen.y, fahrt.breite, fahrt.hoehe);
     let erreicht = null;
     for (const art of [...fahrt.erwartet.keys()]) {
+      // Ein Fund beim Suchen nimmt die Falle aus der Fahrt (0.3.3).
+      if (!fahrt.erwartet.has(art)) continue;
       const neu = betretenSchritt(fahrt.felder[art], schritt, fahrt.drin.get(art));
       fahrt.drin.set(art, neu.drin);
       if (!neu.feld) continue;
       fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, neu.feld, grund);
-      karteAusloesen(fahrt.dokument, art, neu.feld);
+      if (art.startsWith("suche:")) {
+        if (sucheAmRand(id, fahrt, art.slice(6), neu.feld, zwischen)) erreicht ??= neu.feld;
+        continue;
+      }
+      if (art.startsWith("falle:") && fahrt.suche.has(art.slice(6))) falleNachSuche(fahrt, art, neu.feld);
+      else karteAusloesen(fahrt.dokument, art, neu.feld);
       erreicht ??= neu.feld;
     }
     // Während der sichtbaren Fahrt hält der Token, wo die Karte ausgelöst wird. Nicht bei Zügen ohne
@@ -1643,9 +1710,13 @@ function fahrtPruefen(id, lage, grund = "bild") {
   }
   fahrt.letzte = { x: Number(lage.x), y: Number(lage.y) };
   if (gleicheLage(lage, fahrt.ziel)) {
-    for (const [art, feld] of fahrt.erwartet) {
+    for (const [art, feld] of [...fahrt.erwartet]) {
+      if (!fahrt.erwartet.has(art)) continue;
+      fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, feld, `${grund}-ziel`);
-      karteAusloesen(fahrt.dokument, art, feld);
+      if (art.startsWith("suche:")) sucheAmRand(id, fahrt, art.slice(6), feld, null);
+      else if (art.startsWith("falle:") && fahrt.suche.has(art.slice(6))) falleNachSuche(fahrt, art, feld);
+      else karteAusloesen(fahrt.dokument, art, feld);
     }
     fahrt.erwartet.clear();
   }
@@ -1653,6 +1724,10 @@ function fahrtPruefen(id, lage, grund = "bild") {
 }
 
 function karteAusloesen(dokument, art, feld) {
+  if (String(art).startsWith("falle:")) {
+    gefahren.ueberFalle(dokument, String(art).slice(6)).catch((fehler) => console.error(`[${MODUL}] Falle`, fehler));
+    return;
+  }
   karteSchicken(dokument, art, feld).catch((fehler) => console.error(`[${MODUL}] Karte`, fehler));
 }
 
@@ -1683,8 +1758,11 @@ const alteLagen = new Map();
 if (typeof InteractionLayer !== "function") {
   console.error(`[${MODUL}] ${VERSION} braucht Foundry V14 (InteractionLayer).`);
 } else {
+  gefahren.anmelden();
+  suchen.anmelden();
   Hooks.once("init", () => {
     einstellungenAnmelden();
+    gefahren.einstellungenAnmelden();
     // Schnittstelle für den reaction_monitor (0.2.7): Halt auf schmalem oder unebenem Gelände.
     const eintrag = game.modules?.get?.(MODUL);
     if (eintrag) eintrag.api = { haltAn, werteAn, aktuelleWerte, stufenSg };

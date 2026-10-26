@@ -1,7 +1,8 @@
 # PF2e-ActiveTerrain
 
-Paint terrain for Pathfinder 2e in Foundry VTT 14 with a brush and stamp instead of waypoints.
-The module is available in English and German; Foundry uses each player's language setting.
+Paint terrain for Pathfinder 2e in Foundry VTT 14 with a brush and stamp instead of waypoints, and
+let hidden traps trigger, be found and be disabled at the table. The module is available in English
+and German; Foundry uses each player's language setting.
 
 *Deutsche Beschreibung weiter unten.*
 
@@ -46,6 +47,44 @@ check is posted to chat.
   loot and map markers get none. Where the badges sit at the token can be set.
 - **Player display**: each player shows or hides the outlines. Movement costs always apply.
 
+## Hazards and traps
+
+Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaster.
+
+- **Walking into a hidden trap**: when a creature reaches a square of the trigger area, the move stops
+  there, the trap is revealed and its trigger action fires. One card lists every creature in the
+  effect area, each with its own saving throw; after the roll the damage for its degree of success is
+  rolled from the hazard's text. Strikes are rolled with PF2e's own attack.
+- **Trigger and effect area**: two separate radii in feet. Without a value the trap triggers only on
+  its own squares, and the effect uses the area named in the hazard's data (a template or "within X
+  feet"). The gamemaster sets both per token in the hazard menu. Other modules can bring them along as
+  the flags `gelaendepinsel.ausloeser` and `gelaendepinsel.wirkung` on the token or the actor.
+- **Line of effect**: trigger and effect stop at walls that block movement and at closed doors. Open
+  doors let them through, walls that only block sight do not stop them.
+- **Finding**: only by Perception. A character using the exploration activity Search rolls secretly
+  when starting a move toward a hidden trap and, on a success, stops 15 feet from its trigger area;
+  the minimum proficiency from the hazard's Stealth entry applies. The Seek action reveals traps within
+  30 feet in line of sight whose Stealth DC the result meets. Detect magic reports magic within 30 feet
+  by its rank; an advanced setting lets it reveal magical traps.
+- **Disabling**: the hazard menu posts a card with the checks from the hazard's Disable entry. A check
+  counts only for a creature adjacent to the hazard and with the required proficiency. The number of
+  successes needed is read from the text; a critical failure triggers the trap.
+- **Trigger from afar**: for example a stone thrown onto the plate. The trap reveals itself and hits
+  whoever stands in the effect area.
+- **Simple hazards** have no "Toggle Combat" button in the token HUD; complex hazards keep it to roll
+  initiative.
+
+## Search
+
+- A magnifying glass in the token HUD of player characters turns on the exploration activity Search;
+  the action is taken from the PF2e compendium if the character lacks it. Clicking it again stops
+  searching.
+- Searching lasts 10 minutes of game time (house rule). World time runs while somebody searches, six
+  seconds every six seconds, not while the game is paused or in combat. Moving while searching costs
+  time as well, 150 feet per minute.
+- While a character searches, small cartoon eyes beside its token look left and right and blink,
+  visible to everyone.
+
 ## How to use
 
 ### Gamemaster
@@ -60,11 +99,14 @@ check is posted to chat.
 6. Set values: the button with the sliders opens a window for DC, damage (e.g. `2d6`), damage type and
    saving throw. They apply to everything painted afterwards as narrow, uneven or hazardous. An empty
    DC means the DC by party level.
+7. Hazards: the skull button in the token HUD of a hazard opens its menu: trigger one of its actions,
+   trigger from afar, reveal, offer disabling, set trigger and effect area.
 
 ### Players
 
 The "Show terrain" button (mountain) in the left toolbar turns the outlines on and off. The toolbar
-then returns to the token tools by itself.
+then returns to the token tools by itself. The magnifying glass in the token HUD of your character
+starts and stops Search.
 
 ### Settings
 
@@ -78,6 +120,11 @@ Under "Configure Settings", per client:
 - **Advanced: Position of the badges at the token**: right or left side, from the top or from the
   bottom, or above or below the token side by side. Default is right side from the top.
 - **Advanced: Paint on the grid instead of freehand**
+
+For the whole world (gamemaster):
+
+- **Advanced: Detect magic reveals magical traps within 30 feet**: by the rules the spell only tells
+  whether magic is present; when enabled it also reveals hidden magical traps to everyone.
 
 ## Requirements
 
@@ -139,8 +186,9 @@ MIT, see `LICENSE`.
 
 # Deutsch
 
-Gelände für Pathfinder 2e in Foundry VTT 14 malen, mit Pinsel und Stempel statt mit Wegpunkten. Es
-gibt das Modul auf Deutsch und Englisch; Foundry nimmt die Sprache, die jeder Spieler eingestellt hat.
+Gelände für Pathfinder 2e in Foundry VTT 14 malen, mit Pinsel und Stempel statt mit Wegpunkten, und
+versteckte Fallen am Tisch auslösen, finden und entschärfen. Es gibt das Modul auf Deutsch und
+Englisch; Foundry nimmt die Sprache, die jeder Spieler eingestellt hat.
 
 Die Spielleitung malt Gelände direkt auf die Karte, frei mit weichem Rand oder Feld für Feld am
 Raster. Das Modul legt daraus Foundry-Regionen mit den passenden Bewegungskosten an. Foundry und das
@@ -187,6 +235,44 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
 - **Anzeige für Spieler**: Jeder Spieler blendet die Umrandungen selbst ein oder aus. Die
   Bewegungskosten wirken immer, auch wenn die Anzeige aus ist.
 
+## Gefahren und Fallen
+
+Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt aufgestellt.
+
+- **In eine versteckte Falle laufen**: Erreicht eine Figur ein Feld des Auslösebereichs, endet der Zug
+  dort, die Falle wird aufgedeckt und ihre Auslöse-Aktion wirkt. Eine Karte nennt alle Figuren im
+  Wirkungsbereich, jede mit ihrem eigenen Rettungswurf; nach dem Wurf wird der Schaden für ihren
+  Erfolgsgrad aus dem Text der Gefahr gewürfelt. Angriffe würfelt PF2e mit seinem eigenen Angriff.
+- **Auslöse- und Wirkungsbereich**: zwei getrennte Radien in Fuß. Ohne Angabe löst die Falle nur auf
+  ihren eigenen Feldern aus, und die Wirkung nimmt den Bereich aus den Daten der Gefahr (Schablone oder
+  "innerhalb von X Fuß"). Die Spielleitung stellt beides je Token im Menü der Gefahr ein. Andere Module
+  können es als Flaggen `gelaendepinsel.ausloeser` und `gelaendepinsel.wirkung` am Token oder am
+  Akteur mitbringen.
+- **Wirkungslinie**: Auslöser und Wirkung enden an Wänden, die Bewegung sperren, und an geschlossenen
+  Türen. Offene Türen lassen sie durch, Wände nur für die Sicht halten sie nicht auf.
+- **Finden**: nur über Wahrnehmung. Eine Figur mit der Erkundung Absuchen würfelt geheim, wenn sie auf
+  eine versteckte Falle zufährt, und hält bei Erfolg 15 Fuß vor deren Auslösebereich; der Mindestgrad
+  aus dem Heimlichkeitseintrag der Gefahr gilt. Die Aktion Suchen deckt Fallen innerhalb von 30 Fuß in
+  Sichtlinie auf, deren Heimlichkeits-SG das Ergebnis erreicht. Magie entdecken meldet Magie innerhalb
+  von 30 Fuß nach seinem Grad; eine erweiterte Einstellung lässt es magische Fallen aufdecken.
+- **Entschärfen**: Das Menü der Gefahr schickt eine Karte mit den Würfen aus ihrem Eintrag zum
+  Entschärfen. Ein Wurf zählt nur für eine Figur, die neben der Gefahr steht und den nötigen Übungsgrad
+  hat. Wie viele Erfolge nötig sind, steht im Text; ein kritischer Fehlschlag löst die Falle aus.
+- **Aus der Ferne auslösen**: etwa mit einem Stein auf die Platte. Die Falle zeigt sich und trifft, wer
+  im Wirkungsbereich steht.
+- **Einfache Gefahren** haben im Token-HUD keinen Knopf "Kampf beitreten"; komplexe behalten ihn, um
+  Initiative zu würfeln.
+
+## Absuchen
+
+- Eine Lupe im Token-HUD von Spielercharakteren schaltet die Erkundung Absuchen ein; fehlt die Aktion,
+  holt das Modul sie aus dem PF2e-Kompendium. Ein zweiter Klick beendet das Absuchen.
+- Absuchen dauert 10 Minuten Spielzeit (Hausregel). Solange jemand sucht, läuft die Weltzeit mit, alle
+  sechs Sekunden sechs Sekunden, nicht bei Pause und nicht im Kampf. Gehen beim Absuchen kostet
+  ebenfalls Zeit, 150 Fuß (45 m) pro Minute.
+- Während eine Figur sucht, schauen neben ihrem Token kleine Zeichentrick-Augen nach links und rechts
+  und blinzeln, für alle sichtbar.
+
 ## Anleitung
 
 ### Für die Spielleitung
@@ -202,11 +288,15 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
 6. Werte festlegen: Der Knopf mit den Schiebereglern öffnet ein Fenster für SG, Schaden (etwa
    `2d6`), Schadensart und Rettungswurf. Das gilt für alles, was danach als schmal, uneben oder
    gefährlich gemalt wird. Bleibt der SG leer, gilt der SG nach Gruppenstufe.
+7. Gefahren: Der Knopf mit dem Totenkopf im Token-HUD einer Gefahr öffnet ihr Menü: eine ihrer
+   Aktionen auslösen, aus der Ferne auslösen, aufdecken, Entschärfen anbieten, Auslöser und Wirkung
+   einstellen.
 
 ### Für Spieler
 
 In der Leiste links schaltet der Knopf "Gelände anzeigen" (Berg) die Umrandungen ein und wieder
-aus. Danach springt die Leiste von selbst zurück zu den Token-Werkzeugen.
+aus. Danach springt die Leiste von selbst zurück zu den Token-Werkzeugen. Die Lupe im Token-HUD der
+eigenen Figur beginnt und beendet das Absuchen.
 
 ### Einstellungen
 
@@ -221,6 +311,12 @@ Unter "Module einstellen", jeweils für den eigenen Rechner:
 - **Erweitert: Lage der Abzeichen am Token**: rechts oder links daneben, von oben oder von unten,
   oder darüber oder darunter nebeneinander. Vorgabe ist rechts daneben von oben.
 - **Erweitert: Am Raster malen statt frei**: malt ganze Felder, etwa für Räume mit geraden Wänden.
+
+Für die ganze Welt (Spielleitung):
+
+- **Erweitert: Magie entdecken deckt magische Fallen in 9 m auf**: Nach den Regeln sagt der
+  Zauber nur, ob Magie da ist; eingeschaltet deckt er zusätzlich versteckte magische Fallen für alle
+  auf.
 
 ## Installieren
 

@@ -1124,9 +1124,12 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
 // Sprachdateien: jeder Schlüssel im Code steht in de.json und en.json, beide haben dieselben
 // Schlüssel und Platzhalter, keiner ist unbenutzt, und Englisch kommt auch an.
 {
-  const code = ["gelaendepinsel.mjs", "felder.mjs", "flaeche.mjs", "symbole.mjs"]
+  const code = ["gelaendepinsel.mjs", "felder.mjs", "flaeche.mjs", "symbole.mjs", "gefahren.mjs", "suchen.mjs"]
     .map((datei) => readFileSync(new URL(`../scripts/${datei}`, import.meta.url), "utf8")).join("\n");
   const benutzt = new Set([...code.matchAll(/["'`](GELAENDEPINSEL\.[A-Za-z0-9_.]+)["'`]/g)].map((treffer) => treffer[1]));
+  // Die Gefahren-Karte (0.3.0) ruft ihre Texte kurz über t("Knopf") auf, die Erfolgsgrade über t(`Grad.${grad}`).
+  for (const treffer of code.matchAll(/\bt\("([A-Za-z0-9_.]+)"/g)) benutzt.add(`GELAENDEPINSEL.Gefahr.${treffer[1]}`);
+  if (code.includes("t(`Grad.${grad}`)")) for (const grad of ["criticalSuccess", "success", "failure", "criticalFailure"]) benutzt.add(`GELAENDEPINSEL.Gefahr.Grad.${grad}`);
   const { de, en } = texte;
   assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort(), "de.json und en.json haben dieselben Schlüssel");
   for (const schl of benutzt) {
@@ -1151,6 +1154,131 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   assert.equal(controls.gelaendepinsel.tools.groesse2.title, "Brush 2 squares");
   assert.deepEqual([...fehlendeSchluessel], []);
   sprache = "de";
+}
+
+// Gefahren-Karte (0.3.0): Eine Figur fährt über eine versteckte Falle. Sie wird aufgedeckt, und die Karte der
+// Auslöse-Aktion kommt mit der Kennung im Rettungswurf; eine Figur ohne Kreaturen-Akteur löst nichts aus.
+{
+  const aktion = { id: "aktionfalle00001", type: "action", name: "Speer", system: { actionType: { value: "reaction" },
+    description: { value: "<p><strong>Auslöser</strong> Eine Kreatur betritt das Feld</p><p>@Damage[2d6[piercing]] (@Check[reflex|dc:20|basic])</p>" } } };
+  const falle = { id: "falle00000000001", name: "Speerfalle", x: 900, y: 1200, width: 1, height: 1, hidden: true, parent: szene,
+    actor: { type: "hazard", items: [aktion], isOfType: (...t) => t.includes("hazard") }, flags: {},
+    getFlag(_m, k) { return this.flags[k]; }, async update(u) { Object.assign(this, u); } };
+  const laeufer = { id: "laeufer000000001", name: "Uriel", x: 600, y: 1200, width: 1, height: 1, parent: szene,
+    actor: { isOfType: (...t) => t.includes("creature"), testUserPermission: () => false } };
+  szene.tokens.push(falle, { ...laeufer });
+  szene.tokens.get ??= function (id) { return this.find((d) => d.id === id); };
+  hookAusloesen("canvasReady");
+  const vorher = protokoll.chat.length;
+  laeufer.x = 1200;
+  hookAusloesen("updateToken", laeufer, { x: 1200 }, {});
+  angekommen(laeufer);
+  await ruhe();
+  await new Promise((fertig) => setTimeout(fertig, 50));
+  assert.equal(falle.hidden, false, "Versteckte Falle beim Betreten aufgedeckt");
+  const neu = protokoll.chat.slice(vorher);
+  assert.ok(neu.some((c) => /@Check\[reflex\|dc:20\|basic\|options:gelaendepinsel:falle:falle00000000001:aktionfalle00001:laeufer000000001\]/u.test(c.content)),
+    "Karte der Auslöse-Aktion mit Kennung");
+  assert.ok(!neu.some((c) => /geht durch gefährliches Gelände/u.test(c.content)), "keine Geländekarte dafür");
+}
+
+// Suchen entlang des Wegs (0.3.3, 25.10.2026: "ja bau das"): Eine Heldin, die sucht, fährt auf eine
+// versteckte Falle zu (Feld 9, Suchzone ab Feld 6). Gewürfelt wird beim Losfahren. Steht das Ergebnis am
+// Rand der Zone fest, hält sie dort und die Falle löst nicht aus. Läuft der Wurf noch, wenn sie die Falle
+// erreicht, hält sie auf der Falle, und der Wurf entscheidet: gefunden, zurück an den Rand; sonst die Karte.
+{
+  function aufbau(nummer, zeile, wurf) {
+    const aktion = { id: `aktionsuche0000${nummer}`, type: "action", name: "Nadel", system: { actionType: { value: "reaction" },
+      description: { value: "<p><strong>Auslöser</strong> Eine Kreatur betritt das Feld</p><p>@Damage[1d6[piercing]] (@Check[reflex|dc:18|basic])</p>" } } };
+    const falle = { id: `fallesuche00000${nummer}`, name: "Nadelfalle", x: 900, y: zeile * FELD, width: 1, height: 1, hidden: true, parent: szene,
+      actor: { type: "hazard", items: [aktion], isOfType: (...t) => t.includes("hazard"), system: { attributes: { stealth: { value: 10, dc: 20, details: "" } } } },
+      flags: {}, getFlag(_m, k) { return this.flags[k]; }, async setFlag(_m, k, v) { this.flags[k] = v; }, async update(u) { Object.assign(this, u); } };
+    const wuerfe = [];
+    const heldin = { id: `heldinsuche0000${nummer}`, name: "Isadora", x: 100, y: zeile * FELD, width: 1, height: 1, parent: szene,
+      actor: { id: `isadorasuche000${nummer}`, name: "Isadora", isOfType: (...t) => t.includes("creature") || t.includes("character"),
+        testUserPermission: () => false, system: { exploration: ["suchen"] }, items: { get: (id) => (id === "suchen" ? { slug: "search" } : null) },
+        perception: { rank: 1, roll: (o) => { wuerfe.push(o); return wurf; } } } };
+    heldin.object = { id: heldin.id, x: heldin.x, y: heldin.y, document: heldin };
+    const gesetzt = [];
+    heldin.move = async (wege) => { gesetzt.push(wege[0].x); return true; };
+    szene.tokens.push(falle, heldin);
+    hookAusloesen("canvasReady");
+    const bild = (x) => { heldin.x = x; heldin.object.x = x; hookAusloesen("refreshToken", heldin.object); };
+    const losfahren = () => hookAusloesen("updateToken", heldin, { x: 1300 }, { _movement: { [heldin.id]: { passed: { waypoints: [{ x: 1300, y: heldin.y, action: "walk" }] } } } });
+    const karte = () => protokoll.chat.some((c) => String(c.content).includes(`options:gelaendepinsel:falle:${falle.id}`));
+    return { falle, heldin, wuerfe, gesetzt, bild, losfahren, karte };
+  }
+
+  // Ergebnis steht fest: Halt am Rand der Zone, Feld 6, drei Felder vor der Falle.
+  const fest = aufbau(1, 40, Promise.resolve({ degreeOfSuccess: 2 }));
+  // Absuchen (0.3.5): Der geplante Weg, 12 Felder, kostet bei 45 m pro Minute 24 Sekunden Spielzeit.
+  const zeit = [];
+  game.time = { worldTime: 0, advance: async (sekunden) => { zeit.push(sekunden); } };
+  fest.losfahren();
+  await ruhe();
+  await new Promise((fertig) => setTimeout(fertig, 650));
+  assert.deepEqual(zeit, [24], "Weg kostet Spielzeit");
+  assert.equal(fest.wuerfe.length, 1, "Beim Losfahren geheim gewürfelt");
+  assert.equal(fest.wuerfe[0].messageMode, "gm");
+  assert.equal(fest.falle.hidden, true, "Noch nicht am Rand: versteckt");
+  fest.bild(400);
+  await ruhe();
+  assert.deepEqual(fest.gesetzt, [], "Vor der Zone kein Halt");
+  fest.bild(550);
+  await ruhe();
+  assert.deepEqual(fest.gesetzt, [600], "Halt am Rand der Suchzone");
+  assert.equal(fest.falle.hidden, false, "Beim Suchen gefunden");
+  for (const x of [700, 900, 1300]) fest.bild(x);
+  await ruhe();
+  assert.equal(fest.karte(), false, "Gefunden: Die Falle löst nicht aus");
+  assert.deepEqual(fest.gesetzt, [600], "Nur einmal gesetzt");
+
+  // Wurf läuft noch, als sie die Falle erreicht; dann gelingt er: zurück an den Rand, keine Karte.
+  let gelingen;
+  const spaet = aufbau(2, 43, new Promise((fertig) => { gelingen = fertig; }));
+  spaet.losfahren();
+  await ruhe();
+  for (const x of [400, 550]) spaet.bild(x);
+  await ruhe();
+  assert.deepEqual(spaet.gesetzt, [], "Am Rand ohne Ergebnis kein Halt");
+  spaet.bild(850);
+  await ruhe();
+  assert.deepEqual(spaet.gesetzt, [900], "Halt auf der Falle wie bisher");
+  assert.equal(spaet.karte(), false, "Die Falle wartet auf den Wurf");
+  gelingen({ degreeOfSuccess: 3 });
+  await ruhe();
+  assert.deepEqual(spaet.gesetzt, [900, 600], "Gefunden: zurück an den Rand der Zone");
+  assert.equal(spaet.falle.hidden, false);
+  assert.equal(spaet.karte(), false, "Keine Karte");
+
+  // Wurf läuft noch und misslingt: Die Falle löst aus, sie bleibt auf ihr stehen.
+  let misslingen;
+  const pech = aufbau(3, 46, new Promise((fertig) => { misslingen = fertig; }));
+  pech.losfahren();
+  await ruhe();
+  for (const x of [400, 550, 850]) pech.bild(x);
+  await ruhe();
+  assert.equal(pech.karte(), false);
+  misslingen({ degreeOfSuccess: 1 });
+  await ruhe();
+  await new Promise((fertig) => setTimeout(fertig, 50));
+  assert.equal(pech.karte(), true, "Nicht gefunden: die Karte der Falle");
+  assert.deepEqual(pech.gesetzt, [900]);
+  assert.equal(pech.falle.flags.suche[pech.heldin.actor.id], 1, "Ergebnis an der Falle");
+
+  // Schon in der Zone losgefahren (etwa erst jetzt "Suchen" gewählt): Der Wurf gilt am Anfang, Halt dort.
+  const drin = aufbau(4, 49, Promise.resolve({ degreeOfSuccess: 2 }));
+  drin.heldin.x = 600;
+  drin.heldin.object.x = 600;
+  hookAusloesen("canvasReady");
+  drin.losfahren();
+  await ruhe();
+  assert.equal(drin.wuerfe.length, 1);
+  assert.deepEqual(drin.gesetzt, [600], "Halt am Anfang");
+  assert.equal(drin.falle.hidden, false);
+  for (const x of [700, 900]) drin.bild(x);
+  await ruhe();
+  assert.equal(drin.karte(), false, "Keine Karte");
 }
 
 assert.deepEqual(protokoll.fehler, []);
