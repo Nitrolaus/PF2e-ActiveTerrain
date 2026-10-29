@@ -18,6 +18,10 @@
       "aufdecken": "macht verborgen gemaltes Gelände für Spieler sichtbar; am Gelände ändert sich nichts"
     },
     "Einstellung": {
+      "Bekannt": {
+        "Name": "Erweitert: Bekanntes Gelände (Hausregel)",
+        "Hint": "Wer auf schmaler Oberfläche oder unebenem Boden schon einmal über ein Feld gegangen ist und gewürfelt hat, würfelt dort nicht mehr (für diese Figur und Szene). Nach den Regeln wird bei jedem Durchqueren gewürfelt. Gefährliches Gelände verletzt immer."
+      },
       "Anzeigen": {
         "Name": "PF2e-ActiveTerrain: Gelände anzeigen",
         "Hint": "Zeigt die Umrandungen des gemalten Geländes. Auf die Bewegung wirkt es immer."
@@ -71,6 +75,7 @@
     "Werte": {
       "Titel": "PF2e-ActiveTerrain: Werte der Fläche",
       "Gilt": "Gilt für alles, was du ab jetzt schmal, uneben oder gefährlich malst.",
+      "Vergessen": "Für alle Figuren wieder unbekannt: wer hier schon balanciert hat, würfelt wieder",
       "TitelFlaeche": "PF2e-ActiveTerrain: Werte dieser Fläche ({art})",
       "GiltFlaeche": "Gilt für genau diese Fläche ({anzahl} Felder), auch für schon Gemaltes.",
       "WelcheFlaeche": "Welche Fläche?",

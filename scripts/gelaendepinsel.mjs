@@ -15,7 +15,7 @@ import * as gefahren from "./gefahren.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.15";
+const VERSION = "0.3.17";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -133,6 +133,17 @@ function einstellungenAnmelden() {
     default: "rechtsOben",
     onChange: () => abzeichen.alleZeichnen()
   });
+  // Bekanntes Gelände als Hausregel (0.3.17, 29.10.2026: "machen wir in den Einstellungen einen Schieber mit der
+  // Option, die bekanntes Gelände einschalten kann"). Nach den Regeln wird bei jedem Durchqueren gewürfelt; deshalb
+  // von Haus aus aus. Gilt für die ganze Welt.
+  game.settings.register(MODUL, "bekanntesGelaende", {
+    name: "GELAENDEPINSEL.Einstellung.Bekannt.Name",
+    hint: "GELAENDEPINSEL.Einstellung.Bekannt.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
   game.settings.register(MODUL, "rasterModus", {
     name: "GELAENDEPINSEL.Einstellung.RasterModus.Name",
     hint: "GELAENDEPINSEL.Einstellung.RasterModus.Hint",
@@ -242,6 +253,7 @@ async function strichSpeichern(neu, szene = canvas?.scene) {
   await szene.setFlag(MODUL, "striche", [...stricheDerSzene(szene), neu]);
   await szeneWerteMerken(neu.art, szene);
   if (PROBEN_ARTEN.includes(neu.art)) await feldWerteFreigeben(neu.art, beruehrteFelder(strichPunkte(neu)), szene);
+  if (BEKANNT_ARTEN.includes(neu.art)) await bekanntVergessen(neu.art, beruehrteFelder(strichPunkte(neu)), szene);
   // Der Radierer nimmt auch am Raster gemaltes Gelaende, wo er ein Feld zur Haelfte trifft.
   if (neu.art === "radierer") {
     const raster = rasterFelderDerSzene(szene);
@@ -331,6 +343,42 @@ async function szeneWerteMerken(art, szene) {
  * { art: [{ f: "spalte,zeile", w }] }, als Liste, damit Foundrys Zusammenführen keine alten Einträge stehen lässt.
  * SG 0 heißt stufengerecht. Ein neuer Strich derselben Art gibt seine Felder wieder frei.
  */
+/*
+ * Bekanntes Gelände (0.3.16, 29.10.2026: "wenn er dasselbe Feld ein weiteres Mal genau gleich betritt, sollte er
+ * auch nicht mehr würfeln müssen, das ist dann bekanntes Gelände sozusagen, wie das Nachlaufen im Schnee").
+ * Gewählt: nur derselbe Token, nur schmal und uneben (gefährliches Gelände verletzt weiter), gemerkt für die Szene,
+ * je Feld. Szenen-Flagge "bekannt": { art: [{ t: tokenId, f: "spalte,zeile" }] }. Neu gemalt oder im Werte-Fenster
+ * zurückgesetzt, ist das Feld wieder unbekannt.
+ */
+const BEKANNT_ARTEN = ["schmal", "uneben"];
+
+function bekanntListe(szene, art) {
+  const liste = szene?.getFlag?.(MODUL, "bekannt")?.[art];
+  return Array.isArray(liste) ? liste : [];
+}
+
+const bekanntAn = () => Boolean(einstellungSicher("bekanntesGelaende", false));
+
+export function istBekannt(dokument, art, feld) {
+  if (!bekanntAn() || !BEKANNT_ARTEN.includes(art) || !dokument?.id) return false;
+  return bekanntListe(dokument.parent, art).some((eintrag) => eintrag.t === dokument.id && eintrag.f === String(feld));
+}
+
+async function bekanntMerken(dokument, art, feld) {
+  const szene = dokument?.parent;
+  if (!bekanntAn() || !BEKANNT_ARTEN.includes(art) || !szene?.setFlag || istBekannt(dokument, art, feld)) return;
+  const alt = szene.getFlag?.(MODUL, "bekannt") ?? {};
+  await szene.setFlag(MODUL, "bekannt", { ...alt, [art]: [...bekanntListe(szene, art), { t: dokument.id, f: String(feld) }] });
+}
+
+async function bekanntVergessen(art, felder, szene) {
+  const liste = bekanntListe(szene, art);
+  const rest = liste.filter((eintrag) => !felder.has(eintrag.f));
+  if (rest.length === liste.length || !szene?.setFlag) return;
+  const alt = szene.getFlag?.(MODUL, "bekannt") ?? {};
+  await szene.setFlag(MODUL, "bekannt", { ...alt, [art]: rest });
+}
+
 function feldWerteDerSzene(szene, art) {
   const liste = szene?.getFlag?.(MODUL, "feldWerte")?.[art];
   return Array.isArray(liste) ? liste : [];
@@ -413,14 +461,16 @@ export async function werteFenster({ art = null, feld = null } = {}) {
       <p class="hint">${uebersetzen("GELAENDEPINSEL.Werte.Leer", { stufe: gruppenStufe(), sg: stufenSg() })}</p>
       <label>${uebersetzen("GELAENDEPINSEL.Werte.Schaden")} <input name="schaden" type="text" value="${jetzt.schaden}" style="width:7em"></label>
       <label>${uebersetzen("GELAENDEPINSEL.Werte.Art")} <select name="typ">${auswahl(SCHADENSARTEN, jetzt.typ)}</select></label>
-      <label>${uebersetzen("GELAENDEPINSEL.Werte.Rettungswurf")} <select name="rw">${auswahl(RETTUNGSWUERFE, jetzt.rw)}</select></label>`,
+      <label>${uebersetzen("GELAENDEPINSEL.Werte.Rettungswurf")} <select name="rw">${auswahl(RETTUNGSWUERFE, jetzt.rw)}</select></label>${flaeche && BEKANNT_ARTEN.includes(art) ? `
+      <label><input name="vergessen" type="checkbox"> ${uebersetzen("GELAENDEPINSEL.Werte.Vergessen")}</label>` : ""}`,
     ok: {
       label: uebersetzen("GELAENDEPINSEL.Werte.Uebernehmen"),
       callback: (_event, knopf) => ({
         sg: Number(knopf.form.elements.sg.value) || 0,
         schaden: knopf.form.elements.schaden.value,
         typ: knopf.form.elements.typ.value,
-        rw: knopf.form.elements.rw.value
+        rw: knopf.form.elements.rw.value,
+        vergessen: Boolean(knopf.form.elements.vergessen?.checked)
       })
     },
     rejectClose: false
@@ -433,6 +483,7 @@ export async function werteFenster({ art = null, feld = null } = {}) {
       typ: SCHADENSARTEN[ergebnis.typ] ? ergebnis.typ : "fire",
       rw: RETTUNGSWUERFE[ergebnis.rw] ? ergebnis.rw : "reflex"
     });
+    if (ergebnis.vergessen) await bekanntVergessen(art, flaeche, globalThis.canvas?.scene);
     return werteAn(feld, art);
   }
   await game.settings.set(MODUL, "sg", Math.max(0, Math.round(ergebnis.sg)));
@@ -1249,6 +1300,7 @@ async function strichBeenden() {
   try {
     await felderSpeichern(felder, canvas?.scene, art, verborgen);
     if (PROBEN_ARTEN.includes(art) && gestempelt?.size) await feldWerteFreigeben(art, gestempelt, canvas?.scene);
+    if (BEKANNT_ARTEN.includes(art) && gestempelt?.size) await bekanntVergessen(art, gestempelt, canvas?.scene);
   } catch (fehler) {
     console.error(`[${MODUL}] Speichern`, fehler);
     globalThis.ui?.notifications?.error?.(uebersetzen("GELAENDEPINSEL.Fehler.Speichern"));
@@ -1949,6 +2001,8 @@ function fahrtPruefen(id, lage, grund = "bild") {
       if (!neu.feld) continue;
       fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, neu.feld, grund);
+      // Bekanntes Gelände (0.3.16): schon einmal hier gewürfelt, also keine Karte und kein Halt.
+      if (istBekannt(fahrt.dokument, art, neu.feld)) continue;
       if (art.startsWith("suche:")) {
         if (sucheAmRand(id, fahrt, art.slice(6), neu.feld, zwischen)) erreicht ??= neu.feld;
         continue;
@@ -1971,6 +2025,7 @@ function fahrtPruefen(id, lage, grund = "bild") {
       if (!fahrt.erwartet.has(art)) continue;
       fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, feld, `${grund}-ziel`);
+      if (istBekannt(fahrt.dokument, art, feld)) continue;
       if (art.startsWith("suche:")) sucheAmRand(id, fahrt, art.slice(6), feld, null);
       else if (art.startsWith("falle:") && fahrt.suche.has(art.slice(6))) falleNachSuche(fahrt, art, feld);
       else karteAusloesen(fahrt.dokument, art, feld);
@@ -1986,6 +2041,7 @@ function karteAusloesen(dokument, art, feld) {
     return;
   }
   karteSchicken(dokument, art, feld).catch((fehler) => console.error(`[${MODUL}] Karte`, fehler));
+  bekanntMerken(dokument, art, feld).catch((fehler) => console.error(`[${MODUL}] Bekannt`, fehler));
 }
 
 async function karteSchicken(dokument, art, feld) {

@@ -757,6 +757,9 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
     await ruhe();
     return protokoll.chat.length - vorher;
   };
+  // Bekanntes Gelände ist eine Hausregel (0.3.17): Schalter in den Einstellungen, von Haus aus aus.
+  assert.equal(game.settings.get("gelaendepinsel", "bekanntesGelaende"), false, "von Haus aus aus");
+  await game.settings.set("gelaendepinsel", "bekanntesGelaende", true);
   assert.equal(await zug(200, 1800), 1, "Hinein: eine Karte");
   assert.match(protokoll.chat.at(-1).content, /Brandy<\/strong> betritt unebenen Boden: Balancieren/);
   assert.equal(await zug(300, 1800), 0, "Ein Feld weiter: keine");
@@ -769,7 +772,20 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   maus(11, 18);
   ebene._onClickLeft({});
   await ruhe();
-  assert.equal(await zug(500, 1800), 1, "Hinein");
+  // Bekanntes Gelände (0.3.16): Über 2,18 hat Brandy schon gewürfelt; dort wieder hinein gibt keine Karte.
+  assert.equal(await zug(500, 1800), 0, "Über ein bekanntes Feld hinein: keine Karte");
+  assert.deepEqual(flags.gelaendepinsel.bekannt.uneben.map((e) => e.f), ["2,18", "7,18", "8,18"], "gemerkt je Feld");
+  assert.equal(modul.istBekannt({ id: "geroell", parent: szene }, "gefahr", "2,18"), false, "gefährliches Gelände bleibt unbekannt");
+  maus(2, 18);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.deepEqual(flags.gelaendepinsel.bekannt.uneben.map((e) => e.f), ["7,18", "8,18"], "neu gemalt: wieder unbekannt");
+  assert.equal(await zug(100, 1800), 0, "Hinaus");
+  assert.equal(await zug(200, 1800), 1, "über das neu gemalte Feld: wieder eine Karte");
+  // Schalter aus: nach den Regeln würfelt er auch über ein bekanntes Feld
+  assert.equal(await zug(100, 1800), 0, "Hinaus");
+  await game.settings.set("gelaendepinsel", "bekanntesGelaende", false);
+  assert.equal(await zug(200, 1800), 1, "Schalter aus: wieder eine Karte");
   assert.equal(await zug(1100, 1800), 1, "Aus der ersten Fläche in die zweite, im selben Zug");
   await game.settings.set("gelaendepinsel", "rasterModus", false);
   await game.settings.set("gelaendepinsel", "art", "schwierig");
@@ -962,10 +978,13 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   delete game.socket;
   delete f14.stopMovement;
   delete f14.move;
-  // Haltmessung (0.2.23) seit 0.2.27 aus (Wunsch: "Haltmessung abschalten"): nach 2,5 s keine Datei.
+  // Haltmessung (0.2.23): seit 0.2.27 aus, seit 0.3.16 vorübergehend wieder an (Wunsch: "bau die Messung"), in der
+  // öffentlichen Fassung aus. Nach 2,5 s liegt eine Haltdatei vor, wenn die Messung an ist, sonst keine.
   await new Promise((fertig) => echteUhr(fertig, 2700));
   await ruhe();
-  assert.equal(hochgeladen.filter((werte) => werte[2].name.startsWith("gelaendepinsel-halt-")).length, 0, "Keine Haltmessung, solange die Messung aus ist");
+  const haltDateien = hochgeladen.filter((werte) => werte[2].name.startsWith("gelaendepinsel-halt-")).length;
+  if (einstellungen.get("messung").default) assert.ok(haltDateien >= 1, "Haltmessung schreibt, solange die Messung an ist");
+  else assert.equal(haltDateien, 0, "Keine Haltmessung, solange die Messung aus ist");
   delete foundry.applications.apps;
   // Der nächste Zug fährt vom Ziel los, nicht von der Lage beim letzten Speichern.
   hookAusloesen("updateToken", f14, { x: 900 }, { _movement: { f14: { passed: { waypoints: [{ x: 900, y: 2200, action: "walk" }] } } } });
@@ -984,6 +1003,8 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   const manifest = JSON.parse(readFileSync(new URL("../module.json", import.meta.url), "utf8"));
   assert.equal(manifest.persistentStorage, true, "Modulspeicher angemeldet");
   // Seit 0.2.17 aus: Ein Zug durch die Fläche schreibt nichts.
+  // Seit 0.3.16 ist die Messung von Haus aus an; hier ausdrücklich aus.
+  await game.settings.set("gelaendepinsel", "messung", false);
   const stumm = { id: "stumm", name: "Brandy", x: 100, y: 2200, width: 1, height: 1, parent: szene };
   stumm.object = { id: "stumm", x: 100, y: 2200, document: stumm };
   szene.tokens.push({ id: "stumm", x: 100, y: 2200 });
@@ -1013,7 +1034,9 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   await ruhe();
   assert.equal(hochgeladen.length, 1, "Eine Messung geschrieben");
   const [modulId, ordner, datei, , optionen] = hochgeladen[0];
-  assert.deepEqual([modulId, ordner, datei.name, optionen.notify], ["gelaendepinsel", "diagnostics", "gelaendepinsel-diagnose-01.json", false]);
+  assert.deepEqual([modulId, ordner, optionen.notify], ["gelaendepinsel", "diagnostics", false]);
+  // Seit 0.3.16 misst es von Anfang an; der Zähler steht deshalb schon weiter, die Dateien laufen reihum 01 bis 05.
+  assert.match(datei.name, /^gelaendepinsel-diagnose-0[1-5]\.json$/u);
   const messung = JSON.parse(await datei.text());
   assert.equal(messung.version, manifest.version, "Fassung aus dem Manifest");
   assert.equal(messung.ende, "ziel");

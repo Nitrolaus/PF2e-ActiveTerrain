@@ -18,6 +18,10 @@
       "aufdecken": "makes terrain painted hidden visible to players; the terrain itself stays as it is"
     },
     "Einstellung": {
+      "Bekannt": {
+        "Name": "Advanced: Known terrain (house rule)",
+        "Hint": "A creature that already crossed a square of a narrow surface or uneven ground and rolled does not roll there again (for that creature and scene). By the rules every crossing needs a roll. Hazardous terrain always deals damage."
+      },
       "Anzeigen": {
         "Name": "PF2e-ActiveTerrain: Show terrain",
         "Hint": "Shows the outlines of the painted terrain. It always affects movement."
@@ -71,6 +75,7 @@
     "Werte": {
       "Titel": "PF2e-ActiveTerrain: Area values",
       "Gilt": "Applies to everything you paint as narrow, uneven or hazardous from now on.",
+      "Vergessen": "Unknown again for every creature: whoever already balanced here rolls again",
       "TitelFlaeche": "PF2e-ActiveTerrain: Values of this area ({art})",
       "GiltFlaeche": "Applies to exactly this area ({anzahl} squares), including what is already painted.",
       "WelcheFlaeche": "Which area?",

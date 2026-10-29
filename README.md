@@ -137,6 +137,9 @@ Under "Configure Settings", per client:
 
 For the whole world (gamemaster):
 
+- **Advanced: Known terrain (house rule)**: a creature that already crossed a square of a narrow surface or
+  uneven ground and rolled does not roll there again (for that creature and scene). Off by default: by the
+  rules every crossing needs a roll. Hazardous terrain always deals damage.
 - **Advanced: Detect magic reveals magical traps within 30 feet**: by the rules the spell only tells
   whether magic is present; when enabled it also reveals hidden magical traps to everyone.
 
@@ -341,6 +344,9 @@ Unter "Module einstellen", jeweils für den eigenen Rechner:
 
 Für die ganze Welt (Spielleitung):
 
+- **Erweitert: Bekanntes Gelände (Hausregel)**: Wer auf schmaler Oberfläche oder unebenem Boden schon einmal
+  über ein Feld gegangen ist und gewürfelt hat, würfelt dort nicht mehr (für diese Figur und Szene). Von Haus
+  aus aus: Nach den Regeln wird bei jedem Durchqueren gewürfelt. Gefährliches Gelände verletzt immer.
 - **Erweitert: Magie entdecken deckt magische Fallen in 9 m auf**: Nach den Regeln sagt der
   Zauber nur, ob Magie da ist; eingeschaltet deckt er zusätzlich versteckte magische Fallen für alle
   auf.
