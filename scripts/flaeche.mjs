@@ -151,6 +151,16 @@ export function zaehlendeFelder(punkte) {
   return felder;
 }
 
+/** Felder, die eine Punktmenge auch nur berührt, als Schlüssel "spalte,zeile" (0.3.15). */
+export function beruehrteFelder(punkte) {
+  const felder = new Set();
+  for (const k of punkte) {
+    const { fx, fy } = punktAus(k);
+    felder.add(schluessel(Math.floor(fx / FEIN), Math.floor(fy / FEIN)));
+  }
+  return felder;
+}
+
 /** Anteil eines Feldes, den eine Punktmenge bedeckt (0 bis 1). */
 export function bedeckung(punkte, spalte, zeile) {
   let anzahl = 0;

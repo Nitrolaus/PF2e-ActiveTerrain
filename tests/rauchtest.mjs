@@ -1427,5 +1427,97 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   await ruhe();
 }
 
+// Werte-Pinsel (0.3.15, 29.10.2026: "bei gefährlichem Gelände würfelt der Schaden immer mit Feuer und 20, egal
+// was ich einstelle"; gewählt: den Werte-Pinsel): Klick auf eine Fläche setzt Werte für genau diese Fläche
+{
+  const sicherung = JSON.parse(JSON.stringify(flags.gelaendepinsel));
+  flags.gelaendepinsel.striche = [];
+  flags.gelaendepinsel.felder = {};
+  delete flags.gelaendepinsel.feldWerte;
+  game.user = spielleitung;
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  await game.settings.set("gelaendepinsel", "sg", 0);
+  await game.settings.set("gelaendepinsel", "schaden", "2d6");
+  await game.settings.set("gelaendepinsel", "schadensart", "fire");
+  await game.settings.set("gelaendepinsel", "rettungswurf", "reflex");
+  const ziehen = async (art, y, xs) => {
+    await game.settings.set("gelaendepinsel", "art", art);
+    canvas.mousePosition = { x: xs[0], y };
+    ebene._onDragLeftStart({});
+    for (const x of xs.slice(1)) { canvas.mousePosition = { x, y }; ebene._onDragLeftMove({}); }
+    ebene._onDragLeftDrop({});
+    await ruhe();
+  };
+  // Zwei getrennte Flächen gefährlichen Geländes mit den Vorgaben, wie in der Szene vom 29.10.2026
+  await ziehen("gefahr", 3050, [250, 750]);
+  await ziehen("gefahr", 3350, [250, 750]);
+  const stufe = modul.stufenSg();
+  assert.deepEqual(modul.werteAn("4,30", "gefahr"), { sg: stufe, schaden: "2d6", typ: "fire", rw: "reflex" }, "Vorgaben wie in der Szene");
+  // Der Werte-Knopf ist wählbar und malt nicht
+  const c = { tokens: { order: 1 } };
+  leiste(c);
+  assert.equal(c.gelaendepinsel.tools.werte.button, undefined, "kein Druckknopf mehr");
+  await c.gelaendepinsel.tools.werte.onChange();
+  assert.equal(game.settings.get("gelaendepinsel", "art"), "werte");
+  const strichZahl = flags.gelaendepinsel.striche.length;
+  canvas.mousePosition = { x: 250, y: 2650 };
+  ebene._onDragLeftStart({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  assert.equal(flags.gelaendepinsel.striche.length, strichZahl, "Ziehen mit dem Werte-Knopf malt nichts");
+  // Klick auf die obere Fläche: Fenster mit ihren Werten, Übernehmen gilt nur für sie
+  const promptVorher = foundry.applications.api.DialogV2.prompt;
+  let fenster = null;
+  foundry.applications.api.DialogV2.prompt = async (o) => { fenster = o; return o.ok.callback({}, { form: { elements: { sg: { value: "26" }, schaden: { value: "4d6" }, typ: { value: "acid" }, rw: { value: "fortitude" } } } }); };
+  maus(4, 30);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.match(fenster.window.title, /Werte dieser Fläche/u, "Fenster für die Fläche");
+  assert.match(fenster.content, /value="2d6"/u, "zeigt ihre Werte");
+  assert.deepEqual(modul.werteAn("4,30", "gefahr"), { sg: 26, schaden: "4d6", typ: "acid", rw: "fortitude" }, "die obere Fläche hat neue Werte");
+  assert.deepEqual(modul.werteAn("6,30", "gefahr"), { sg: 26, schaden: "4d6", typ: "acid", rw: "fortitude" }, "die ganze Fläche");
+  assert.equal(modul.werteAn("4,33", "gefahr").typ, "fire", "die untere Fläche bleibt");
+  assert.equal(game.settings.get("gelaendepinsel", "schadensart"), "fire", "die Werte für Neugemaltes bleiben");
+  // SG leer heißt stufengerecht
+  foundry.applications.api.DialogV2.prompt = async (o) => o.ok.callback({}, { form: { elements: { sg: { value: "" }, schaden: { value: "1d6" }, typ: { value: "cold" }, rw: { value: "will" } } } });
+  maus(4, 33);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.deepEqual(modul.werteAn("4,33", "gefahr"), { sg: stufe, schaden: "1d6", typ: "cold", rw: "will" }, "SG leer: stufengerecht");
+  // Klick daneben: wie bisher die Werte für Neugemaltes
+  foundry.applications.api.DialogV2.prompt = async (o) => { fenster = o; return o.ok.callback({}, { form: { elements: { sg: { value: "22" }, schaden: { value: "3d8" }, typ: { value: "electricity" }, rw: { value: "reflex" } } } }); };
+  maus(4, 27);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.doesNotMatch(fenster.window.title, /dieser Fläche/u, "daneben: Werte für Neugemaltes");
+  assert.equal(game.settings.get("gelaendepinsel", "schadensart"), "electricity");
+  // Ein neuer Strich über einen Teil der oberen Fläche: dort gilt er, der Rest behält die Werte der Fläche
+  await ziehen("gefahr", 3050, [250, 350]);
+  assert.equal(modul.werteAn("2,30", "gefahr").typ, "electricity", "die jüngste Entscheidung gilt");
+  assert.equal(modul.werteAn("6,30", "gefahr").typ, "acid", "der Rest der Fläche bleibt");
+  // Zwei Arten auf einem Feld: das Fenster fragt, welche Fläche gemeint ist
+  await ziehen("uneben", 3350, [250, 450]);
+  const waitVorher = foundry.applications.api.DialogV2.wait;
+  let frage = null;
+  foundry.applications.api.DialogV2.wait = async (o) => { frage = o; return "uneben"; };
+  foundry.applications.api.DialogV2.prompt = async (o) => { fenster = o; return o.ok.callback({}, { form: { elements: { sg: { value: "21" }, schaden: { value: "2d6" }, typ: { value: "fire" }, rw: { value: "reflex" } } } }); };
+  await game.settings.set("gelaendepinsel", "art", "werte");
+  maus(3, 33);
+  ebene._onClickLeft({});
+  await ruhe();
+  assert.deepEqual(frage.buttons.map((b) => b.action), ["gefahr", "uneben"], "gefährlich und uneben zur Wahl");
+  assert.equal(modul.werteAn("3,33", "uneben").sg, 21, "uneben bekommt seinen SG");
+  assert.equal(modul.werteAn("3,33", "gefahr").typ, "cold", "das gefährliche Gelände bleibt");
+  foundry.applications.api.DialogV2.prompt = promptVorher;
+  foundry.applications.api.DialogV2.wait = waitVorher;
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+  await game.settings.set("gelaendepinsel", "schaden", "2d6");
+  await game.settings.set("gelaendepinsel", "schadensart", "fire");
+  Object.assign(flags.gelaendepinsel, sicherung);
+  delete flags.gelaendepinsel.feldWerte;
+  await ruhe();
+}
+
 assert.deepEqual(protokoll.fehler, []);
 console.log("rauchtest: ok");

@@ -61,7 +61,7 @@
       "Radierer": "Radierer",
       "Aufdecken": "Aufdecken",
       "Verborgen": "Verborgen malen: was du jetzt malst, sehen Spieler nicht (Wirkung bleibt)",
-      "Werte": "Werte der Fläche: SG, Schaden und Rettungswurf für schmal, uneben und gefährlich",
+      "Werte": "Werte: Klick auf eine Fläche (schmal, uneben, gefährlich) zeigt und ändert ihre Werte; Klick daneben stellt die Werte für Neugemaltes ein",
       "PinselHalb": "Pinsel ½ Feld",
       "PinselEin": "Pinsel 1 Feld",
       "PinselFelder": "Pinsel {anzahl} Felder",
@@ -71,6 +71,9 @@
     "Werte": {
       "Titel": "PF2e-ActiveTerrain: Werte der Fläche",
       "Gilt": "Gilt für alles, was du ab jetzt schmal, uneben oder gefährlich malst.",
+      "TitelFlaeche": "PF2e-ActiveTerrain: Werte dieser Fläche ({art})",
+      "GiltFlaeche": "Gilt für genau diese Fläche ({anzahl} Felder), auch für schon Gemaltes.",
+      "WelcheFlaeche": "Welche Fläche?",
       "SG": "SG",
       "Leer": "Leer: stufengerecht nach Gruppenstufe {stufe}, also SG {sg}.",
       "Schaden": "Schaden",

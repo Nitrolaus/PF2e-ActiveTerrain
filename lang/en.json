@@ -61,7 +61,7 @@
       "Radierer": "Eraser",
       "Aufdecken": "Reveal",
       "Verborgen": "Paint hidden: what you paint now is not shown to players (it still applies)",
-      "Werte": "Area values: DC, damage and saving throw for narrow, uneven and hazardous",
+      "Werte": "Values: click an area (narrow, uneven, hazardous) to see and change its values; click elsewhere to set the values for new painting",
       "PinselHalb": "Brush ½ square",
       "PinselEin": "Brush 1 square",
       "PinselFelder": "Brush {anzahl} squares",
@@ -71,6 +71,9 @@
     "Werte": {
       "Titel": "PF2e-ActiveTerrain: Area values",
       "Gilt": "Applies to everything you paint as narrow, uneven or hazardous from now on.",
+      "TitelFlaeche": "PF2e-ActiveTerrain: Values of this area ({art})",
+      "GiltFlaeche": "Applies to exactly this area ({anzahl} squares), including what is already painted.",
+      "WelcheFlaeche": "Which area?",
       "SG": "DC",
       "Leer": "Empty: level-based DC for party level {stufe}, i.e. DC {sg}.",
       "Schaden": "Damage",

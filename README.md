@@ -32,7 +32,9 @@ check is posted to chat.
   switched on in the settings. Pieces smaller than one square, such as slivers left by the eraser,
   remove themselves after three seconds.
 - **Values per area**: DC, damage, damage type and saving throw can be set for each painted area.
-  Without a DC, a DC by the party level is used (level 4: DC 19).
+  Without a DC, a DC by the party level is used (level 4: DC 19). With the values tool selected, a click
+  on a narrow, uneven or hazardous area shows its values and changes them for exactly that connected area,
+  including what is already painted; a click elsewhere sets the values for new painting.
 - **Check cards**: one card when a creature enters an area from outside, at the moment it visibly
   covers a square of the area at least halfway during its move, not when the move starts. Moving on
   inside the area gives no further card, even over several turns; leaving and entering again gives a
@@ -228,7 +230,9 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
   Felder malt, schaltet in den Einstellungen das Malen am Raster ein. Stücke unter einem Feld, etwa
   Reste nach dem Radieren, verschwinden nach drei Sekunden von selbst.
 - **Werte je Fläche**: SG, Schaden, Schadensart und Rettungswurf lassen sich für jede gemalte Fläche
-  festlegen. Ohne SG gilt ein SG nach der Stufe der Gruppe (Stufe 4: SG 19).
+  festlegen. Ohne SG gilt ein SG nach der Stufe der Gruppe (Stufe 4: SG 19). Mit dem Werte-Knopf zeigt ein
+  Klick auf eine schmale, unebene oder gefährliche Fläche ihre Werte und ändert sie für genau diese
+  zusammenhängende Fläche, auch für schon Gemaltes; ein Klick daneben stellt die Werte für Neugemaltes ein.
 - **Würfelkarten**: eine Karte, wenn eine Figur eine Fläche von außen betritt, und zwar in dem
   Augenblick, in dem sie während des Zugs ein Feld der Fläche sichtbar mindestens zur Hälfte bedeckt,
   nicht schon beim Losfahren. Wer sich in der Fläche weiterbewegt, bekommt keine weitere, auch nicht

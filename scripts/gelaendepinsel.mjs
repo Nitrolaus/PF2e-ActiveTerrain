@@ -9,13 +9,13 @@
  */
 
 import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuRechtecken } from "./felder.mjs";
-import { FEIN, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
+import { FEIN, beruehrteFelder, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 import * as gefahren from "./gefahren.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.14";
+const VERSION = "0.3.15";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -241,6 +241,7 @@ async function strichSpeichern(neu, szene = canvas?.scene) {
   if (PROBEN_ARTEN.includes(neu.art)) neu = { ...neu, w: aktuelleWerte() };
   await szene.setFlag(MODUL, "striche", [...stricheDerSzene(szene), neu]);
   await szeneWerteMerken(neu.art, szene);
+  if (PROBEN_ARTEN.includes(neu.art)) await feldWerteFreigeben(neu.art, beruehrteFelder(strichPunkte(neu)), szene);
   // Der Radierer nimmt auch am Raster gemaltes Gelaende, wo er ein Feld zur Haelfte trifft.
   if (neu.art === "radierer") {
     const raster = rasterFelderDerSzene(szene);
@@ -322,8 +323,60 @@ async function szeneWerteMerken(art, szene) {
   await szene.setFlag(MODUL, "werte", { ...alt, [art]: aktuelleWerte() });
 }
 
-/** Werte der Fläche an einem Feld: jüngster Strich dieser Art, der es trifft, sonst die Szene. */
+/*
+ * Werte je Fläche (0.3.15, 29.10.2026: "bei gefährlichem Gelände würfelt der Schaden immer mit Feuer und 20,
+ * egal was ich einstelle"; gewählt: den Werte-Pinsel). Bis dahin galten die Werte nur für Neugemaltes; alle 37
+ * Striche gefährlichen Geländes seiner Szene trugen die Vorgaben. Jetzt klickt die SL mit dem Werte-Knopf auf eine
+ * Fläche und setzt Werte für genau diese zusammenhängende Fläche. Gespeichert als Szenen-Flagge "feldWerte":
+ * { art: [{ f: "spalte,zeile", w }] }, als Liste, damit Foundrys Zusammenführen keine alten Einträge stehen lässt.
+ * SG 0 heißt stufengerecht. Ein neuer Strich derselben Art gibt seine Felder wieder frei.
+ */
+function feldWerteDerSzene(szene, art) {
+  const liste = szene?.getFlag?.(MODUL, "feldWerte")?.[art];
+  return Array.isArray(liste) ? liste : [];
+}
+
+/** Die zusammenhängende Fläche einer Art um ein Feld (Nachbarn links, rechts, oben, unten); null ohne Fläche. */
+export function flaecheVon(feld, art, szene = globalThis.canvas?.scene) {
+  const alle = felderDerSzene(szene)[art];
+  if (!alle?.has(feld)) return null;
+  const flaeche = new Set([feld]);
+  const offen = [feld];
+  while (offen.length) {
+    const [spalte, zeile] = offen.pop().split(",").map(Number);
+    for (const [ds, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nachbar = schluessel(spalte + ds, zeile + dz);
+      if (alle.has(nachbar) && !flaeche.has(nachbar)) {
+        flaeche.add(nachbar);
+        offen.push(nachbar);
+      }
+    }
+  }
+  return flaeche;
+}
+
+export async function flaecheWerteSetzen(felder, art, werte, szene = globalThis.canvas?.scene) {
+  if (!game.user?.isGM || !szene?.setFlag || !PROBEN_ARTEN.includes(art)) return 0;
+  const rest = feldWerteDerSzene(szene, art).filter((eintrag) => !felder.has(eintrag.f));
+  const neu = [...felder].sort().map((f) => ({ f, w: { ...werte } }));
+  const alt = szene.getFlag?.(MODUL, "feldWerte") ?? {};
+  await szene.setFlag(MODUL, "feldWerte", { ...alt, [art]: [...rest, ...neu] });
+  return neu.length;
+}
+
+async function feldWerteFreigeben(art, felder, szene) {
+  const liste = feldWerteDerSzene(szene, art);
+  const rest = liste.filter((eintrag) => !felder.has(eintrag.f));
+  if (rest.length === liste.length || !szene?.setFlag) return;
+  const alt = szene.getFlag?.(MODUL, "feldWerte") ?? {};
+  await szene.setFlag(MODUL, "feldWerte", { ...alt, [art]: rest });
+}
+
+/** Werte der Fläche an einem Feld: eigens gesetzt, sonst jüngster Strich dieser Art, der es trifft, sonst die Szene. */
 export function werteAn(feld, art, szene = globalThis.canvas?.scene) {
+  const mitSg = (werte) => ({ ...werte, sg: Number(werte.sg) > 0 ? Number(werte.sg) : stufenSg() });
+  const eigens = feldWerteDerSzene(szene, art).find((eintrag) => eintrag.f === String(feld));
+  if (eigens) return mitSg({ ...aktuelleWerte(), ...eigens.w });
   const [spalte, zeile] = String(feld).split(",").map(Number);
   const mitte = { x: spalte + 0.5, y: zeile + 0.5 };
   const striche = stricheDerSzene(szene);
@@ -345,15 +398,17 @@ export function werteAn(feld, art, szene = globalThis.canvas?.scene) {
   return { ...aktuelleWerte(), ...(szenenWerte ?? {}) };
 }
 
-export async function werteFenster() {
+export async function werteFenster({ art = null, feld = null } = {}) {
   const DialogV2 = foundry.applications?.api?.DialogV2;
   if (!DialogV2 || !game.user?.isGM) return null;
-  const jetzt = aktuelleWerte();
-  const sgEingestellt = Number(einstellungSicher("sg", 0));
+  // Mit Art und Feld: die Werte genau dieser Fläche (0.3.15); sonst wie bisher die Werte für Neugemaltes.
+  const flaeche = art && feld ? flaecheVon(feld, art) : null;
+  const jetzt = flaeche ? werteAn(feld, art) : aktuelleWerte();
+  const sgEingestellt = flaeche ? Number(jetzt.sg) : Number(einstellungSicher("sg", 0));
   const auswahl = (liste, wert) => Object.entries(liste).map(([schl, text]) => `<option value="${schl}"${schl === wert ? " selected" : ""}>${uebersetzen(text)}</option>`).join("");
   const ergebnis = await DialogV2.prompt({
-    window: { title: uebersetzen("GELAENDEPINSEL.Werte.Titel") },
-    content: `<p>${uebersetzen("GELAENDEPINSEL.Werte.Gilt")}</p>
+    window: { title: flaeche ? uebersetzen("GELAENDEPINSEL.Werte.TitelFlaeche", { art: uebersetzen(ARTEN[art].name) }) : uebersetzen("GELAENDEPINSEL.Werte.Titel") },
+    content: `<p>${flaeche ? uebersetzen("GELAENDEPINSEL.Werte.GiltFlaeche", { anzahl: flaeche.size }) : uebersetzen("GELAENDEPINSEL.Werte.Gilt")}</p>
       <label>${uebersetzen("GELAENDEPINSEL.Werte.SG")} <input name="sg" type="number" min="0" max="60" value="${sgEingestellt > 0 ? sgEingestellt : ""}" placeholder="${stufenSg()}" style="width:5em"></label>
       <p class="hint">${uebersetzen("GELAENDEPINSEL.Werte.Leer", { stufe: gruppenStufe(), sg: stufenSg() })}</p>
       <label>${uebersetzen("GELAENDEPINSEL.Werte.Schaden")} <input name="schaden" type="text" value="${jetzt.schaden}" style="width:7em"></label>
@@ -371,11 +426,42 @@ export async function werteFenster() {
     rejectClose: false
   });
   if (!ergebnis) return null;
+  if (flaeche) {
+    await flaecheWerteSetzen(flaeche, art, {
+      sg: Math.max(0, Math.round(Number(ergebnis.sg) || 0)),
+      schaden: String(ergebnis.schaden ?? "").trim() || "2d6",
+      typ: SCHADENSARTEN[ergebnis.typ] ? ergebnis.typ : "fire",
+      rw: RETTUNGSWUERFE[ergebnis.rw] ? ergebnis.rw : "reflex"
+    });
+    return werteAn(feld, art);
+  }
   await game.settings.set(MODUL, "sg", Math.max(0, Math.round(ergebnis.sg)));
   await game.settings.set(MODUL, "schaden", String(ergebnis.schaden ?? "").trim() || "2d6");
   await game.settings.set(MODUL, "schadensart", SCHADENSARTEN[ergebnis.typ] ? ergebnis.typ : "fire");
   await game.settings.set(MODUL, "rettungswurf", RETTUNGSWUERFE[ergebnis.rw] ? ergebnis.rw : "reflex");
   return aktuelleWerte();
+}
+
+// Klick mit dem Werte-Knopf (0.3.15): auf eine Fläche schmal, uneben oder gefährlich ihre Werte, sonst die Werte
+// für Neugemaltes. Liegen auf dem Feld mehrere dieser Arten, fragt ein kleines Fenster, welche gemeint ist.
+export async function werteKlick() {
+  const unter = feldUnterMaus();
+  if (!unter || !game.user?.isGM) return null;
+  const feld = schluessel(unter.spalte, unter.zeile);
+  const felder = felderDerSzene();
+  const arten = PROBEN_ARTEN.filter((art) => felder[art]?.has(feld));
+  if (!arten.length) return werteFenster();
+  let art = arten[0];
+  if (arten.length > 1) {
+    art = await foundry.applications.api.DialogV2.wait({
+      window: { title: uebersetzen("GELAENDEPINSEL.Werte.WelcheFlaeche") },
+      content: "",
+      buttons: arten.map((a) => ({ action: a, label: uebersetzen(ARTEN[a].name) })),
+      rejectClose: false
+    });
+    if (!arten.includes(art)) return null;
+  }
+  return werteFenster({ art, feld });
 }
 
 /**
@@ -1055,7 +1141,7 @@ function mausInFeldern() {
 
 const rasterModus = () => Boolean(einstellungSicher("rasterModus", false));
 // art: womit dieser Strich malt; der Rechtsklick radiert, ohne die gewählte Art zu ändern (0.2.4).
-const strich = { felder: null, verborgen: null, letztes: null, punkte: null, art: null };
+const strich = { felder: null, verborgen: null, gestempelt: null, letztes: null, punkte: null, art: null };
 
 function stempeln(feld) {
   const art = strich.art ?? einstellung("art");
@@ -1077,6 +1163,7 @@ function stempeln(feld) {
         }
       }
       strich.felder[art].add(schl);
+      strich.gestempelt?.add(schl);
       if (verborgenMalen) strich.verborgen[art].add(schl);
       else strich.verborgen[art].delete(schl);
     }
@@ -1084,6 +1171,8 @@ function stempeln(feld) {
 }
 
 function strichBeginnen(art = einstellung("art")) {
+  // Der Werte-Knopf malt nicht (0.3.15), er klickt auf Flächen.
+  if (art === "werte") return false;
   strich.art = art;
   if (!rasterModus()) {
     // Frei malen (0.2.0): runder Pinsel, die Punkte sammeln sich bis zum Loslassen.
@@ -1098,6 +1187,7 @@ function strichBeginnen(art = einstellung("art")) {
   if (!feld) return false;
   strich.felder = rasterFelderDerSzene();
   strich.verborgen = rasterVerborgenDerSzene();
+  strich.gestempelt = new Set();
   strich.letztes = feld;
   stempeln(feld);
   anzeige.entwurf = strich.felder;
@@ -1149,13 +1239,16 @@ async function strichBeenden() {
   if (!strich.felder) return;
   const felder = strich.felder;
   const verborgen = strich.verborgen;
+  const gestempelt = strich.gestempelt;
   const art = strich.art ?? einstellung("art");
   strich.felder = null;
   strich.verborgen = null;
+  strich.gestempelt = null;
   strich.letztes = null;
   strich.art = null;
   try {
     await felderSpeichern(felder, canvas?.scene, art, verborgen);
+    if (PROBEN_ARTEN.includes(art) && gestempelt?.size) await feldWerteFreigeben(art, gestempelt, canvas?.scene);
   } catch (fehler) {
     console.error(`[${MODUL}] Speichern`, fehler);
     globalThis.ui?.notifications?.error?.(uebersetzen("GELAENDEPINSEL.Fehler.Speichern"));
@@ -1178,6 +1271,10 @@ export function ebeneKlasse() {
 
     _onClickLeft() {
       if (!game.user?.isGM) return;
+      if (einstellung("art") === "werte") {
+        void werteKlick().catch((fehler) => console.error(`[${MODUL}] Werte`, fehler));
+        return;
+      }
       if (strichBeginnen()) void strichBeenden();
     }
 
@@ -1278,8 +1375,8 @@ function gruppeSpielleitung() {
     order: nummer += 1,
     title: uebersetzen("GELAENDEPINSEL.Leiste.Werte"),
     icon: "fa-solid fa-sliders",
-    button: true,
-    onChange: () => void werteFenster()
+    // Seit 0.3.15 wählbar wie ein Pinsel: Klick auf eine Fläche zeigt und ändert ihre Werte.
+    onChange: () => game.settings.set(MODUL, "art", "werte")
   };
   for (const g of [0.5, 1, 2, 3]) {
     const name = groesseName(g);
@@ -1312,7 +1409,7 @@ function gruppeSpielleitung() {
     icon: "fa-solid fa-mountain-sun",
     layer: MODUL,
     visible: true,
-    activeTool: ARTEN[art] || art === "radierer" || art === "aufdecken" ? art : "schwierig",
+    activeTool: ARTEN[art] || ["radierer", "aufdecken", "werte"].includes(art) ? art : "schwierig",
     // Wie bei Sequencer: Die Gruppe holt ihre Ebene selbst nach vorn.
     onChange: (_event, aktiv) => {
       if (aktiv) canvas?.[MODUL]?.activate?.();
