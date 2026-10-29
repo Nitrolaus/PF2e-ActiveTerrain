@@ -14,7 +14,8 @@
       "gefahr": "moving through it deals damage; the terrain sets type and amount",
       "schmal": "Balance, Off-Guard; when hit or on a failed save, Reflex save or you fall",
       "uneben": "Balance, Off-Guard; when hit or on a failed save, Reflex save or fall Prone",
-      "radierer": "removes terrain; right-click erases with any other brush too"
+      "radierer": "removes terrain; right-click erases with any other brush too",
+      "aufdecken": "makes terrain painted hidden visible to players; the terrain itself stays as it is"
     },
     "Einstellung": {
       "Anzeigen": {
@@ -58,6 +59,8 @@
     "Leiste": {
       "Werkzeug": "{name}: {kurz}",
       "Radierer": "Eraser",
+      "Aufdecken": "Reveal",
+      "Verborgen": "Paint hidden: what you paint now is not shown to players (it still applies)",
       "Werte": "Area values: DC, damage and saving throw for narrow, uneven and hazardous",
       "PinselHalb": "Brush ½ square",
       "PinselEin": "Brush 1 square",

@@ -161,7 +161,12 @@ const leiste = hooks.get("getSceneControlButtons")[0];
   assert.deepEqual(Object.keys(controls), ["tokens", "walls", "sequencer", "gelaendepinsel", "fxmaster"]);
   assert.equal("order" in controls.gelaendepinsel, false, "Sequencer ohne Reihenfolge: die eigene auch ohne");
   assert.equal(controls.gelaendepinsel.layer, "gelaendepinsel");
-  assert.deepEqual(Object.keys(controls.gelaendepinsel.tools), ["schwierig", "sehr", "gefahr", "schmal", "uneben", "radierer", "werte", "groesse05", "groesse1", "groesse2", "groesse3"]);
+  assert.deepEqual(Object.keys(controls.gelaendepinsel.tools), ["schwierig", "sehr", "gefahr", "schmal", "uneben", "radierer", "aufdecken", "werte", "groesse05", "groesse1", "groesse2", "groesse3", "verborgen"]);
+  // Verborgen malen (0.3.14): Aufdeck-Pinsel mit Auge, Schalter mit durchgestrichenem Auge neben den Größen
+  assert.equal(controls.gelaendepinsel.tools.aufdecken.icon, "fa-solid fa-eye");
+  assert.equal(controls.gelaendepinsel.tools.verborgen.icon, "fa-solid fa-eye-slash");
+  assert.equal(controls.gelaendepinsel.tools.verborgen.toggle, true);
+  assert.equal(controls.gelaendepinsel.tools.verborgen.active, false, "Vorgabe: sichtbar malen");
   const symbole = ["schwierig", "sehr", "gefahr", "schmal", "uneben"].map((art) => controls.gelaendepinsel.tools[art].icon);
   assert.equal(new Set(symbole).size, 5, "Fünf verschiedene Symbole im Menü");
   assert.equal(symbole.includes("fa-solid fa-paintbrush"), false, "Kein gleicher Pinsel mehr");
@@ -343,6 +348,42 @@ await game.settings.set("gelaendepinsel", "anzeigen", true);
 assert.equal(modul.anzeige.grafik.striche.length, 32, "Spieler mit Schalter sehen dasselbe");
 // 29.10.2026: "die Spieler sollen aber auch nur die gestrichelte Linie sehen, nicht eine gelbe Kachel"
 assert.equal(modul.anzeige.grafik.flaechen.length, 0, "Spieler sehen nur die gestrichelte Linie, keine Kacheln");
+// Sicht der Spieler (0.3.13, 29.10.2026: "das schwierige Gelände sieht man auch durch die Türe"): nur Striche,
+// deren Mitte der Spieler sieht oder schon erkundet hat; ohne Token-Sicht der Szene wie bisher
+{
+  let n = 0;
+  canvas.visibility = { tokenVision: true, testVisibility: () => false };
+  canvas.fog = { isPointExplored: () => false };
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 0, "hinter Tür und Wand, nie gesehen: keine Striche");
+  canvas.fog.isPointExplored = () => true;
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 32, "erkundet: wie die Karte");
+  canvas.fog.isPointExplored = () => false;
+  canvas.visibility.testVisibility = (punkt, { tolerance }) => { assert.equal(tolerance, 2); n += 1; return n % 2 === 1; };
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 16, "nur die sichtbaren Striche");
+  canvas.visibility.testVisibility = () => false;
+  szene.tokenVision = false;
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 32, "Szene ohne Token-Sicht: alles");
+  delete szene.tokenVision;
+  // Neu gezeichnet wird, wenn Foundry die Sicht neu rechnet, höchstens alle 150 ms
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 0);
+  canvas.visibility.testVisibility = () => true;
+  for (const fn of hooks.get("sightRefresh") ?? []) fn();
+  for (const fn of hooks.get("updateWall") ?? []) fn();
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(modul.anzeige.grafik.striche.length, 32, "nach dem Neuberechnen der Sicht neu gezeichnet");
+  game.user = spielleitung;
+  canvas.visibility.testVisibility = () => false;
+  modul.anzeige.zeichnen();
+  assert.ok(modul.anzeige.grafik.striche.length >= 32, "die SL sieht alles");
+  game.user = { id: "stefan", isGM: false };
+  delete canvas.visibility;
+  delete canvas.fog;
+}
 await game.settings.set("gelaendepinsel", "strichstaerke", 200);
 assert.ok(modul.anzeige.grafik.striche.every((s) => s.width === 3), "Strichstärke gilt auch für Spieler");
 await game.settings.set("gelaendepinsel", "strichstaerke", 100);
@@ -1284,6 +1325,106 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   for (const x of [700, 900]) drin.bild(x);
   await ruhe();
   assert.equal(drin.karte(), false, "Keine Karte");
+}
+
+// Verborgen malen (0.3.14, 29.10.2026: "im Terrain-Menü die Möglichkeit, die Felder auch für Spieler unsichtbar
+// zu zeichnen"; gewählt: Schalter in der Leiste, für Spieler nichts sichtbar bei voller Wirkung, für die SL
+// gepunktet, Pinsel zum Aufdecken)
+{
+  const sicherung = JSON.parse(JSON.stringify(flags.gelaendepinsel));
+  flags.gelaendepinsel.striche = [];
+  flags.gelaendepinsel.felder = {};
+  flags.gelaendepinsel.verborgen = {};
+  game.user = spielleitung;
+  await game.settings.set("gelaendepinsel", "anzeigen", true);
+  await game.settings.set("gelaendepinsel", "darstellung", "weich");
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "groesse", 1);
+  const leisteJetzt = () => { const c = { tokens: { order: 1 } }; leiste(c); return c.gelaendepinsel.tools; };
+  const ziehen = async (art, y, xs) => {
+    await game.settings.set("gelaendepinsel", "art", art);
+    canvas.mousePosition = { x: xs[0], y };
+    ebene._onDragLeftStart({});
+    for (const x of xs.slice(1)) { canvas.mousePosition = { x, y }; ebene._onDragLeftMove({}); }
+    ebene._onDragLeftDrop({});
+    await ruhe();
+  };
+  const laenge = (s) => Math.hypot(s.nach.x - s.von.x, s.nach.y - s.von.y);
+
+  // Schalter an: der Strich ist verborgen, wirkt aber
+  leisteJetzt().verborgen.onChange({}, true);
+  await ruhe();
+  assert.equal(leisteJetzt().verborgen.active, true, "Schalter an");
+  await ziehen("schwierig", 2050, [250, 550, 850]);
+  assert.equal(flags.gelaendepinsel.striche.at(-1).v, 1, "Strich verborgen gemerkt");
+  assert.ok(modul.felderDerSzene().schwierig.has("5,20"), "wirkt");
+  assert.equal(modul.sichtbareFelderDerSzene().schwierig.has("5,20"), false, "für Spieler nicht da");
+  // SL: gepunktet statt gestrichelt
+  modul.anzeige.zeichnen();
+  assert.ok(modul.anzeige.grafik.striche.length > 0, "SL sieht es");
+  assert.ok(modul.anzeige.grafik.striche.every((s) => laenge(s) <= 2.01), "nur Punkte, keine Striche");
+  // Spieler: keine Linie, kein Abzeichen
+  game.user = { id: "stefan", isGM: false };
+  modul.anzeige.zeichnen();
+  assert.equal(modul.anzeige.grafik.striche.length, 0, "Spieler sieht keine Linie");
+  modul.abzeichen.alleZeichnen();
+  assert.equal(modul.abzeichen.felder.schwierig.has("5,20"), false, "Spieler bekommt kein Abzeichen");
+  game.user = spielleitung;
+  modul.abzeichen.alleZeichnen();
+  assert.ok(modul.abzeichen.felder.schwierig.has("5,20"), "die SL schon");
+
+  // Aufdecken: was der Pinsel überstreicht, sehen Spieler danach; am Gelände ändert sich nichts
+  await ziehen("aufdecken", 2050, [250, 450]);
+  assert.equal(flags.gelaendepinsel.striche.at(-1).art, "aufdecken");
+  assert.equal(flags.gelaendepinsel.striche.at(-1).v, undefined, "Aufdecken ist selbst nie verborgen");
+  const nachAufdecken = modul.sichtbareFelderDerSzene().schwierig;
+  assert.ok(nachAufdecken.has("3,20") && !nachAufdecken.has("7,20"), "nur wo er streicht");
+  assert.ok(modul.felderDerSzene().schwierig.has("7,20"), "das Gelände bleibt");
+  modul.anzeige.zeichnen();
+  const slStriche = modul.anzeige.grafik.striche;
+  assert.ok(slStriche.some((s) => laenge(s) > 10) && slStriche.some((s) => laenge(s) <= 2.01), "SL: aufgedeckt gestrichelt, Rest gepunktet");
+
+  // Schalter aus: sichtbar darübermalen macht sichtbar
+  leisteJetzt().verborgen.onChange({}, false);
+  await ruhe();
+  await ziehen("schwierig", 2050, [550, 850]);
+  assert.equal(flags.gelaendepinsel.striche.at(-1).v, undefined, "Schalter aus: sichtbar");
+  assert.ok(modul.sichtbareFelderDerSzene().schwierig.has("7,20"), "sichtbar darübergemalt");
+
+  // Am Raster: verborgen gemalte Felder in der Flagge "verborgen", Aufdecken nimmt sie heraus
+  await game.settings.set("gelaendepinsel", "rasterModus", true);
+  leisteJetzt().verborgen.onChange({}, true);
+  await ruhe();
+  await game.settings.set("gelaendepinsel", "art", "uneben");
+  maus(2, 22);
+  ebene._onDragLeftStart({});
+  maus(4, 22);
+  ebene._onDragLeftMove({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  assert.deepEqual(flags.gelaendepinsel.verborgen.uneben, ["2,22", "3,22", "4,22"], "verborgen gemerkt");
+  assert.ok(modul.felderDerSzene().uneben.has("3,22"), "wirkt");
+  assert.equal(modul.sichtbareFelderDerSzene().uneben.has("3,22"), false, "für Spieler nicht da");
+  await game.settings.set("gelaendepinsel", "art", "aufdecken");
+  maus(3, 22);
+  ebene._onDragLeftStart({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  assert.deepEqual(flags.gelaendepinsel.verborgen.uneben, ["2,22", "4,22"], "Aufdecken am Raster");
+  assert.ok(modul.sichtbareFelderDerSzene().uneben.has("3,22") && modul.felderDerSzene().uneben.has("3,22"));
+  await game.settings.set("gelaendepinsel", "art", "radierer");
+  maus(2, 22);
+  ebene._onDragLeftStart({});
+  ebene._onDragLeftDrop({});
+  await ruhe();
+  assert.deepEqual(flags.gelaendepinsel.verborgen.uneben, ["4,22"], "Radierer nimmt auch das Verborgene");
+
+  leisteJetzt().verborgen.onChange({}, false);
+  await game.settings.set("gelaendepinsel", "rasterModus", false);
+  await game.settings.set("gelaendepinsel", "art", "schwierig");
+  Object.assign(flags.gelaendepinsel, sicherung);
+  delete flags.gelaendepinsel.verborgen;
+  await ruhe();
 }
 
 assert.deepEqual(protokoll.fehler, []);

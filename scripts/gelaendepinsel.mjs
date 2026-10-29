@@ -9,13 +9,13 @@
  */
 
 import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuRechtecken } from "./felder.mjs";
-import { FEIN, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
+import { FEIN, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 import * as gefahren from "./gefahren.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.11";
+const VERSION = "0.3.14";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -62,6 +62,14 @@ function einstellungenAnmelden() {
   // game.settings.set("gelaendepinsel", "messung", true).
   game.settings.register(MODUL, "messung", { scope: "client", config: false, type: Boolean, default: false });
   game.settings.register(MODUL, "groesse", { scope: "client", config: false, type: Number, default: 1 });
+  // Verborgen malen (0.3.14): Schalter in der Leiste, gilt für alles, was danach gemalt wird.
+  game.settings.register(MODUL, "verborgenMalen", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => globalThis.ui?.controls?.render?.()
+  });
   // Werte der bemalten Flächen (0.2.7): SG 0 heißt stufengerecht nach Gruppenstufe.
   game.settings.register(MODUL, "sg", { scope: "client", config: false, type: Number, default: 0 });
   game.settings.register(MODUL, "schaden", { scope: "client", config: false, type: String, default: "2d6" });
@@ -155,6 +163,14 @@ export function rasterFelderDerSzene(szene = globalThis.canvas?.scene) {
   return ergebnis;
 }
 
+// Am Raster verborgen gemalte Felder (0.3.14): Flagge "verborgen" je Art; die Felder selbst stehen weiter in "felder".
+export function rasterVerborgenDerSzene(szene = globalThis.canvas?.scene) {
+  const roh = szene?.getFlag?.(MODUL, "verborgen") ?? {};
+  const ergebnis = {};
+  for (const art of Object.keys(ARTEN)) ergebnis[art] = new Set(Array.isArray(roh[art]) ? roh[art] : []);
+  return ergebnis;
+}
+
 export function stricheDerSzene(szene = globalThis.canvas?.scene) {
   const roh = szene?.getFlag?.(MODUL, "striche");
   return Array.isArray(roh) ? roh : [];
@@ -166,10 +182,15 @@ export function flaechenDerSzene(szene = globalThis.canvas?.scene) {
   const liste = stricheDerSzene(szene);
   let eintrag = flaechenCache.get(liste);
   if (!eintrag) {
-    const flaechen = flaechenAusStrichen(liste);
+    const { flaechen, verborgen } = strichFlaechen(liste);
+    const sichtbar = sichtbarAus(flaechen, verborgen);
     const felder = {};
-    for (const art of Object.keys(ARTEN)) felder[art] = zaehlendeFelder(flaechen[art]);
-    eintrag = { flaechen, felder };
+    const sichtbareFelder = {};
+    for (const art of Object.keys(ARTEN)) {
+      felder[art] = zaehlendeFelder(flaechen[art]);
+      sichtbareFelder[art] = zaehlendeFelder(sichtbar[art]);
+    }
+    eintrag = { flaechen, felder, verborgen, sichtbar, sichtbareFelder };
     flaechenCache.set(liste, eintrag);
   }
   return eintrag;
@@ -183,11 +204,34 @@ export function felderDerSzene(szene = globalThis.canvas?.scene) {
   return ergebnis;
 }
 
-async function felderSpeichern(felder, szene = canvas?.scene, art = null) {
+/*
+ * Was Spieler sehen (0.3.14): am Raster gemalt und nicht verborgen, dazu frei gemalt und nicht verborgen. Wirkung,
+ * Kosten und Karten rechnen weiter mit felderDerSzene, also mit allem.
+ */
+export function sichtbareFelderDerSzene(szene = globalThis.canvas?.scene) {
+  const raster = rasterFelderDerSzene(szene);
+  const rasterVerborgen = rasterVerborgenDerSzene(szene);
+  const { sichtbareFelder } = flaechenDerSzene(szene);
+  const ergebnis = {};
+  for (const art of Object.keys(ARTEN)) {
+    ergebnis[art] = new Set([...raster[art]].filter((feld) => !rasterVerborgen[art].has(feld)));
+    for (const feld of sichtbareFelder[art]) ergebnis[art].add(feld);
+  }
+  return ergebnis;
+}
+
+async function verborgeneSpeichern(verborgen, szene) {
+  const daten = {};
+  for (const name of Object.keys(ARTEN)) daten[name] = [...(verborgen[name] ?? [])].sort();
+  await szene.setFlag(MODUL, "verborgen", daten);
+}
+
+async function felderSpeichern(felder, szene = canvas?.scene, art = null, verborgen = null) {
   if (!game.user?.isGM || !szene) return;
   const daten = {};
   for (const name of Object.keys(ARTEN)) daten[name] = [...(felder[name] ?? [])].sort();
   await szene.setFlag(MODUL, "felder", daten);
+  if (verborgen) await verborgeneSpeichern(verborgen, szene);
   await szeneWerteMerken(art, szene);
   await regionenAbgleichen(felderDerSzene(szene), szene);
 }
@@ -208,6 +252,14 @@ async function strichSpeichern(neu, szene = canvas?.scene) {
       for (const art of Object.keys(ARTEN)) daten[art] = [...raster[art]].sort();
       await szene.setFlag(MODUL, "felder", daten);
     }
+  }
+  // Radierer und Aufdeck-Pinsel nehmen am Raster verborgenen Feldern, die sie zur Haelfte treffen, das Verborgene.
+  if (neu.art === "radierer" || neu.art === "aufdecken") {
+    const verborgen = rasterVerborgenDerSzene(szene);
+    const getroffen = zaehlendeFelder(strichPunkte(neu));
+    let geaendert = false;
+    for (const menge of Object.values(verborgen)) for (const feld of getroffen) if (menge.delete(feld)) geaendert = true;
+    if (geaendert) await verborgeneSpeichern(verborgen, szene);
   }
   await regionenAbgleichen(felderDerSzene(szene), szene);
 }
@@ -507,7 +559,7 @@ function strichFaktor() {
 }
 
 // Gestrichelte Linie entlang eines Zugs (Pixel), Strichlage laeuft ueber die Ecken weiter.
-function gestrichelt(grafik, punkte, stil, strich, luecke) {
+function gestrichelt(grafik, punkte, stil, strich, luecke, zeigen = null) {
   let rest = strich;
   let zeichnen = true;
   for (let i = 1; i < punkte.length; i += 1) {
@@ -517,7 +569,8 @@ function gestrichelt(grafik, punkte, stil, strich, luecke) {
     let s = 0;
     while (s < laenge) {
       const e = Math.min(laenge, s + rest);
-      if (zeichnen) {
+      const mitte = (s + e) / 2 / laenge;
+      if (zeichnen && (!zeigen || zeigen({ x: a.x + (b.x - a.x) * mitte, y: a.y + (b.y - a.y) * mitte }))) {
         linie(grafik,
           { x: a.x + (b.x - a.x) * (s / laenge), y: a.y + (b.y - a.y) * (s / laenge) },
           { x: a.x + (b.x - a.x) * (e / laenge), y: a.y + (b.y - a.y) * (e / laenge) },
@@ -535,14 +588,20 @@ function gestrichelt(grafik, punkte, stil, strich, luecke) {
 
 // Weicher Rand je Art aus frei gemalten Punkten und Rasterfeldern, je Datenstand einmal gerechnet.
 const randCache = new WeakMap();
+// Seit 0.3.14 getrennt: { sichtbar, verborgen } - was Spieler sehen und was nur die SL sieht (gepunktet).
 function raenderDerSzene(szene) {
   const liste = stricheDerSzene(szene);
   const rasterRoh = szene?.getFlag?.(MODUL, "felder") ?? null;
+  const verborgenRoh = szene?.getFlag?.(MODUL, "verborgen") ?? null;
   const vorher = randCache.get(liste);
-  if (vorher && vorher.raster === rasterRoh) return vorher.raender;
-  const { flaechen } = flaechenDerSzene(szene);
-  const raender = raenderAus(flaechen, rasterFelderDerSzene(szene));
-  randCache.set(liste, { raster: rasterRoh, raender });
+  if (vorher && vorher.raster === rasterRoh && vorher.verborgenRoh === verborgenRoh) return vorher.raender;
+  const { sichtbar, verborgen } = flaechenDerSzene(szene);
+  const raster = rasterFelderDerSzene(szene);
+  const rasterVerborgen = rasterVerborgenDerSzene(szene);
+  const rasterSichtbar = {};
+  for (const art of Object.keys(ARTEN)) rasterSichtbar[art] = new Set([...raster[art]].filter((feld) => !rasterVerborgen[art].has(feld)));
+  const raender = { sichtbar: raenderAus(sichtbar, rasterSichtbar), verborgen: raenderAus(verborgen, rasterVerborgen) };
+  randCache.set(liste, { raster: rasterRoh, verborgenRoh, raender });
   return raender;
 }
 
@@ -661,7 +720,13 @@ export const anzeige = {
     if (this.entwurfStrich && game.user?.isGM) {
       const { art, r, punkte } = this.entwurfStrich;
       const pixel = punkte.map(inPixel);
-      if (art === "radierer") {
+      if (art === "aufdecken") {
+        // Aufdeck-Pinsel (0.3.14): dünne Spur und Pinselkreis in Hellblau, am Gelände ändert er nichts.
+        const stil = { color: AUFDECKEN_FARBE, width: Math.max(1.5, groesse * 0.0075), alpha: 0.9 };
+        for (let i = 1; i < pixel.length; i += 1) linie(this.grafik, pixel[i - 1], pixel[i], stil);
+        const ende = pixel.at(-1);
+        kreisLinie(this.grafik, ende.x, ende.y, r * groesse, stil);
+      } else if (art === "radierer") {
         radiert = radiererVorschau(this.entwurfStrich);
         const stil = { color: 0x9aa4b2, width: Math.max(1.5, groesse * 0.0075), alpha: 0.9 };
         for (let i = 1; i < pixel.length; i += 1) linie(this.grafik, pixel[i - 1], pixel[i], stil);
@@ -689,25 +754,77 @@ export const anzeige = {
     const breite = Math.max(1.5, groesse * 0.0075) * strichFaktor();
     const strich = groesse * 0.2;
     const luecke = groesse * 0.12;
+    const zeigen = sichtFilter();
+    // Verborgen gemaltes Gelände (0.3.14, gewählt: "gepunktet"): Die SL sieht es in Punkten statt Strichen,
+    // Spieler gar nicht. Während des Malens am Raster und beim Radieren zeigt die Vorschau alles gestrichelt.
+    const punkt = Math.max(2, breite);
+    const umranden = (menge, stil, lang) => {
+      for (const kante of aussenkanten([...menge])) {
+        const a = canvas.grid.getTopLeftPoint({ i: kante.y1, j: kante.x1 });
+        const b = canvas.grid.getTopLeftPoint({ i: kante.y2, j: kante.x2 });
+        gestrichelt(this.grafik, [a, b], stil, lang, luecke, zeigen);
+      }
+    };
     if (darstellung === "einfach" || this.entwurf) {
+      const vorschau = Boolean(radiert || this.entwurf);
+      const sichtbar = vorschau ? felder : sichtbareFelderDerSzene();
+      for (const [art, menge] of Object.entries(sichtbar)) {
+        if (menge.size) umranden(menge, { color: farbwert(art), width: breite, alpha: deckkraft() }, strich);
+      }
+      if (vorschau || !game.user?.isGM) return;
       for (const [art, menge] of Object.entries(felder)) {
-        if (!menge.size) continue;
-        const stil = { color: farbwert(art), width: breite, alpha: deckkraft() };
-        for (const kante of aussenkanten([...menge])) {
-          const a = canvas.grid.getTopLeftPoint({ i: kante.y1, j: kante.x1 });
-          const b = canvas.grid.getTopLeftPoint({ i: kante.y2, j: kante.x2 });
-          gestrichelt(this.grafik, [a, b], stil, strich, luecke);
-        }
+        const nurVerborgen = new Set([...menge].filter((feld) => !sichtbar[art]?.has(feld)));
+        if (nurVerborgen.size) umranden(nurVerborgen, { color: farbwert(art), width: breite, alpha: deckkraft() }, punkt);
       }
       return;
     }
-    const raender = radiert?.raender ?? raenderDerSzene(canvas.scene);
-    for (const [art, zuege] of Object.entries(raender)) {
+    const raender = radiert ? { sichtbar: radiert.raender, verborgen: {} } : raenderDerSzene(canvas.scene);
+    for (const [art, zuege] of Object.entries(raender.sichtbar)) {
       const stil = { color: farbwert(art), width: breite, alpha: deckkraft() };
-      for (const zug of zuege) gestrichelt(this.grafik, zug.map(inPixel), stil, strich, luecke);
+      for (const zug of zuege) gestrichelt(this.grafik, zug.map(inPixel), stil, strich, luecke, zeigen);
+    }
+    if (!game.user?.isGM) return;
+    for (const [art, zuege] of Object.entries(raender.verborgen)) {
+      const stil = { color: farbwert(art), width: breite, alpha: deckkraft() };
+      for (const zug of zuege) gestrichelt(this.grafik, zug.map(inPixel), stil, punkt, luecke, zeigen);
     }
   }
 };
+
+/*
+ * Sicht der Spieler (0.3.13, 29.10.2026: "das schwierige Gelände, melden meine Spieler, sieht man auch durch die
+ * Türe, das sollte nicht sein"). Die Linien liegen in Foundrys oberster Ebene und damit über dem Nebel. Spieler
+ * bekommen deshalb nur Striche, deren Mitte sie gerade sehen oder schon erkundet haben, wie die Karte selbst; die
+ * SL sieht alles. Szenen ohne Token-Sicht und Foundry ohne diese Prüfung zeigen alles wie bisher. Geprüft wie in
+ * der AI-Bewegungsanzeige über canvas.visibility.testVisibility und canvas.fog.isPointExplored.
+ */
+function sichtFilter() {
+  if (game.user?.isGM) return null;
+  const sicht = globalThis.canvas?.visibility;
+  if (typeof sicht?.testVisibility !== "function") return null;
+  if ((globalThis.canvas?.scene?.tokenVision ?? sicht.tokenVision) === false) return null;
+  const nebel = globalThis.canvas?.fog;
+  return (punkt) => {
+    try {
+      if (sicht.testVisibility(punkt, { tolerance: 2 })) return true;
+      return typeof nebel?.isPointExplored === "function" && Boolean(nebel.isPointExplored(punkt));
+    } catch (_fehler) {
+      return true;
+    }
+  };
+}
+
+// Ändert sich die Sicht (Token gehen, Türen gehen auf und zu), zeichnen Spieler die Linien neu, höchstens alle
+// 150 ms.
+const SICHT_TAKT_MS = 150;
+let sichtUhr = null;
+function sichtNeuZeichnen() {
+  if (game.user?.isGM || sichtUhr) return;
+  sichtUhr = setTimeout(() => {
+    sichtUhr = null;
+    anzeige.zeichnen();
+  }, SICHT_TAKT_MS);
+}
 
 /* ------------------------------------------------------------------ Abzeichen am Token */
 
@@ -870,7 +987,7 @@ export const abzeichen = {
   zeichnen(token) {
     const id = token?.id ?? token?.document?.id;
     if (!id) return;
-    if (!this.felder) this.felder = felderDerSzene();
+    if (!this.felder) this.felder = game.user?.isGM ? felderDerSzene() : sichtbareFelderDerSzene();
     // Nur an Kreaturen (0.2.7, gemeldet: Stiefel an Schatzkiste und Kartenmarke "C4 a"): keine Kisten,
     // keine Beute, keine Marken ohne Akteur.
     const kreatur = Boolean(token.actor?.isOfType?.("creature"));
@@ -912,7 +1029,9 @@ export const abzeichen = {
   },
 
   alleZeichnen() {
-    this.felder = felderDerSzene();
+    // Spieler tragen kein Abzeichen fuer verborgen gemaltes Gelaende (0.3.14, gewaehlt: "nichts sichtbar,
+    // Wirkung bleibt").
+    this.felder = game.user?.isGM ? felderDerSzene() : sichtbareFelderDerSzene();
     for (const token of globalThis.canvas?.tokens?.placeables ?? []) this.zeichnen(token);
   }
 };
@@ -936,19 +1055,30 @@ function mausInFeldern() {
 
 const rasterModus = () => Boolean(einstellungSicher("rasterModus", false));
 // art: womit dieser Strich malt; der Rechtsklick radiert, ohne die gewählte Art zu ändern (0.2.4).
-const strich = { felder: null, letztes: null, punkte: null, art: null };
+const strich = { felder: null, verborgen: null, letztes: null, punkte: null, art: null };
 
 function stempeln(feld) {
   const art = strich.art ?? einstellung("art");
   const groesse = Math.max(1, Math.round(Number(einstellung("groesse")) || 1));
+  const verborgenMalen = Boolean(einstellungSicher("verborgenMalen", false));
   for (const schl of pinselFelder(feld.spalte, feld.zeile, groesse)) {
     if (art === "radierer") {
       for (const menge of Object.values(strich.felder)) menge.delete(schl);
+      for (const menge of Object.values(strich.verborgen)) menge.delete(schl);
+    } else if (art === "aufdecken") {
+      for (const menge of Object.values(strich.verborgen)) menge.delete(schl);
     } else if (ARTEN[art]) {
       // Ein Feld hat je Gruppe eine Geländeart (0.2.11): neu Gemaltes ersetzt die seiner Gruppe,
       // gefährliches Gelände etwa bleibt über schwierigem liegen.
-      for (const [andere, menge] of Object.entries(strich.felder)) if (andere !== art && ersetzt(art, andere)) menge.delete(schl);
+      for (const [andere, menge] of Object.entries(strich.felder)) {
+        if (andere !== art && ersetzt(art, andere)) {
+          menge.delete(schl);
+          strich.verborgen[andere].delete(schl);
+        }
+      }
       strich.felder[art].add(schl);
+      if (verborgenMalen) strich.verborgen[art].add(schl);
+      else strich.verborgen[art].delete(schl);
     }
   }
 }
@@ -967,6 +1097,7 @@ function strichBeginnen(art = einstellung("art")) {
   const feld = feldUnterMaus();
   if (!feld) return false;
   strich.felder = rasterFelderDerSzene();
+  strich.verborgen = rasterVerborgenDerSzene();
   strich.letztes = feld;
   stempeln(feld);
   anzeige.entwurf = strich.felder;
@@ -1000,9 +1131,11 @@ async function strichBeenden() {
     strich.punkte = null;
     strich.art = null;
     try {
-      if (ARTEN[art] || art === "radierer") {
+      if (ARTEN[art] || art === "radierer" || art === "aufdecken") {
         const p = vereinfachen(punkte, 1 / (2 * FEIN)).flatMap((punkt) => [Math.round(punkt.x * 1000) / 1000, Math.round(punkt.y * 1000) / 1000]);
-        await strichSpeichern({ art, r, p });
+        // Verborgen gemalt (0.3.14): v: 1 am Strich, nur fuer Gelaendearten.
+        const verborgen = Boolean(ARTEN[art] && einstellungSicher("verborgenMalen", false));
+        await strichSpeichern(verborgen ? { art, r, p, v: 1 } : { art, r, p });
       }
     } catch (fehler) {
       console.error(`[${MODUL}] Speichern`, fehler);
@@ -1015,12 +1148,14 @@ async function strichBeenden() {
   }
   if (!strich.felder) return;
   const felder = strich.felder;
+  const verborgen = strich.verborgen;
   const art = strich.art ?? einstellung("art");
   strich.felder = null;
+  strich.verborgen = null;
   strich.letztes = null;
   strich.art = null;
   try {
-    await felderSpeichern(felder, canvas?.scene, art);
+    await felderSpeichern(felder, canvas?.scene, art, verborgen);
   } catch (fehler) {
     console.error(`[${MODUL}] Speichern`, fehler);
     globalThis.ui?.notifications?.error?.(uebersetzen("GELAENDEPINSEL.Fehler.Speichern"));
@@ -1087,8 +1222,11 @@ export const KURZ = Object.freeze({
   gefahr: "GELAENDEPINSEL.Kurz.gefahr",
   schmal: "GELAENDEPINSEL.Kurz.schmal",
   uneben: "GELAENDEPINSEL.Kurz.uneben",
-  radierer: "GELAENDEPINSEL.Kurz.radierer"
+  radierer: "GELAENDEPINSEL.Kurz.radierer",
+  aufdecken: "GELAENDEPINSEL.Kurz.aufdecken"
 });
+// Farbe des Aufdeck-Pinsels in der Vorschau (0.3.14).
+const AUFDECKEN_FARBE = 0x7fd1ff;
 
 const werkzeugTitel = (name, kurz) => uebersetzen("GELAENDEPINSEL.Leiste.Werkzeug", { name: uebersetzen(name), kurz: uebersetzen(kurz) });
 
@@ -1127,6 +1265,14 @@ function gruppeSpielleitung() {
     icon: "fa-solid fa-eraser",
     onChange: () => game.settings.set(MODUL, "art", "radierer")
   };
+  // Aufdecken (0.3.14, gewählt: "Pinsel zum Aufdecken"): Was er überstreicht, sehen Spieler danach.
+  tools.aufdecken = {
+    name: "aufdecken",
+    order: nummer += 1,
+    title: werkzeugTitel("GELAENDEPINSEL.Leiste.Aufdecken", KURZ.aufdecken),
+    icon: "fa-solid fa-eye",
+    onChange: () => game.settings.set(MODUL, "art", "aufdecken")
+  };
   tools.werte = {
     name: "werte",
     order: nummer += 1,
@@ -1148,6 +1294,17 @@ function gruppeSpielleitung() {
       onChange: () => groesseWaehlen(g)
     };
   }
+  // Verborgen malen (0.3.14, gewählt: "Schalter in der Leiste"): Ist er an, malt jeder Pinsel für Spieler
+  // unsichtbar, bis er wieder aus ist.
+  tools.verborgen = {
+    name: "verborgen",
+    order: nummer += 1,
+    title: uebersetzen("GELAENDEPINSEL.Leiste.Verborgen"),
+    icon: "fa-solid fa-eye-slash",
+    toggle: true,
+    active: Boolean(einstellungSicher("verborgenMalen", false)),
+    onChange: (_event, aktiv) => game.settings.set(MODUL, "verborgenMalen", Boolean(aktiv))
+  };
   const art = einstellung("art");
   return {
     name: MODUL,
@@ -1155,7 +1312,7 @@ function gruppeSpielleitung() {
     icon: "fa-solid fa-mountain-sun",
     layer: MODUL,
     visible: true,
-    activeTool: ARTEN[art] || art === "radierer" ? art : "schwierig",
+    activeTool: ARTEN[art] || art === "radierer" || art === "aufdecken" ? art : "schwierig",
     // Wie bei Sequencer: Die Gruppe holt ihre Ebene selbst nach vorn.
     onChange: (_event, aktiv) => {
       if (aktiv) canvas?.[MODUL]?.activate?.();
@@ -1868,7 +2025,12 @@ if (typeof InteractionLayer !== "function") {
   Hooks.on("canvasReady", () => aufraeumenPlanen());
   // Folgt dem Token auch während der Fahrt: refreshToken kommt bei jeder sichtbaren Änderung. Dort
   // prüft die aktive Spielleitung auch, ob der Token eine Fläche erreicht hat (0.2.13).
+  // Sicht der Spieler (0.3.13): neu zeichnen, wenn Foundry die Sicht neu rechnet, eine Tür sich ändert oder ein
+  // eigener Token sich bewegt.
+  Hooks.on("sightRefresh", () => sichtNeuZeichnen());
+  Hooks.on("updateWall", () => sichtNeuZeichnen());
   Hooks.on("refreshToken", (token) => {
+    if (token?.isOwner ?? token?.document?.isOwner) sichtNeuZeichnen();
     abzeichen.zeichnen(token);
     const id = token?.id ?? token?.document?.id;
     if (id) diagnoseBild(id, token);

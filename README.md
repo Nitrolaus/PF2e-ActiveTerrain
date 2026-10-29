@@ -46,7 +46,14 @@ check is posted to chat.
 - **Badges**: creatures standing on terrain show a small badge with the terrain's symbol. Chests,
   loot and map markers get none. Where the badges sit at the token can be set.
 - **Player display**: players see the dashed outlines and the badges by default, never the filled
-  squares the gamemaster sees. Each player can hide the outlines. Movement costs always apply.
+  squares the gamemaster sees, and only where they currently see or have already explored, like the
+  map itself; terrain behind a closed door stays hidden. Each player can hide the outlines. Movement
+  costs always apply.
+- **Hidden terrain**: with the "Paint hidden" switch (crossed-out eye) every brush paints terrain the
+  players do not see: no outline, no badge. Movement costs, check cards and stops still apply. The
+  gamemaster sees hidden terrain dotted instead of dashed. The "Reveal" brush (eye) makes hidden
+  terrain under it visible to players without changing the terrain; painting the same type visibly
+  over it does the same.
 
 ## Hazards and traps
 
@@ -64,7 +71,8 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
   doors let them through, walls that only block sight do not stop them.
 - **Finding**: only by Perception. A character using the exploration activity Search rolls secretly
   when starting a move toward a hidden trap and, on a success, stops 15 feet from its trigger area;
-  the minimum proficiency from the hazard's Stealth entry applies. The Seek action reveals traps within
+  this search zone ends at walls and closed doors, so nobody finds a trap behind a locked door. The
+  minimum proficiency from the hazard's Stealth entry applies. The Seek action reveals traps within
   30 feet in line of sight whose Stealth DC the result meets. Detect magic reports magic within 30 feet
   by its rank; an advanced setting lets it reveal magical traps.
 - **Disabling**: the hazard menu posts a card with the checks from the hazard's Disable entry. A check
@@ -102,6 +110,8 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
    DC means the DC by party level.
 7. Hazards: the skull button in the token HUD of a hazard opens its menu: trigger one of its actions,
    trigger from afar, reveal, offer disabling, set trigger and effect area.
+8. Hidden terrain: turn on the switch with the crossed-out eye; everything you paint until you turn it
+   off is hidden from players. The "Reveal" brush (eye) shows it to them where you paint over it.
 
 ### Players
 
@@ -235,8 +245,14 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
   Geländeart. Kisten, Beute und Kartenmarken bekommen keins. Wo die Abzeichen am Token stehen, lässt
   sich einstellen.
 - **Anzeige für Spieler**: Spieler sehen von Haus aus die gestrichelten Umrandungen und die
-  Abzeichen, nie die gefüllten Felder der Spielleitung. Jeder Spieler kann die Umrandungen
-  ausblenden. Die Bewegungskosten wirken immer, auch wenn die Anzeige aus ist.
+  Abzeichen, nie die gefüllten Felder der Spielleitung, und nur dort, wo sie gerade sehen oder schon
+  waren, wie die Karte selbst; Gelände hinter einer geschlossenen Tür bleibt verborgen. Jeder Spieler
+  kann die Umrandungen ausblenden. Die Bewegungskosten wirken immer, auch wenn die Anzeige aus ist.
+- **Verborgenes Gelände**: Mit dem Schalter "Verborgen malen" (durchgestrichenes Auge) malt jeder
+  Pinsel Gelände, das Spieler nicht sehen: keine Umrandung, kein Abzeichen. Bewegungskosten,
+  Würfelkarten und der Halt wirken trotzdem. Die Spielleitung sieht verborgenes Gelände gepunktet statt
+  gestrichelt. Der Pinsel "Aufdecken" (Auge) macht es dort sichtbar, wo er drüberstreicht, ohne am
+  Gelände etwas zu ändern; dieselbe Art sichtbar darübermalen tut dasselbe.
 
 ## Gefahren und Fallen
 
@@ -254,8 +270,9 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 - **Wirkungslinie**: Auslöser und Wirkung enden an Wänden, die Bewegung sperren, und an geschlossenen
   Türen. Offene Türen lassen sie durch, Wände nur für die Sicht halten sie nicht auf.
 - **Finden**: nur über Wahrnehmung. Eine Figur mit der Erkundung Absuchen würfelt geheim, wenn sie auf
-  eine versteckte Falle zufährt, und hält bei Erfolg 15 Fuß vor deren Auslösebereich; der Mindestgrad
-  aus dem Heimlichkeitseintrag der Gefahr gilt. Die Aktion Suchen deckt Fallen innerhalb von 30 Fuß in
+  eine versteckte Falle zufährt, und hält bei Erfolg 15 Fuß vor deren Auslösebereich; diese Suchzone
+  endet an Wänden und geschlossenen Türen, hinter einer verschlossenen Tür findet also niemand etwas. Der
+  Mindestgrad aus dem Heimlichkeitseintrag der Gefahr gilt. Die Aktion Suchen deckt Fallen innerhalb von 30 Fuß in
   Sichtlinie auf, deren Heimlichkeits-SG das Ergebnis erreicht. Magie entdecken meldet Magie innerhalb
   von 30 Fuß nach seinem Grad; eine erweiterte Einstellung lässt es magische Fallen aufdecken.
 - **Entschärfen**: Das Menü der Gefahr schickt eine Karte mit den Würfen aus ihrem Eintrag zum
@@ -294,6 +311,9 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 7. Gefahren: Der Knopf mit dem Totenkopf im Token-HUD einer Gefahr öffnet ihr Menü: eine ihrer
    Aktionen auslösen, aus der Ferne auslösen, aufdecken, Entschärfen anbieten, Auslöser und Wirkung
    einstellen.
+8. Verborgenes Gelände: den Schalter mit dem durchgestrichenen Auge einschalten; alles, was du malst,
+   bis du ihn ausschaltest, sehen Spieler nicht. Der Pinsel "Aufdecken" (Auge) zeigt es ihnen dort, wo
+   du drüberstreichst.
 
 ### Für Spieler
 

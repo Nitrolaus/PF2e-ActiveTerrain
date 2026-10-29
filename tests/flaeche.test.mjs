@@ -1,9 +1,31 @@
 // Frei gemalte Flächen (0.2.0) ohne Foundry. Aufruf: node --test tests/flaeche.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FEIN, bedeckung, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "../scripts/flaeche.mjs";
+import { FEIN, bedeckung, flaechenAusStrichen, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "../scripts/flaeche.mjs";
 
 const strich = (art, r, ...p) => ({ art, r, p });
+
+test("Verborgen malen (0.3.14): je Art verborgen, sichtbarer Strich, Radierer und Aufdecken heben es auf", () => {
+  const verborgen = { ...strich("schwierig", 0.5, 2.5, 2.5, 4.5, 2.5), v: 1 };
+  const rechnen = (...weitere) => strichFlaechen([verborgen, ...weitere]);
+  let r = rechnen();
+  assert.ok(r.flaechen.schwierig.size > 0, "das Gelände wirkt");
+  assert.equal(r.verborgen.schwierig.size, r.flaechen.schwierig.size, "ganz verborgen");
+  assert.equal(sichtbarAus(r.flaechen, r.verborgen).schwierig.size, 0, "Spieler sehen nichts");
+  r = rechnen(strich("schwierig", 0.5, 2.5, 2.5, 4.5, 2.5));
+  assert.equal(r.verborgen.schwierig.size, 0, "sichtbar darübergemalt: sichtbar");
+  r = rechnen(strich("uneben", 0.5, 2.5, 2.5, 4.5, 2.5));
+  assert.equal(r.verborgen.schwierig.size, r.flaechen.schwierig.size, "andere Gruppe ändert am Verborgenen nichts");
+  assert.equal(sichtbarAus(r.flaechen, r.verborgen).uneben.size, r.flaechen.uneben.size, "der unebene Boden ist sichtbar");
+  r = rechnen(strich("sehr", 0.5, 2.5, 2.5, 4.5, 2.5));
+  assert.equal(r.flaechen.schwierig.size + r.verborgen.schwierig.size, 0, "dieselbe Gruppe ersetzt es samt Verborgenem");
+  r = rechnen(strich("aufdecken", 0.5, 2.5, 2.5, 3.5, 2.5));
+  assert.equal(r.flaechen.schwierig.size, rechnen().flaechen.schwierig.size, "Aufdecken lässt das Gelände stehen");
+  assert.ok(r.verborgen.schwierig.size > 0 && r.verborgen.schwierig.size < r.flaechen.schwierig.size, "nur wo er streicht");
+  r = rechnen(strich("radierer", 0.5, 2.5, 2.5, 4.5, 2.5));
+  assert.equal(r.flaechen.schwierig.size + r.verborgen.schwierig.size, 0, "Radierer nimmt beides");
+  assert.deepEqual([...flaechenAusStrichen([verborgen]).schwierig], [...rechnen().flaechen.schwierig], "Wirkung wie bisher");
+});
 
 test("50-Prozent-Regel: ein Feld zählt ab der Hälfte", () => {
   // Waagrechter Strich durch die Mitte der Zeile 5, Breite ein Feld: Zeile 5 voll, Nachbarn kaum.

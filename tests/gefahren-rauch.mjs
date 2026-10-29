@@ -319,9 +319,11 @@ const schneidet = (a, b, c, d) => {
   return r(a, b, c) * r(a, b, d) < 0 && r(c, d, a) * r(c, d, b) < 0;
 };
 const zimmer = dokument({ id: "gefahr0000000009", name: "Zimmerfalle", x: 300, y: 4000, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
+const pruefarten = new Set();
 zimmer.object = {
   checkCollision(nach, { origin, type, mode }) {
-    assert.equal(type, "move");
+    assert.ok(["move", "sight"].includes(type), type);
+    pruefarten.add(type);
     assert.equal(mode, "any");
     return waende.some((w) => !(w.tuer && w.offen) && schneidet(origin, nach, { x: w.c[0], y: w.c[1] }, { x: w.c[2], y: w.c[3] }));
   }
@@ -341,6 +343,20 @@ waende[1].offen = true;
 assert.ok(g.ausloeseFelder(zimmer).has("4,40"), "durch die offene Tür löst es aus");
 assert.ok(!g.ausloeseFelder(zimmer).has("4,39"), "daneben bleibt die Wand");
 assert.deepEqual(g.betroffene(zimmer).map((d) => d.id).sort(), ["brandy0000000001", "gefangener0000001"], "durch die offene Tür getroffen");
+assert.deepEqual([...pruefarten], ["move"], "Auslöser und Wirkung nach Bewegung");
+waende[1].offen = false;
+
+// Suchzone nur mit freier Sicht (0.3.12, 29.10.2026: "eine verschlossene Türe kann ein automatisches Finden
+// nicht erlauben"): hinter Wand und geschlossener Tür kein Feld der Zone, durch die offene Tür schon
+const zonenSpalte = (feld) => Number(feld.split(",")[0]);
+let suchzone = g.suchZonen(brandy).get("suche:gefahr0000000009");
+assert.ok(suchzone.has("0,40") && suchzone.has("3,37"), "vor der Wand reicht die Zone 15 Fuß weit");
+assert.ok([...suchzone].every((feld) => zonenSpalte(feld) <= 3), "hinter Wand und Tür kein Feld der Zone");
+assert.ok(pruefarten.has("sight"), "Finden ist Wahrnehmung: Prüfung nach Sicht");
+waende[1].offen = true;
+suchzone = g.suchZonen(brandy).get("suche:gefahr0000000009");
+assert.ok(suchzone.has("4,40") && suchzone.has("6,40"), "durch die offene Tür reicht die Zone");
+assert.ok(!suchzone.has("4,38"), "neben der Tür bleibt die Wand");
 waende[1].offen = false;
 delete zimmer.object;
 assert.equal(g.ausloeseFelder(zimmer).size, 9, "ohne Prüfmöglichkeit wie bisher");

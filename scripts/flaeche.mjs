@@ -51,22 +51,64 @@ export function strichPunkte(strich) {
  * Ergebnis: { art: Set(feine Punkte) }.
  */
 export function flaechenAusStrichen(striche = []) {
+  return strichFlaechen(striche).flaechen;
+}
+
+/*
+ * Verborgen malen (0.3.14, 29.10.2026: "im Terrain-Menü die Möglichkeit, die Felder auch für Spieler unsichtbar
+ * zu zeichnen"): Ein Strich mit v: 1 malt wie jeder andere, seine Punkte sind aber für Spieler verborgen. Neben
+ * den Flächen läuft deshalb je Art mit, welche Punkte verborgen sind: Ein sichtbarer Strich derselben Art darüber
+ * macht sie sichtbar, Ersetzen in der Gruppe, Radierer und Wegräumen nehmen sie mit, und der Aufdeck-Pinsel
+ * ({ art: "aufdecken" }) hebt das Verborgene aller Arten auf, ohne am Gelände etwas zu ändern.
+ * Ergebnis: { flaechen: { art: Set }, verborgen: { art: Set } } in feinen Punkten.
+ */
+export function strichFlaechen(striche = []) {
   const flaechen = {};
-  for (const art of Object.keys(ARTEN)) flaechen[art] = new Set();
+  const verborgen = {};
+  for (const art of Object.keys(ARTEN)) {
+    flaechen[art] = new Set();
+    verborgen[art] = new Set();
+  }
   for (const strich of striche) {
     // Weggeräumte Reste (0.2.14): { art: "weg", von: Art, k: feine Punkte }.
     if (strich?.art === "weg") {
-      for (const k of strich.k ?? []) flaechen[strich.von]?.delete(k);
+      for (const k of strich.k ?? []) {
+        flaechen[strich.von]?.delete(k);
+        verborgen[strich.von]?.delete(k);
+      }
       continue;
     }
     const punkte = strichPunkte(strich);
+    if (strich?.art === "aufdecken") {
+      for (const menge of Object.values(verborgen)) for (const k of punkte) menge.delete(k);
+      continue;
+    }
     for (const [art, menge] of Object.entries(flaechen)) {
       if (art === strich.art || !ersetzt(strich.art, art)) continue;
-      for (const k of punkte) menge.delete(k);
+      for (const k of punkte) {
+        menge.delete(k);
+        verborgen[art].delete(k);
+      }
     }
-    if (flaechen[strich.art]) for (const k of punkte) flaechen[strich.art].add(k);
+    if (flaechen[strich.art]) {
+      for (const k of punkte) {
+        flaechen[strich.art].add(k);
+        if (strich.v) verborgen[strich.art].add(k);
+        else verborgen[strich.art].delete(k);
+      }
+    }
   }
-  return flaechen;
+  return { flaechen, verborgen };
+}
+
+/** Die Punkte je Art, die Spieler sehen: gemalt und nicht verborgen. */
+export function sichtbarAus(flaechen, verborgen) {
+  const sichtbar = {};
+  for (const [art, menge] of Object.entries(flaechen)) {
+    sichtbar[art] = new Set();
+    for (const k of menge) if (!verborgen[art]?.has(k)) sichtbar[art].add(k);
+  }
+  return sichtbar;
 }
 
 /**

@@ -14,7 +14,8 @@
       "gefahr": "wer hindurchgeht, nimmt Schaden; Art und Menge legt das Gelände fest",
       "schmal": "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Absturz",
       "uneben": "Balancieren, Auf dem Falschen Fuß; bei Treffer oder misslungenem Rettungswurf Reflexwurf, sonst Liegend",
-      "radierer": "nimmt Gelände weg; ein Rechtsklick radiert auch mit jedem anderen Pinsel"
+      "radierer": "nimmt Gelände weg; ein Rechtsklick radiert auch mit jedem anderen Pinsel",
+      "aufdecken": "macht verborgen gemaltes Gelände für Spieler sichtbar; am Gelände ändert sich nichts"
     },
     "Einstellung": {
       "Anzeigen": {
@@ -58,6 +59,8 @@
     "Leiste": {
       "Werkzeug": "{name}: {kurz}",
       "Radierer": "Radierer",
+      "Aufdecken": "Aufdecken",
+      "Verborgen": "Verborgen malen: was du jetzt malst, sehen Spieler nicht (Wirkung bleibt)",
       "Werte": "Werte der Fläche: SG, Schaden und Rettungswurf für schmal, uneben und gefährlich",
       "PinselHalb": "Pinsel ½ Feld",
       "PinselEin": "Pinsel 1 Feld",

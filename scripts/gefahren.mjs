@@ -90,20 +90,21 @@ export function bereichsFelder(gefahr) {
 let linieFehltGemeldet = false;
 
 // Zwei Linien je 1 Pixel neben der Mitte, beide müssen frei sein: Eine Linie genau durch die Ecke, an der zwei
-// Wandstücke aneinanderstoßen (schräg über die Wand), ginge sonst je nach Rechnung durch.
-function linieFrei(gefahr, von, nach) {
+// Wandstücke aneinanderstoßen (schräg über die Wand), ginge sonst je nach Rechnung durch. Art "move" für Auslöser
+// und Wirkung, "sight" für die Suchzone (0.3.12).
+function linieFrei(gefahr, von, nach, art = "move") {
   const laenge = Math.hypot(nach.x - von.x, nach.y - von.y) || 1;
   const quer = { x: -(nach.y - von.y) / laenge, y: (nach.x - von.x) / laenge };
   return [-1, 1].every((s) => strahlFrei(gefahr,
-    { x: von.x + s * quer.x, y: von.y + s * quer.y }, { x: nach.x + s * quer.x, y: nach.y + s * quer.y }));
+    { x: von.x + s * quer.x, y: von.y + s * quer.y }, { x: nach.x + s * quer.x, y: nach.y + s * quer.y }, art));
 }
 
-function strahlFrei(gefahr, von, nach) {
+function strahlFrei(gefahr, von, nach, art = "move") {
   try {
     const objekt = gefahr?.object;
-    if (typeof objekt?.checkCollision === "function") return !objekt.checkCollision(nach, { origin: von, type: "move", mode: "any" });
-    const hinter = globalThis.CONFIG?.Canvas?.polygonBackends?.move;
-    if (typeof hinter?.testCollision === "function") return !hinter.testCollision(von, nach, { type: "move", mode: "any" });
+    if (typeof objekt?.checkCollision === "function") return !objekt.checkCollision(nach, { origin: von, type: art, mode: "any" });
+    const hinter = globalThis.CONFIG?.Canvas?.polygonBackends?.[art];
+    if (typeof hinter?.testCollision === "function") return !hinter.testCollision(von, nach, { type: art, mode: "any" });
   } catch (fehler) {
     if (!linieFehltGemeldet) console.warn(`[${MODUL}] Wirkungslinie nicht prüfbar`, fehler);
     linieFehltGemeldet = true;
@@ -119,7 +120,7 @@ function feldMitte(feld) {
   return { x: (s + 0.5) * g, y: (z + 0.5) * g };
 }
 
-function mitWirkungslinie(gefahr, felder) {
+function mitWirkungslinie(gefahr, felder, art = "move") {
   const eigene = felderVon(gefahr);
   const quellen = [...eigene].map(feldMitte);
   const aus = new Set();
@@ -127,7 +128,7 @@ function mitWirkungslinie(gefahr, felder) {
     if (eigene.has(feld)) aus.add(feld);
     else {
       const ziel = feldMitte(feld);
-      if (quellen.some((quelle) => linieFrei(gefahr, quelle, ziel))) aus.add(feld);
+      if (quellen.some((quelle) => linieFrei(gefahr, quelle, ziel, art))) aus.add(feld);
     }
   }
   return aus;
@@ -462,7 +463,11 @@ export function suchZonen(dokument) {
     const grad = suchErgebnis(gefahr, dokument.actor);
     if (grad !== null && grad < 2) continue;
     // Um den Auslöser (0.3.9): Gefunden heißt, der Held tritt nicht darauf; im Wirkungsradius darf er stehen.
-    aus.set(`suche:${gefahr.id}`, umkreis(ausloeseFelder(gefahr), SUCHEN_FUSS));
+    // Nur mit freier Sicht zur Falle (0.3.12, 29.10.2026: "eine verschlossene Türe kann ein automatisches
+    // Finden, wie ich es jetzt z.B. habe, nicht erlauben"; die Erscheinung der Blutkönigin stand versteckt hinter
+    // einer verschlossenen Tür, die Helden 2 bis 5 Felder davor). Wände, geschlossene und verschlossene Türen
+    // halten die Suchzone auf, offene Türen nicht; geprüft nach Sicht, denn Finden ist Wahrnehmung.
+    aus.set(`suche:${gefahr.id}`, mitWirkungslinie(gefahr, umkreis(ausloeseFelder(gefahr), SUCHEN_FUSS), "sight"));
   }
   return aus;
 }
