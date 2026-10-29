@@ -15,7 +15,7 @@ import * as gefahren from "./gefahren.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.10";
+const VERSION = "0.3.11";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -47,7 +47,10 @@ function einstellungenAnmelden() {
     scope: "client",
     config: false,
     type: Boolean,
-    default: false,
+    // Vorgabe an (0.3.11, 29.10.2026 in der Sitzung: "Spieler sehen die gelben Striche der Geländearten
+    // nicht, ebenso wenig die Grafiken, wenn diese darin stehen"). Bis 0.3.10 sahen Spieler Linien und
+    // Abzeichen erst nach einem Klick auf den Berg in der Leiste; der Berg blendet weiter aus und ein.
+    default: true,
     onChange: () => {
       anzeige.zeichnen();
       abzeichen.alleZeichnen();

@@ -220,15 +220,18 @@ const leiste = hooks.get("getSceneControlButtons")[0];
   const gruppe = controls.gelaendepinsel;
   assert.equal(gruppe.layer, undefined, "Spieler bekommen keine Pinsel-Ebene");
   assert.deepEqual(gruppe.tools, {});
-  assert.equal(gruppe.title, "Gelände anzeigen");
+  // Vorgabe an (0.3.11): Spieler sehen Linien und Abzeichen ohne Klick, der Berg blendet aus
+  assert.equal(einstellungen.get("anzeigen").default, true);
+  assert.equal(gruppe.title, "Gelände ausblenden");
   ui.controls.control = { name: "gelaendepinsel" };
   gruppe.onChange({}, true);
   await ruhe();
-  assert.equal(einstellungen.get("anzeigen").wert, true);
+  assert.equal(einstellungen.get("anzeigen").wert, false);
   assert.deepEqual(protokoll.aktiviert.at(-1), { control: "tokens" });
   const wieder = { tokens: { order: 1 }, sequencer: { name: "sequencer" } };
   leiste(wieder);
-  assert.equal(wieder.gelaendepinsel.title, "Gelände ausblenden");
+  assert.equal(wieder.gelaendepinsel.title, "Gelände anzeigen", "nach dem Klick aus, der Berg bietet Anzeigen an");
+  await game.settings.set("gelaendepinsel", "anzeigen", true);
   game.user = spielleitung;
   ui.controls.control = { name: "tokens" };
 }
@@ -338,6 +341,8 @@ modul.anzeige.zeichnen();
 assert.equal(modul.anzeige.grafik.striche.length, 0, "Spieler ohne Schalter sehen nichts");
 await game.settings.set("gelaendepinsel", "anzeigen", true);
 assert.equal(modul.anzeige.grafik.striche.length, 32, "Spieler mit Schalter sehen dasselbe");
+// 29.10.2026: "die Spieler sollen aber auch nur die gestrichelte Linie sehen, nicht eine gelbe Kachel"
+assert.equal(modul.anzeige.grafik.flaechen.length, 0, "Spieler sehen nur die gestrichelte Linie, keine Kacheln");
 await game.settings.set("gelaendepinsel", "strichstaerke", 200);
 assert.ok(modul.anzeige.grafik.striche.every((s) => s.width === 3), "Strichstärke gilt auch für Spieler");
 await game.settings.set("gelaendepinsel", "strichstaerke", 100);

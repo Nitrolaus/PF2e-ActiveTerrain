@@ -45,7 +45,8 @@ check is posted to chat.
   greater difficult terrain never stop a move, they only cost movement.
 - **Badges**: creatures standing on terrain show a small badge with the terrain's symbol. Chests,
   loot and map markers get none. Where the badges sit at the token can be set.
-- **Player display**: each player shows or hides the outlines. Movement costs always apply.
+- **Player display**: players see the dashed outlines and the badges by default, never the filled
+  squares the gamemaster sees. Each player can hide the outlines. Movement costs always apply.
 
 ## Hazards and traps
 
@@ -104,7 +105,8 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
 
 ### Players
 
-The "Show terrain" button (mountain) in the left toolbar turns the outlines on and off. The toolbar
+The outlines are shown by default. The terrain button (mountain) in the left toolbar hides them and
+shows them again. The toolbar
 then returns to the token tools by itself. The magnifying glass in the token HUD of your character
 starts and stops Search.
 
@@ -232,8 +234,9 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
 - **Abzeichen**: Kreaturen, die auf Gelände stehen, tragen ein kleines Abzeichen mit dem Symbol der
   Geländeart. Kisten, Beute und Kartenmarken bekommen keins. Wo die Abzeichen am Token stehen, lässt
   sich einstellen.
-- **Anzeige für Spieler**: Jeder Spieler blendet die Umrandungen selbst ein oder aus. Die
-  Bewegungskosten wirken immer, auch wenn die Anzeige aus ist.
+- **Anzeige für Spieler**: Spieler sehen von Haus aus die gestrichelten Umrandungen und die
+  Abzeichen, nie die gefüllten Felder der Spielleitung. Jeder Spieler kann die Umrandungen
+  ausblenden. Die Bewegungskosten wirken immer, auch wenn die Anzeige aus ist.
 
 ## Gefahren und Fallen
 
@@ -294,8 +297,8 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 
 ### Für Spieler
 
-In der Leiste links schaltet der Knopf "Gelände anzeigen" (Berg) die Umrandungen ein und wieder
-aus. Danach springt die Leiste von selbst zurück zu den Token-Werkzeugen. Die Lupe im Token-HUD der
+Die Umrandungen sind von Haus aus zu sehen. Der Knopf mit dem Berg in der Leiste links blendet sie
+aus und wieder ein. Danach springt die Leiste von selbst zurück zu den Token-Werkzeugen. Die Lupe im Token-HUD der
 eigenen Figur beginnt und beendet das Absuchen.
 
 ### Einstellungen
