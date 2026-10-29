@@ -339,6 +339,23 @@ async function nachRettungswurf(kennung, grad, nachricht) {
   for (const formel of schaden.formeln) await schadenWuerfeln(formel, item);
 }
 
+/*
+ * Rettungswurf auf der Karte für gefährliches Gelände (0.3.18, 29.10.2026: "ja, bau das wie bei den Fallen"):
+ * Erfolgsgrad und Schaden wie beim einfachen Rettungswurf einer Falle, der Schaden wird gewürfelt.
+ */
+export async function nachGelaendeWurf(grad, name, formel) {
+  const schaden = schadenFuer(`@Damage[${formel}]`, grad, true);
+  const fett = `<strong>${html(name)}</strong>`;
+  const gradText = t(`Grad.${grad}`);
+  if (!schaden) {
+    await meldung(`<p>${t("KeinSchaden", { name: fett, grad: gradText })}</p>`);
+    return;
+  }
+  const anwenden = schaden.faktor === 2 ? t("Schaden.doppelt") : schaden.faktor === 0.5 ? t("Schaden.halb") : t("Schaden.voll");
+  await meldung(`<p>${t("SchadenFuer", { name: fett, grad: gradText })} ${anwenden}</p>`);
+  for (const f of schaden.formeln) await schadenWuerfeln(f, null);
+}
+
 /* ---------------------------------------------------------------- Entschärfen */
 
 export async function entschaerfenAnbieten(gefahr) {

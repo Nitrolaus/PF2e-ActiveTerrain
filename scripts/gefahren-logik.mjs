@@ -227,6 +227,8 @@ export function ausloeseAktion(items) {
 export const KENNUNG = "gelaendepinsel";
 export function kennungFalle(gefahrId, itemId, zielId) { return `${KENNUNG}:falle:${gefahrId}:${itemId}:${zielId}`; }
 export function kennungEntschaerfen(gefahrId, index) { return `${KENNUNG}:entschaerfen:${gefahrId}:${index}`; }
+/* Rettungswurf auf der Karte für gefährliches Gelände (0.3.18); das Komma im Feld trennt sonst die Optionen. */
+export function kennungGelaende(zielId, feld) { return `${KENNUNG}:gelaende:${zielId}:${String(feld).replace(",", "_")}`; }
 
 /* Liest eine Kennung aus den Rolloptionen einer Wurfnachricht. */
 export function kennungLesen(optionen) {
@@ -235,6 +237,7 @@ export function kennungLesen(optionen) {
     if (t[0] !== KENNUNG) continue;
     if (t[1] === "falle" && t.length === 5) return { art: "falle", gefahr: t[2], item: t[3], ziel: t[4] };
     if (t[1] === "entschaerfen" && t.length === 4) return { art: "entschaerfen", gefahr: t[2], index: Number(t[3]) };
+    if (t[1] === "gelaende" && t.length === 4) return { art: "gelaende", ziel: t[2], feld: t[3].replace("_", ",") };
   }
   return null;
 }

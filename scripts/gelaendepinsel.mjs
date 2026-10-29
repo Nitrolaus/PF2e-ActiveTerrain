@@ -12,10 +12,11 @@ import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuR
 import { FEIN, beruehrteFelder, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 import * as gefahren from "./gefahren.mjs";
+import { kennungGelaende, kennungLesen } from "./gefahren-logik.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.17";
+const VERSION = "0.3.18";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -2054,7 +2055,8 @@ async function karteSchicken(dokument, art, feld) {
   let inhalt;
   if (art === "gefahr") {
     const { sg, schaden, typ, rw } = werteAn(feld, art, dokument.parent);
-    const wurf = RETTUNGSWUERFE[rw] && rw !== "keiner" ? `<p>@Check[${rw}|dc:${sg}|basic]</p>` : "";
+    // Die Kennung im Wurf lässt die Spielleitung den Erfolgsgrad auswerten wie bei den Fallen (0.3.18).
+    const wurf = RETTUNGSWUERFE[rw] && rw !== "keiner" ? `<p>@Check[${rw}|dc:${sg}|basic|options:${kennungGelaende(dokument.id, feld)}]</p>` : "";
     inhalt = `<p>${uebersetzen("GELAENDEPINSEL.Karte.Gefahr", { name: fett })}</p>${wurf}<p>@Damage[${schaden}[${typ}]]</p>`;
   } else {
     const { sg } = werteAn(feld, art, dokument.parent);
@@ -2212,6 +2214,18 @@ if (typeof InteractionLayer !== "function") {
     for (const dokument of canvas?.scene?.tokens ?? []) alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y });
   });
   Hooks.on("createToken", (dokument) => alteLagen.set(dokument.id, { x: dokument.x, y: dokument.y }));
+  // Rettungswurf auf der Karte für gefährliches Gelände: Erfolgsgrad und Schaden wie bei den Fallen (0.3.18).
+  Hooks.on("createChatMessage", (nachricht) => {
+    if (!istAktiveSpielleitung()) return;
+    const kontext = nachricht.flags?.pf2e?.context ?? null;
+    const kennung = kennungLesen(kontext?.options);
+    if (kennung?.art !== "gelaende" || !kontext?.outcome) return;
+    const szene = game.scenes?.find?.((s) => s.tokens?.has?.(kennung.ziel));
+    const ziel = szene?.tokens?.get?.(kennung.ziel);
+    if (!ziel) return;
+    const { schaden, typ } = werteAn(kennung.feld, "gefahr", szene);
+    gefahren.nachGelaendeWurf(kontext.outcome, ziel.name ?? "", `${schaden}[${typ}]`).catch((fehler) => console.error(`[${MODUL}] Gefahr`, fehler));
+  });
   Hooks.on("updateToken", (dokument, aenderung, optionen) => {
     if (!("x" in aenderung || "y" in aenderung)) return;
     if (optionen?.[MODUL]?.halt) haltAnimationBeenden(dokument);

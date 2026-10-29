@@ -488,9 +488,55 @@ await ruhe();
 assert.equal(protokoll.dialoge, 0, "Keine Nachfrage mehr");
 const gefahrKarte = protokoll.chat.at(-1);
 assert.match(gefahrKarte.content, /Silvor<\/strong> geht durch gefährliches Gelände/);
-assert.match(gefahrKarte.content, /@Check\[reflex\|dc:\d+\|basic\]/, "Einfacher Reflexwurf");
+assert.match(gefahrKarte.content, /@Check\[reflex\|dc:\d+\|basic\|options:gelaendepinsel:gelaende:silvor:5_5\]/, "Einfacher Reflexwurf mit Kennung");
 assert.match(gefahrKarte.content, /@Damage\[2d6\[fire\]\]/, "Schaden zum Würfeln, angewendet von der Spielleitung");
 assert.deepEqual(gefahrKarte.whisper, ["gm"]);
+
+// Rettungswurf ausgewertet wie bei den Fallen (0.3.18, 29.10.2026: "ja, bau das wie bei den Fallen")
+{
+  const geklickt = [];
+  foundry.applications.ux = { TextEditor: { implementation: { enrichHTML: async (text) => text } } };
+  globalThis.MouseEvent = class { constructor(typ) { this.type = typ; } };
+  globalThis.document = { body: { append() {} }, createElement: () => {
+    const el = { style: {}, dataset: {}, innerHTML: "", remove() {} };
+    el.querySelector = () => ({ dispatchEvent: () => geklickt.push(/^@Damage\[(.*)\]$/u.exec(el.innerHTML)?.[1]) });
+    return el;
+  } };
+  szene.tokens.has = (id) => szene.tokens.some((d) => d.id === id);
+  szene.tokens.get = (id) => szene.tokens.find((d) => d.id === id);
+  game.scenes = [szene];
+  const wurf = (outcome, options = ["gelaendepinsel:gelaende:silvor:5_5"]) => {
+    hookAusloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome, options } } } });
+    return new Promise((fertig) => echteUhr(fertig, 400));
+  };
+  const vorher = protokoll.chat.length;
+  await wurf("criticalFailure");
+  assert.match(protokoll.chat.at(-1).content, /Silvor<\/strong>: Kritischer Fehlschlag\. Doppelten Schaden anwenden\./u);
+  assert.deepEqual(protokoll.chat.at(-1).whisper, ["gm"], "Meldung nur an die Spielleitung");
+  assert.deepEqual(geklickt, ["2d6[fire]"], "Schaden gewürfelt");
+  await wurf("success");
+  assert.match(protokoll.chat.at(-1).content, /Erfolg\. Halben Schaden anwenden\./u);
+  await wurf("failure");
+  assert.match(protokoll.chat.at(-1).content, /Fehlschlag\. Voller Schaden\./u);
+  await wurf("criticalSuccess");
+  assert.match(protokoll.chat.at(-1).content, /Kritischer Erfolg, kein Schaden/u);
+  assert.equal(geklickt.length, 3, "kritischer Erfolg würfelt keinen Schaden");
+  // Ohne Kennung, ohne Erfolgsgrad oder nicht bei der aktiven Spielleitung: nichts
+  const stand = protokoll.chat.length;
+  await wurf("failure", ["gelaendepinsel:falle:x:y:z"]);
+  await wurf(undefined);
+  game.user = { id: "gm2", isGM: true };
+  await wurf("failure");
+  game.user = spielleitung;
+  assert.equal(protokoll.chat.length, stand, "fremde Würfe bleiben unberührt");
+  assert.equal(protokoll.chat.length, vorher + 4);
+  delete foundry.applications.ux;
+  delete globalThis.MouseEvent;
+  delete globalThis.document;
+  delete szene.tokens.has;
+  delete szene.tokens.get;
+  delete game.scenes;
+}
 const chatNachGefahr = protokoll.chat.length;
 
 // Mit Foundrys Wegpunkten um das Feld herum: keine Nachfrage

@@ -18,6 +18,8 @@ check is posted to chat.
   - Difficult Terrain: each square costs 5 feet more, no Step into it
   - Greater Difficult Terrain: each square costs 10 feet more, no Step into it
   - Hazardous Terrain: a card with a saving throw and damage when moving through
+    (basic save: after the roll the GM gets the degree of success and which damage applies, critical
+    failure double, and the damage is rolled, as with traps)
   - Narrow Surface: a card with Balance (Acrobatics) on entering, off-guard
   - Uneven Ground: a card with Balance (Acrobatics) on entering, off-guard
 - **Terrain on top of terrain**: the types form three groups, costs (difficult, greater difficult),
@@ -219,6 +221,8 @@ kommt eine Karte mit dem passenden Wurf in den Chat.
   - Schwieriges Gelände: jedes Feld kostet 5 Fuß (1,50 m) mehr, kein Schritt hinein
   - Sehr schwieriges Gelände: jedes Feld kostet 10 Fuß (3 m) mehr, kein Schritt hinein
   - Gefährliches Gelände: beim Hindurchgehen eine Karte mit Rettungswurf und Schaden
+    (einfacher Rettungswurf: danach meldet die Karte der Spielleitung Erfolgsgrad und Schaden, kritischer
+    Fehlschlag doppelt, und würfelt den Schaden, wie bei den Fallen)
   - Schmale Oberfläche: beim Betreten eine Karte mit Balancieren (Akrobatik), Auf dem Falschen Fuß
   - Unebener Boden: beim Betreten eine Karte mit Balancieren (Akrobatik), Auf dem Falschen Fuß
 - **Gelände übereinander**: Die Arten bilden drei Gruppen, Kosten (schwierig, sehr schwierig), Halt

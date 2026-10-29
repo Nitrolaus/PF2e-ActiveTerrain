@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   befehle, mitOption, textMitOption, absatzFuer, schadenFuer, mindestRang, entschaerfenWuerfe, noetigeErfolge,
-  entschaerfenSchritt, ausloeseAktion, kennungFalle, kennungEntschaerfen, kennungLesen, wuerfeFuer, textOhneWuerfe
+  entschaerfenSchritt, ausloeseAktion, kennungFalle, kennungEntschaerfen, kennungGelaende, kennungLesen, wuerfeFuer, textOhneWuerfe
 } from "../scripts/gefahren-logik.mjs";
 
 test("Eine Karte für alle (0.3.10): Würfe je Figur, Text ohne Würfe", () => {
@@ -95,6 +95,9 @@ test("Auslöse-Aktion: Reaktion mit Auslöser vor anderen Aktionen, Angriffe nie
 test("Kennungen hin und zurück", () => {
   assert.deepEqual(kennungLesen(["action:seek", kennungFalle("A", "B", "C")]), { art: "falle", gefahr: "A", item: "B", ziel: "C" });
   assert.deepEqual(kennungLesen([kennungEntschaerfen("A", 2)]), { art: "entschaerfen", gefahr: "A", index: 2 });
+  // Gefährliches Gelände (0.3.18): das Komma im Feld würde die Optionen trennen
+  assert.equal(kennungGelaende("Tok1", "5,7"), "gelaendepinsel:gelaende:Tok1:5_7");
+  assert.deepEqual(kennungLesen(["x", kennungGelaende("Tok1", "5,7")]), { art: "gelaende", ziel: "Tok1", feld: "5,7" });
   assert.equal(kennungLesen(["self:x"]), null);
 });
 
