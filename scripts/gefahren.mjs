@@ -7,13 +7,16 @@
 // Umkreis); "Magie entdecken" nach seinem Wortlaut. Würfeln tut PF2e selbst; das Modul liest die Ergebnisse
 // aus den Wurfnachrichten (flags.pf2e.context).
 import {
-  KENNUNG, RETTUNGSWUERFE, ausloeseAktion, befehle, bereichFuss, entschaerfenSchritt, entschaerfenWuerfe, kennungEntschaerfen,
+  GRADE, KENNUNG, RETTUNGSWUERFE, ausloeseAktion, befehle, bereichFuss, entschaerfenSchritt, entschaerfenWuerfe, kennungEntschaerfen,
   kennungFalle, kennungLesen, mindestRang, noetigeErfolge, schadenFuer, textMitOption, textOhneWuerfe, wuerfeFuer
 } from "./gefahren-logik.mjs";
 import { suchtGerade } from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const SUCHEN_FUSS = 15;
+// Suchzone um den Auslöser: 30 Fuß (0.3.19, 05.11.2026: "mach doppelt so großen Radius, aber nur was gesehen
+// wird, das ist wichtig: hinter Türen und um Ecken kann man nichts sehen oder wahrnehmen"), vorher 15 Fuß. Gesehen
+// heißt wie seit 0.3.12: eine freie Sichtlinie von der Falle zum Feld (mitWirkungslinie mit "sight").
+const SUCHEN_FUSS = 30;
 const SUCHEN_AKTION_FUSS = 30;
 const MAGIE_FUSS = 30;
 
@@ -455,18 +458,33 @@ async function nachSuchen(nachricht) {
 /*
  * Suchen entlang des Wegs (0.3.3, 25.10.2026: "ja bau das"). Bis 0.3.2 maß die Suche vom Anfang eines
  * Zugs aus; im updateToken-Hook steht dort noch der Startpunkt (gemessen 24.10.2026). Jetzt hat jede
- * versteckte Falle eine Suchzone, alle Felder bis 15 Fuß um ihren Bereich, und der Pinsel prüft sie Feld für
+ * versteckte Falle eine Suchzone, alle Felder bis 15 Fuß (seit 0.3.19 30) um ihren Bereich, und der Pinsel prüft sie Feld für
  * Feld wie eine Fläche. Gewürfelt wird geheim beim Losfahren, damit das Ergebnis am Rand der Zone schon
- * feststeht; je Held und Falle einmal, das Ergebnis steht an der Falle (Flagge suche). Gelingt der Wurf,
- * hält der Held am Rand der Zone, vor der Falle, und sie wird aufgedeckt.
+ * feststeht. Gelingt der Wurf, hält der Held am Rand der Zone, vor der Falle, und sie wird aufgedeckt.
+ *
+ * Immer wieder (0.3.19, 05.11.2026: "ich hätte gern, dass die Wahrnehmung immer, wenn ein Token gezogen wird,
+ * gewürfelt wird"; gewählt: nur wer sucht, nur nahe einer Falle, bei Fund der Wurf mit Ergebnis für alle, und
+ * "würfeln je 3 Felder"). Bis 0.3.18 einmal je Held und Falle, gemerkt an der Falle (Flagge suche); ein Fehlschlag
+ * galt für immer. Wann gewürfelt wird, legt der Pinsel fest (am Rand der Zone und alle 3 Felder in ihr, siehe
+ * suchSchritte). Der Wurf macht keine eigene Nachricht und damit keine Würfelanimation; die SL bekommt eine Zeile,
+ * die Spieler nicht sehen, und findet der Held die Falle, sehen alle seinen Wurf ohne den SG.
  */
-const suchWuerfe = new Map();
+const letzteWuerfe = new Map();
 
-function suchErgebnis(gefahr, actor) {
-  const grad = gefahr.getFlag?.(MODUL, "suche")?.[actor?.id];
-  if (typeof grad === "number") return grad;
-  // 0.3.0 bis 0.3.2 merkten nur, wer gewürfelt hatte; ein Fund hätte die Falle aufgedeckt.
-  return (gefahr.getFlag?.(MODUL, "gesucht") ?? []).includes(actor?.id) ? 0 : null;
+/* Ein neuer Wurf; der letzte je Held und Falle bleibt für sucheErreicht ohne eigenen Eintrag gemerkt. */
+function neuerWurf(gefahr, dokument) {
+  const eintrag = { wert: null, zahlen: null, versprechen: null };
+  eintrag.versprechen = suchWurf(gefahr, dokument, eintrag)
+    .catch((fehler) => {
+      console.error(`[${MODUL}] Suchen`, fehler);
+      return 0;
+    })
+    .then((wert) => {
+      eintrag.wert = wert;
+      return wert;
+    });
+  letzteWuerfe.set(`${gefahr.id}:${dokument.actor.id}`, eintrag);
+  return eintrag;
 }
 
 /* Die Suchzonen für diese Figur als "suche:<id>" mit ihren Feldern; leer, wenn sie nicht sucht. */
@@ -477,8 +495,6 @@ export function suchZonen(dokument) {
     if (!istGefahr(gefahr) || !gefahr.hidden || entschaerft(gefahr)) continue;
     const { dc, rang } = heimlichkeit(gefahr);
     if (dc === null || Number(dokument.actor.perception?.rank ?? 0) < rang) continue;
-    const grad = suchErgebnis(gefahr, dokument.actor);
-    if (grad !== null && grad < 2) continue;
     // Um den Auslöser (0.3.9): Gefunden heißt, der Held tritt nicht darauf; im Wirkungsradius darf er stehen.
     // Nur mit freier Sicht zur Falle (0.3.12, 29.10.2026: "eine verschlossene Türe kann ein automatisches
     // Finden, wie ich es jetzt z.B. habe, nicht erlauben"; die Erscheinung der Blutkönigin stand versteckt hinter
@@ -489,49 +505,74 @@ export function suchZonen(dokument) {
   return aus;
 }
 
-function suchWurf(gefahr, dokument) {
-  const schluessel = `${gefahr.id}:${dokument.actor.id}`;
-  if (!suchWuerfe.has(schluessel)) {
-    const wurf = (async () => {
-      const ergebnis = await dokument.actor.perception.roll({
-        dc: { value: heimlichkeit(gefahr).dc }, messageMode: "gm", skipDialog: true,
-        extraRollOptions: ["action:search", `${KENNUNG}:suche:${gefahr.id}`]
-      });
-      const grad = Number(ergebnis?.degreeOfSuccess);
-      const wert = Number.isFinite(grad) ? grad : 0;
-      await gefahr.setFlag(MODUL, "suche", { ...(gefahr.getFlag(MODUL, "suche") ?? {}), [dokument.actor.id]: wert });
-      return wert;
-    })().catch((fehler) => {
-      console.error(`[${MODUL}] Suchen`, fehler);
-      return 0;
-    });
-    suchWuerfe.set(schluessel, wurf);
-    void wurf.finally(() => suchWuerfe.delete(schluessel));
-  }
-  return suchWuerfe.get(schluessel);
-}
-
-/* Beim Losfahren: würfeln, wenn der Weg in die Suchzone führt und noch kein Ergebnis da ist. */
-export function sucheVorbereiten(dokument, gefahrId) {
-  const gefahr = dokument.parent?.tokens?.get?.(gefahrId);
-  if (gefahr && suchErgebnis(gefahr, dokument.actor) === null) void suchWurf(gefahr, dokument);
+/* PF2es Wahrnehmungswurf ohne Nachricht (createMessage: false). */
+async function suchWurf(gefahr, dokument, eintrag) {
+  const { dc } = heimlichkeit(gefahr);
+  const ergebnis = await dokument.actor.perception.roll({
+    dc: { value: dc }, createMessage: false, skipDialog: true,
+    extraRollOptions: ["action:search", `${KENNUNG}:suche:${gefahr.id}`]
+  });
+  const grad = Number(ergebnis?.degreeOfSuccess);
+  const wert = Number.isFinite(grad) ? grad : 0;
+  eintrag.zahlen = {
+    name: `<strong>${html(dokument.actor?.name ?? dokument.name)}</strong>`,
+    ergebnis: ergebnis?.total ?? "?",
+    w20: ergebnis?.dice?.[0]?.total ?? "?"
+  };
+  eintrag.zeile = t("SuchWurf", { ...eintrag.zahlen, sg: dc, grad: t(`Grad.${GRADE[wert]}`), gefahr: html(gefahr.name) });
+  return wert;
 }
 
 /*
- * Am Rand der Suchzone: true, wenn der Held die Falle findet (sie wird aufgedeckt), false, wenn nicht, und
- * ein Versprechen darauf, solange der Wurf noch läuft.
+ * Die Zeile für die SL, sobald der Held den Würfelpunkt erreicht: Gewürfelt wird schon beim Losfahren, damit das
+ * Ergebnis dort feststeht; Punkte, die er nicht erreicht (etwa weil ihn Gelände vorher anhält), bleiben ohne Zeile.
  */
-export function sucheErreicht(dokument, gefahrId) {
+function zeileMelden(eintrag) {
+  if (!eintrag?.zeile || eintrag.gemeldet) return;
+  eintrag.gemeldet = true;
+  void meldung(`<p>${eintrag.zeile}</p>`).catch((fehler) => console.error(`[${MODUL}] Suchen`, fehler));
+}
+
+/* Gefunden: die Falle aufdecken und den Wurf für alle zeigen. Bis das Aufdecken gespeichert ist, zählt sie als
+   gefunden, damit ein zweiter Würfelpunkt desselben Wegs sie nicht noch einmal findet. */
+const gefundeneFallen = new Set();
+
+function sucheFund(gefahr, dokument, eintrag) {
+  gefundeneFallen.add(gefahr.id);
+  void aufdecken(gefahr, t("DurchSuchen", { name: dokument.actor?.name ?? dokument.name }))
+    .finally(() => gefundeneFallen.delete(gefahr.id))
+    .then((aufgedeckt) => aufgedeckt && eintrag?.zahlen && ChatMessage.create({
+      speaker: { alias: dokument.actor?.name ?? dokument.name },
+      content: `<p>${t("SuchFund", eintrag.zahlen)}</p>`
+    }))
+    .catch((fehler) => console.error(`[${MODUL}] Suchen`, fehler));
+  return true;
+}
+
+/* Beim Losfahren: ein Wurf für einen Würfelpunkt auf dem Weg; liefert seinen Eintrag. */
+export function sucheVorbereiten(dokument, gefahrId) {
   const gefahr = dokument.parent?.tokens?.get?.(gefahrId);
-  if (!gefahr?.hidden || entschaerft(gefahr) || !istAktiveSpielleitung()) return false;
-  const finden = () => {
-    void aufdecken(gefahr, t("DurchSuchen", { name: dokument.actor?.name ?? dokument.name }))
-      .catch((fehler) => console.error(`[${MODUL}] Suchen`, fehler));
-    return true;
-  };
-  const grad = suchErgebnis(gefahr, dokument.actor);
-  if (grad !== null) return grad >= 2 && finden();
-  return suchWurf(gefahr, dokument).then((wert) => wert >= 2 && Boolean(gefahr.hidden) && finden());
+  return gefahr && dokument.actor ? neuerWurf(gefahr, dokument) : null;
+}
+
+/*
+ * Am Würfelpunkt: true, wenn der Held die Falle findet (sie wird aufgedeckt), false, wenn nicht, und ein
+ * Versprechen darauf, solange der Wurf noch läuft. Ohne Eintrag gilt der letzte Wurf, sonst ein neuer.
+ */
+export function sucheErreicht(dokument, gefahrId, eintragVorher = null) {
+  const gefahr = dokument.parent?.tokens?.get?.(gefahrId);
+  const offen = () => Boolean(gefahr?.hidden) && !gefundeneFallen.has(gefahr.id);
+  if (!offen() || entschaerft(gefahr) || !istAktiveSpielleitung() || !dokument.actor) return false;
+  const eintrag = eintragVorher ?? letzteWuerfe.get(`${gefahr.id}:${dokument.actor.id}`) ?? neuerWurf(gefahr, dokument);
+  if (eintrag.wert !== null) {
+    zeileMelden(eintrag);
+    return eintrag.wert >= 2 && sucheFund(gefahr, dokument, eintrag);
+  }
+  return eintrag.versprechen.then((wert) => {
+    if (!offen()) return false;
+    zeileMelden(eintrag);
+    return wert >= 2 && sucheFund(gefahr, dokument, eintrag);
+  });
 }
 
 /* ---------------------------------------------------------------- Magie entdecken */

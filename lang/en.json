@@ -22,6 +22,10 @@
         "Name": "Advanced: Known terrain (house rule)",
         "Hint": "A creature that already crossed a square of a narrow surface or uneven ground and rolled does not roll there again (for that creature and scene). By the rules every crossing needs a roll. Hazardous terrain always deals damage."
       },
+      "SuchenFelder": {
+        "Name": "Advanced: Search: at most this many squares per move",
+        "Hint": "A creature that is Searching (exploration) stops after this many squares outside of combat. It rolls on entering the search zone of a hidden trap and every 3 squares inside it. 0 = no limit."
+      },
       "Anzeigen": {
         "Name": "PF2e-ActiveTerrain: Show terrain",
         "Hint": "Shows the outlines of the painted terrain. It always affects movement."
@@ -130,6 +134,8 @@
       "BetrifftMehrere": "Affects {anzahl} creatures, each rolls on its own line:",
       "Entdeckt": "Hazard found: {name}.",
       "DurchSuchen": "{name} found it while searching.",
+      "SuchWurf": "{name}: Perception {ergebnis} (d20 {w20}) vs DC {sg}, {grad} - {gefahr}",
+      "SuchFund": "{name} noticed a trap: Perception {ergebnis} (d20 {w20}).",
       "DurchBetreten": "{name} walked into it.",
       "DurchMagie": "Detect magic by {name}.",
       "KeinAngriff": "PF2e has no strike data for {name}.",

@@ -1298,14 +1298,14 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
 }
 
 // Suchen entlang des Wegs (0.3.3, 25.10.2026: "ja bau das"): Eine Heldin, die sucht, fährt auf eine
-// versteckte Falle zu (Feld 9, Suchzone ab Feld 6). Gewürfelt wird beim Losfahren. Steht das Ergebnis am
+// versteckte Falle zu (Feld 12, Suchzone seit 0.3.19 30 Fuß, ab Feld 6). Gewürfelt wird beim Losfahren. Steht das Ergebnis am
 // Rand der Zone fest, hält sie dort und die Falle löst nicht aus. Läuft der Wurf noch, wenn sie die Falle
 // erreicht, hält sie auf der Falle, und der Wurf entscheidet: gefunden, zurück an den Rand; sonst die Karte.
 {
   function aufbau(nummer, zeile, wurf) {
     const aktion = { id: `aktionsuche0000${nummer}`, type: "action", name: "Nadel", system: { actionType: { value: "reaction" },
       description: { value: "<p><strong>Auslöser</strong> Eine Kreatur betritt das Feld</p><p>@Damage[1d6[piercing]] (@Check[reflex|dc:18|basic])</p>" } } };
-    const falle = { id: `fallesuche00000${nummer}`, name: "Nadelfalle", x: 900, y: zeile * FELD, width: 1, height: 1, hidden: true, parent: szene,
+    const falle = { id: `fallesuche00000${nummer}`, name: "Nadelfalle", x: 1200, y: zeile * FELD, width: 1, height: 1, hidden: true, parent: szene,
       actor: { type: "hazard", items: [aktion], isOfType: (...t) => t.includes("hazard"), system: { attributes: { stealth: { value: 10, dc: 20, details: "" } } } },
       flags: {}, getFlag(_m, k) { return this.flags[k]; }, async setFlag(_m, k, v) { this.flags[k] = v; }, async update(u) { Object.assign(this, u); } };
     const wuerfe = [];
@@ -1319,31 +1319,34 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
     szene.tokens.push(falle, heldin);
     hookAusloesen("canvasReady");
     const bild = (x) => { heldin.x = x; heldin.object.x = x; hookAusloesen("refreshToken", heldin.object); };
-    const losfahren = () => hookAusloesen("updateToken", heldin, { x: 1300 }, { _movement: { [heldin.id]: { passed: { waypoints: [{ x: 1300, y: heldin.y, action: "walk" }] } } } });
+    const losfahren = () => hookAusloesen("updateToken", heldin, { x: 1600 }, { _movement: { [heldin.id]: { passed: { waypoints: [{ x: 1600, y: heldin.y, action: "walk" }] } } } });
     const karte = () => protokoll.chat.some((c) => String(c.content).includes(`options:gelaendepinsel:falle:${falle.id}`));
     return { falle, heldin, wuerfe, gesetzt, bild, losfahren, karte };
   }
 
-  // Ergebnis steht fest: Halt am Rand der Zone, Feld 6, drei Felder vor der Falle.
+  // Ohne Schrittgrenze (0.3.19, Einstellung suchenFelder 0), damit die Fahrten bis zur Falle reichen.
+  await game.settings.set("gelaendepinsel", "suchenFelder", 0);
+  // Ergebnis steht fest: Halt am Rand der Zone, Feld 6, sechs Felder vor der Falle.
   const fest = aufbau(1, 40, Promise.resolve({ degreeOfSuccess: 2 }));
-  // Absuchen (0.3.5): Der geplante Weg, 12 Felder, kostet bei 45 m pro Minute 24 Sekunden Spielzeit.
+  // Absuchen (0.3.5): Der geplante Weg, 15 Felder, kostet bei 45 m pro Minute 30 Sekunden Spielzeit.
   const zeit = [];
   game.time = { worldTime: 0, advance: async (sekunden) => { zeit.push(sekunden); } };
   fest.losfahren();
   await ruhe();
   await new Promise((fertig) => setTimeout(fertig, 650));
-  assert.deepEqual(zeit, [24], "Weg kostet Spielzeit");
-  assert.equal(fest.wuerfe.length, 1, "Beim Losfahren geheim gewürfelt");
-  assert.equal(fest.wuerfe[0].messageMode, "gm");
+  assert.deepEqual(zeit, [30], "Weg kostet Spielzeit");
+  // Würfelpunkte seit 0.3.19: am Rand (Feld 6), dann alle 3 Felder (9, 12, 15); alle schon beim Losfahren.
+  assert.equal(fest.wuerfe.length, 4, "Beim Losfahren geheim gewürfelt, je Würfelpunkt einmal");
+  assert.equal(fest.wuerfe[0].createMessage, false, "ohne Wurfnachricht, also ohne Würfelanimation (0.3.19)");
   assert.equal(fest.falle.hidden, true, "Noch nicht am Rand: versteckt");
   fest.bild(400);
   await ruhe();
   assert.deepEqual(fest.gesetzt, [], "Vor der Zone kein Halt");
   fest.bild(550);
   await ruhe();
-  assert.deepEqual(fest.gesetzt, [600], "Halt am Rand der Suchzone");
+  assert.deepEqual(fest.gesetzt, [600], "Halt am Rand der Suchzone, sechs Felder vor der Falle");
   assert.equal(fest.falle.hidden, false, "Beim Suchen gefunden");
-  for (const x of [700, 900, 1300]) fest.bild(x);
+  for (const x of [700, 1200, 1600]) fest.bild(x);
   await ruhe();
   assert.equal(fest.karte(), false, "Gefunden: Die Falle löst nicht aus");
   assert.deepEqual(fest.gesetzt, [600], "Nur einmal gesetzt");
@@ -1356,13 +1359,13 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   for (const x of [400, 550]) spaet.bild(x);
   await ruhe();
   assert.deepEqual(spaet.gesetzt, [], "Am Rand ohne Ergebnis kein Halt");
-  spaet.bild(850);
+  spaet.bild(1150);
   await ruhe();
-  assert.deepEqual(spaet.gesetzt, [900], "Halt auf der Falle wie bisher");
+  assert.deepEqual(spaet.gesetzt, [1200], "Halt auf der Falle wie bisher");
   assert.equal(spaet.karte(), false, "Die Falle wartet auf den Wurf");
   gelingen({ degreeOfSuccess: 3 });
   await ruhe();
-  assert.deepEqual(spaet.gesetzt, [900, 600], "Gefunden: zurück an den Rand der Zone");
+  assert.deepEqual(spaet.gesetzt, [1200, 600], "Gefunden: zurück an den Rand der Zone");
   assert.equal(spaet.falle.hidden, false);
   assert.equal(spaet.karte(), false, "Keine Karte");
 
@@ -1371,15 +1374,49 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   const pech = aufbau(3, 46, new Promise((fertig) => { misslingen = fertig; }));
   pech.losfahren();
   await ruhe();
-  for (const x of [400, 550, 850]) pech.bild(x);
+  for (const x of [400, 550, 1150]) pech.bild(x);
   await ruhe();
   assert.equal(pech.karte(), false);
   misslingen({ degreeOfSuccess: 1 });
   await ruhe();
   await new Promise((fertig) => setTimeout(fertig, 50));
   assert.equal(pech.karte(), true, "Nicht gefunden: die Karte der Falle");
-  assert.deepEqual(pech.gesetzt, [900]);
-  assert.equal(pech.falle.flags.suche[pech.heldin.actor.id], 1, "Ergebnis an der Falle");
+  assert.deepEqual(pech.gesetzt, [1200]);
+  assert.ok(protokoll.chat.some((c) => /Isadora<\/strong>: Wahrnehmung .* Fehlschlag - Nadelfalle/u.test(String(c.content)) && c.whisper?.includes("gm")),
+    "Die SL sieht den Wurf in einer Zeile");
+
+  // Immer wieder, je 3 Felder (0.3.19, 05.11.2026: "dass die Wahrnehmung immer, wenn ein Token gezogen wird,
+  // gewürfelt wird", dann "würfeln je 3 Felder"): Erst misslingt der Wurf am Rand, sie geht weiter. Die Felder in
+  // der Zone zählen über die Züge: ein Feld, noch eins, beim dritten der nächste Wurf, der gelingt.
+  {
+    let wurfNr = 0;
+    const neu = aufbau(5, 52, null);
+    neu.heldin.actor.perception.roll = (o) => { neu.wuerfe.push(o); wurfNr += 1; return Promise.resolve({ degreeOfSuccess: wurfNr === 1 ? 1 : 2, total: 20, dice: [{ total: 12 }] }); };
+    const ziel = (x) => hookAusloesen("updateToken", neu.heldin, { x }, { _movement: { [neu.heldin.id]: { passed: { waypoints: [{ x, y: neu.heldin.y, action: "walk" }] } } } });
+    ziel(700);
+    await ruhe();
+    for (const x of [400, 550, 700]) neu.bild(x);
+    await ruhe();
+    assert.equal(neu.wuerfe.length, 1, "Erster Zug: ein Wurf");
+    assert.deepEqual(neu.gesetzt, [], "Misslungen: kein Halt");
+    assert.equal(neu.falle.hidden, true);
+    // Zweiter Zug, ein Feld weiter: zwei Felder in der Zone, noch kein Wurf
+    ziel(800);
+    await ruhe();
+    neu.bild(800);
+    await ruhe();
+    assert.equal(neu.wuerfe.length, 1, "Zwei Felder in der Zone: noch kein neuer Wurf");
+    // Dritter Zug: das dritte Feld in der Zone, neuer Wurf, gefunden
+    ziel(900);
+    await ruhe();
+    neu.bild(900);
+    await ruhe();
+    await new Promise((fertig) => setTimeout(fertig, 50));
+    assert.equal(neu.wuerfe.length, 2, "Drittes Feld: wieder gewürfelt");
+    assert.equal(neu.falle.hidden, false, "Diesmal gefunden");
+    assert.ok(protokoll.chat.some((c) => /Isadora<\/strong> hat eine Falle bemerkt: Wahrnehmung 20 \(W20 12\)/u.test(String(c.content)) && !c.whisper),
+      "Der Wurf für alle");
+  }
 
   // Schon in der Zone losgefahren (etwa erst jetzt "Suchen" gewählt): Der Wurf gilt am Anfang, Halt dort.
   const drin = aufbau(4, 49, Promise.resolve({ degreeOfSuccess: 2 }));
@@ -1388,12 +1425,84 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   hookAusloesen("canvasReady");
   drin.losfahren();
   await ruhe();
-  assert.equal(drin.wuerfe.length, 1);
+  assert.equal(drin.wuerfe.length, 4, "am Anfang und alle 3 Felder");
   assert.deepEqual(drin.gesetzt, [600], "Halt am Anfang");
   assert.equal(drin.falle.hidden, false);
   for (const x of [700, 900]) drin.bild(x);
   await ruhe();
   assert.equal(drin.karte(), false, "Keine Karte");
+
+  // Schrittgrenze (0.3.19, 05.11.2026: "wenn jemand sucht, kann er nur 3 Felder ziehen, dann stoppt er", "nur
+  // der GM in den Moduleinstellungen", Vorgabe 3): Wer sucht, hält nach 3 Feldern an, der Weg kostet nur sie.
+  assert.equal(einstellungen.get("suchenFelder").default, 3, "Vorgabe 3");
+  assert.equal(einstellungen.get("suchenFelder").scope, "world", "für die Welt, also nur die SL");
+  assert.equal(einstellungen.get("suchenFelder").config, true, "in den Moduleinstellungen");
+  await game.settings.set("gelaendepinsel", "suchenFelder", 3);
+  const nachZeile = (eintrag, x) => hookAusloesen("updateToken", eintrag.heldin, { x }, { _movement: { [eintrag.heldin.id]: { passed: { waypoints: [{ x, y: eintrag.heldin.y, action: "walk" }] } } } });
+  {
+    const grenze = aufbau(6, 55, Promise.resolve({ degreeOfSuccess: 1, total: 5, dice: [{ total: 1 }] }));
+    // Die Spielzeit der Fahrten davor sammelt sich noch eine halbe Sekunde.
+    await new Promise((fertig) => setTimeout(fertig, 650));
+    zeit.length = 0;
+    nachZeile(grenze, 1000);
+    await ruhe();
+    await new Promise((fertig) => setTimeout(fertig, 650));
+    assert.deepEqual(zeit, [6], "Der Weg kostet nur die 3 Felder");
+    for (const x of [200, 300]) grenze.bild(x);
+    await ruhe();
+    assert.deepEqual(grenze.gesetzt, [], "Vor dem dritten Feld kein Halt");
+    grenze.bild(380);
+    await ruhe();
+    assert.deepEqual(grenze.gesetzt, [400], "Halt nach 3 Feldern");
+    // 0 heißt ohne Grenze
+    await game.settings.set("gelaendepinsel", "suchenFelder", 0);
+    const frei = aufbau(7, 58, Promise.resolve({ degreeOfSuccess: 1, total: 5, dice: [{ total: 1 }] }));
+    nachZeile(frei, 500);
+    await ruhe();
+    for (const x of [200, 300, 400, 500]) frei.bild(x);
+    await ruhe();
+    assert.deepEqual(frei.gesetzt, [], "Einstellung 0: ohne Grenze");
+    await game.settings.set("gelaendepinsel", "suchenFelder", 3);
+    // Wer nicht sucht, und im Kampf: keine Grenze
+    const ohne = aufbau(8, 61, Promise.resolve({ degreeOfSuccess: 1 }));
+    ohne.heldin.actor.system.exploration = [];
+    nachZeile(ohne, 500);
+    await ruhe();
+    for (const x of [200, 300, 400, 500]) ohne.bild(x);
+    await ruhe();
+    assert.deepEqual(ohne.gesetzt, [], "Ohne Suchen keine Grenze");
+    const kampf = aufbau(9, 64, Promise.resolve({ degreeOfSuccess: 1 }));
+    game.combat = { started: true };
+    nachZeile(kampf, 500);
+    await ruhe();
+    for (const x of [200, 300, 400, 500]) kampf.bild(x);
+    await ruhe();
+    game.combat = null;
+    assert.deepEqual(kampf.gesetzt, [], "Im Kampf keine Grenze");
+  }
+
+  // Je 3 Felder in einem langen Zug (Grenze 0): Würfe am Rand und alle 3 Felder, die SL sieht nur erreichte.
+  {
+    await game.settings.set("gelaendepinsel", "suchenFelder", 0);
+    // Weit weg von den Fallen davor, deren Suchzonen sonst mitzählen.
+    const lang = aufbau(10, 80, Promise.resolve({ degreeOfSuccess: 1, total: 9, dice: [{ total: 3 }] }));
+    const vorher = protokoll.chat.length;
+    nachZeile(lang, 1100);
+    await ruhe();
+    assert.equal(lang.wuerfe.length, 2, "Würfelpunkte auf Feld 6 und 9");
+    lang.bild(700);
+    await ruhe();
+    await new Promise((fertig) => setTimeout(fertig, 20));
+    const zeilen = () => protokoll.chat.slice(vorher).filter((c) => /Isadora<\/strong>: Wahrnehmung 9 \(W20 3\) gegen SG 20, Fehlschlag - Nadelfalle/u.test(String(c.content)));
+    assert.equal(zeilen().length, 1, "Am Rand erreicht: eine Zeile");
+    for (const x of [900, 1100]) lang.bild(x);
+    await ruhe();
+    await new Promise((fertig) => setTimeout(fertig, 20));
+    assert.equal(zeilen().length, 2, "Nach 3 Feldern die zweite");
+    assert.ok(zeilen().every((c) => c.whisper?.includes("gm")), "nur für die SL");
+    assert.deepEqual(lang.gesetzt, [], "Nicht gefunden: kein Halt");
+    await game.settings.set("gelaendepinsel", "suchenFelder", 3);
+  }
 }
 
 // Verborgen malen (0.3.14, 29.10.2026: "im Terrain-Menü die Möglichkeit, die Felder auch für Spieler unsichtbar

@@ -22,6 +22,10 @@
         "Name": "Erweitert: Bekanntes Gelände (Hausregel)",
         "Hint": "Wer auf schmaler Oberfläche oder unebenem Boden schon einmal über ein Feld gegangen ist und gewürfelt hat, würfelt dort nicht mehr (für diese Figur und Szene). Nach den Regeln wird bei jedem Durchqueren gewürfelt. Gefährliches Gelände verletzt immer."
       },
+      "SuchenFelder": {
+        "Name": "Erweitert: Suchen: höchstens so viele Felder je Zug",
+        "Hint": "Wer sucht (Erkundung), hält außerhalb des Kampfes nach so vielen Feldern an. Gewürfelt wird beim Betreten der Suchzone einer versteckten Falle und danach alle 3 Felder in ihr. 0 = ohne Grenze."
+      },
       "Anzeigen": {
         "Name": "PF2e-ActiveTerrain: Gelände anzeigen",
         "Hint": "Zeigt die Umrandungen des gemalten Geländes. Auf die Bewegung wirkt es immer."
@@ -130,6 +134,8 @@
       "BetrifftMehrere": "Betrifft {anzahl} Figuren, jede würfelt in ihrer Zeile:",
       "Entdeckt": "Gefahr entdeckt: {name}.",
       "DurchSuchen": "{name} hat sie beim Suchen gefunden.",
+      "SuchWurf": "{name}: Wahrnehmung {ergebnis} (W20 {w20}) gegen SG {sg}, {grad} - {gefahr}",
+      "SuchFund": "{name} hat eine Falle bemerkt: Wahrnehmung {ergebnis} (W20 {w20}).",
       "DurchBetreten": "{name} ist hineingeraten.",
       "DurchMagie": "Magie entdecken von {name}.",
       "KeinAngriff": "Zum Angriff {name} findet PF2e keine Angriffsdaten.",

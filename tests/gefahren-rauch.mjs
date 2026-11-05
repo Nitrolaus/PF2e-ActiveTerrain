@@ -130,40 +130,81 @@ const zweite = dokument({ id: "gefahr0000000002", name: "Zweite", x: 500, y: 300
 szene.tokens.push(zweite);
 brandy.x = 400;
 const zone = g.suchZonen(brandy).get("suche:gefahr0000000002");
-assert.ok(zone.has("8,3") && zone.has("2,3") && !zone.has("9,3"), "drei Felder um ihr Feld");
-assert.ok(zone.has("7,5") && !zone.has("8,5"), "Diagonalen wie PF2e: zwei schräg und eins gerade sind 15 Fuß");
+assert.ok(zone.has("11,3") && zone.has("0,3") && !zone.has("12,3"), "sechs Felder um ihr Feld (30 Fuß seit 0.3.19)");
+assert.ok(zone.has("9,7") && zone.has("10,6") && !zone.has("10,7"), "Diagonalen wie PF2e: vier schräg und zwei gerade sind 30 Fuß");
 heldin.perception.rank = 1;
 assert.equal(g.suchZonen(brandy).has("suche:gefahr0000000002"), false, "Geübt reicht nicht für eine Expertenfalle");
 heldin.perception.rank = 2;
 game.combat = { started: true };
 assert.equal(g.suchZonen(brandy).size, 0, "im Kampf keine Erkundung");
 game.combat = null;
-g.sucheVorbereiten(brandy, zweite.id);
-g.sucheVorbereiten(brandy, zweite.id);
-assert.equal(chat.filter((c) => c.geheim).length, 1, "beim Losfahren ein Wurf, auch zweimal gebeten");
-assert.equal(chat.find((c) => c.geheim).geheim.messageMode, "gm");
-await new Promise((r) => setTimeout(r, 0));
-assert.equal(zweite.hidden, true, "aufgedeckt erst am Rand der Zone");
-assert.equal(g.sucheErreicht(brandy, zweite.id), true, "Ergebnis steht schon fest: gefunden");
-await new Promise((r) => setTimeout(r, 0));
-assert.equal(zweite.hidden, false, "beim Suchen gefunden");
-g.sucheVorbereiten(brandy, zweite.id);
-assert.equal(chat.filter((c) => c.geheim).length, 1, "je Falle nur ein Wurf");
-// Misslungen: danach keine Zone mehr für sie; ebenso nach einem Wurf aus 0.3.0 bis 0.3.2 (Flagge gesucht).
-// Weit weg, damit die Prüfungen unten sie nicht sehen.
-const fuenfte = dokument({ id: "gefahr0000000005", name: "Fünfte", x: 500, y: 3000, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
-const sechste = dokument({ id: "gefahr0000000006", name: "Sechste", x: 500, y: 3300, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
-sechste.flags.gesucht = [heldin.id];
-szene.tokens.push(fuenfte, sechste);
+// Immer wieder (0.3.19, 05.11.2026): je Würfelpunkt ein Wurf (wann, legt der Pinsel fest), PF2es Wurf ohne
+// Nachricht (keine Würfelanimation), eine Zeile nur für die SL, beim Fund der Wurf ohne SG für alle.
 const wurfVorher = heldin.perception.roll;
-heldin.perception.roll = async (o) => { chat.push({ geheim: o }); return { degreeOfSuccess: 1 }; };
+heldin.perception.roll = async (o) => { chat.push({ geheim: o }); return { degreeOfSuccess: 2, total: 27, dice: [{ total: 15 }] }; };
+const chatVorWurf = chat.length;
+const eintrag = g.sucheVorbereiten(brandy, zweite.id);
+assert.ok(eintrag && eintrag.wert === null, "ein Eintrag, der Wurf läuft");
+assert.equal(chat.filter((c) => c.geheim).length, 1, "beim Losfahren ein Wurf je Würfelpunkt");
+const geheim = chat.find((c) => c.geheim).geheim;
+assert.equal(geheim.createMessage, false, "PF2e schreibt keine Wurfnachricht");
+assert.equal(geheim.messageMode, undefined);
+await new Promise((r) => setTimeout(r, 0));
+const zeileVon = () => chat.slice(chatVorWurf).find((c) => String(c.content).includes("Wahrnehmung") && !String(c.content).includes("bemerkt"));
+assert.equal(zeileVon(), undefined, "die Zeile erst, wenn er den Punkt erreicht");
+assert.equal(zweite.hidden, true, "aufgedeckt erst am Rand der Zone");
+assert.ok(!chat.some((c) => String(c.content).includes("hat eine Falle bemerkt")), "vor dem Fund sieht niemand den Wurf");
+assert.equal(g.sucheErreicht(brandy, zweite.id, eintrag), true, "Ergebnis steht schon fest: gefunden");
+await new Promise((r) => setTimeout(r, 0));
+assert.equal(zeileVon().content, "<p><strong>Brandy</strong>: Wahrnehmung 27 (W20 15) gegen SG 26, Erfolg - Zweite</p>", "eine Zeile für die SL");
+assert.deepEqual(zeileVon().whisper, ["gm"], "nur die SL sieht sie");
+g.sucheErreicht(brandy, zweite.id, eintrag);
+assert.equal(chat.slice(chatVorWurf).filter((c) => String(c.content).includes("gegen SG")).length, 1, "je Wurf nur eine Zeile");
+assert.equal(zweite.hidden, false, "beim Suchen gefunden");
+const fund = chat.find((c) => String(c.content).includes("hat eine Falle bemerkt"));
+assert.equal(fund.content, "<p><strong>Brandy</strong> hat eine Falle bemerkt: Wahrnehmung 27 (W20 15).</p>", "der Wurf für alle, ohne SG");
+assert.equal(fund.whisper, undefined, "für alle sichtbar");
+// Misslungen: Die Zone bleibt, der nächste Zug würfelt neu. Weit weg, damit die Prüfungen unten sie nicht sehen.
+const fuenfte = dokument({ id: "gefahr0000000005", name: "Fünfte", x: 500, y: 3000, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
+szene.tokens.push(fuenfte);
+heldin.perception.roll = async (o) => { chat.push({ geheim: o }); return { degreeOfSuccess: 1, total: 18, dice: [{ total: 6 }] }; };
+const vorFuenfte = chat.filter((c) => c.geheim).length;
 const offen = g.sucheErreicht(brandy, fuenfte.id);
 assert.equal(typeof offen.then, "function", "noch kein Ergebnis: ein Versprechen");
 assert.equal(await offen, false);
 assert.equal(fuenfte.hidden, true);
-assert.equal(fuenfte.flags.suche[heldin.id], 1, "Ergebnis steht an der Falle");
-assert.equal(g.suchZonen(brandy).has("suche:gefahr0000000005"), false, "misslungen: keine Zone mehr");
-assert.equal(g.suchZonen(brandy).has("suche:gefahr0000000006"), false, "alte Flagge gesucht zählt als Wurf");
+assert.equal(fuenfte.flags.suche, undefined, "nichts mehr an der Falle gemerkt");
+assert.equal(g.suchZonen(brandy).has("suche:gefahr0000000005"), true, "misslungen: die Zone bleibt");
+assert.equal(g.sucheErreicht(brandy, fuenfte.id), false, "im selben Zug gilt der Wurf weiter");
+assert.equal(chat.filter((c) => c.geheim).length, vorFuenfte + 1);
+heldin.perception.roll = async (o) => { chat.push({ geheim: o }); return { degreeOfSuccess: 3, total: 36, dice: [{ total: 20 }] }; };
+g.sucheVorbereiten(brandy, fuenfte.id);
+assert.equal(chat.filter((c) => c.geheim).length, vorFuenfte + 2, "nächster Zug: neuer Wurf");
+assert.equal(await g.sucheErreicht(brandy, fuenfte.id), true, "diesmal gefunden");
+await new Promise((r) => setTimeout(r, 0));
+assert.equal(fuenfte.hidden, false);
+// Eine alte Flagge aus 0.3.0 bis 0.3.18 nimmt die Zone nicht mehr weg.
+const sechste = dokument({ id: "gefahr0000000006", name: "Sechste", x: 500, y: 3300, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
+sechste.flags.gesucht = [heldin.id];
+sechste.flags.suche = { [heldin.id]: 0 };
+szene.tokens.push(sechste);
+brandy.y = 3300;
+assert.equal(g.suchZonen(brandy).has("suche:gefahr0000000006"), true, "alte Flaggen zählen nicht mehr");
+brandy.y = 300;
+sechste.hidden = false;
+// Zwei Würfelpunkte derselben Falle laufen noch, beide gelingen: gefunden wird sie einmal, auch wenn das Aufdecken
+// auf dem Server noch dauert.
+const siebte = dokument({ id: "gefahr0000000010", name: "Siebte", x: 500, y: 3600, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
+siebte.update = (u) => new Promise((fertig) => setTimeout(() => { Object.assign(siebte, u); fertig(); }, 30));
+szene.tokens.push(siebte);
+heldin.perception.roll = async (o) => { chat.push({ geheim: o }); return { degreeOfSuccess: 2, total: 30, dice: [{ total: 18 }] }; };
+const ersterPunkt = g.sucheVorbereiten(brandy, siebte.id);
+const zweiterPunkt = g.sucheVorbereiten(brandy, siebte.id);
+const beide = await Promise.all([g.sucheErreicht(brandy, siebte.id, ersterPunkt), g.sucheErreicht(brandy, siebte.id, zweiterPunkt)]);
+await new Promise((r) => setTimeout(r, 60));
+assert.deepEqual(beide, [true, false], "einmal gefunden");
+assert.equal(chat.filter((c) => String(c.content).includes("hat eine Falle bemerkt: Wahrnehmung 30")).length, 1, "einmal für alle gezeigt");
+assert.equal(siebte.hidden, false);
 heldin.perception.roll = wurfVorher;
 
 // Gezieltes Suchen (Seek): Ergebnis unter dem SG findet nichts, darüber schon
@@ -230,9 +271,9 @@ gefahrActor.getFlag = (_m, k) => (k === "ausloeser" ? 10 : undefined);
 assert.equal(g.ausloeseFelder(platte).size, 21, "Wert am Akteur, wenn der Token keinen hat (10 Fuß wie PF2e)");
 delete gefahrActor.getFlag;
 // Suchzone um den Auslöser, nicht um die Wirkung
-platte.flags.wirkung = 30;
+platte.flags.wirkung = 60;
 const plattenZone = g.suchZonen(brandy).get("suche:gefahr0000000007");
-assert.ok(plattenZone.has("6,20") && !plattenZone.has("7,20"), "15 Fuß um die Platte, nicht um die 30 Fuß Wirkung");
+assert.ok(plattenZone.has("9,20") && !plattenZone.has("10,20"), "30 Fuß um die Platte, nicht um die 60 Fuß Wirkung");
 
 // Entschärfen nur daneben (0.3.9): zu weit weg zählt nicht, auch ein kritischer Fehlschlag löst nichts aus
 platte.hidden = false;
@@ -347,11 +388,21 @@ assert.deepEqual([...pruefarten], ["move"], "Auslöser und Wirkung nach Bewegung
 waende[1].offen = false;
 
 // Suchzone nur mit freier Sicht (0.3.12, 29.10.2026: "eine verschlossene Türe kann ein automatisches Finden
-// nicht erlauben"): hinter Wand und geschlossener Tür kein Feld der Zone, durch die offene Tür schon
+// nicht erlauben"): hinter Wand und geschlossener Tür kein Feld der Zone, durch die offene Tür schon. Seit 0.3.19
+// 30 Fuß (05.11.2026: "hinter Türen und um Ecken kann man nichts sehen oder wahrnehmen").
 const zonenSpalte = (feld) => Number(feld.split(",")[0]);
+const zonenZeile = (feld) => Number(feld.split(",")[1]);
 let suchzone = g.suchZonen(brandy).get("suche:gefahr0000000009");
-assert.ok(suchzone.has("0,40") && suchzone.has("3,37"), "vor der Wand reicht die Zone 15 Fuß weit");
-assert.ok([...suchzone].every((feld) => zonenSpalte(feld) <= 3), "hinter Wand und Tür kein Feld der Zone");
+assert.ok(suchzone.has("0,40") && suchzone.has("3,33") && !suchzone.has("3,32"), "vor der Wand reicht die Zone 30 Fuß über den Auslöser hinaus");
+const rechts = (zone) => [...zone].filter((feld) => zonenSpalte(feld) >= 4).sort();
+assert.deepEqual(rechts(suchzone), ["4,33", "4,34", "4,46", "4,47"], "hinter Wand und Tür kein Feld, nur gerade an den Wandenden vorbei");
+// Um die Ecke: Ein Wandstück oben quer über der Falle macht aus der Wand eine Ecke; was dahinter liegt, auch
+// schräg an der Ecke vorbei, ist nicht mehr in der Zone.
+waende.push({ c: [400, 3800, 200, 3800], tuer: false });
+const umDieEcke = g.suchZonen(brandy).get("suche:gefahr0000000009");
+assert.deepEqual(rechts(umDieEcke), ["4,46", "4,47"], "um die Ecke nichts mehr");
+assert.ok(!umDieEcke.has("3,36") && umDieEcke.has("0,37"), "über der Ecke nichts, links daran vorbei schon");
+waende.pop();
 assert.ok(pruefarten.has("sight"), "Finden ist Wahrnehmung: Prüfung nach Sicht");
 waende[1].offen = true;
 suchzone = g.suchZonen(brandy).get("suche:gefahr0000000009");

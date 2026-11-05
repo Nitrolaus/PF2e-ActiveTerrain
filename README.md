@@ -74,8 +74,11 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
 - **Line of effect**: trigger and effect stop at walls that block movement and at closed doors. Open
   doors let them through, walls that only block sight do not stop them.
 - **Finding**: only by Perception. A character using the exploration activity Search rolls secretly
-  when starting a move toward a hidden trap and, on a success, stops 15 feet from its trigger area;
-  this search zone ends at walls and closed doors, so nobody finds a trap behind a locked door. The
+  on entering the search zone of a hidden trap (30 feet around its trigger area) and again every 3
+  squares inside it, counted over several moves; on a success it stops there. The zone covers only
+  squares with a clear line of sight to the trap, so nobody finds a trap behind a door or around a
+  corner. The rolls make no chat message and no dice animation: the GM gets one line per roll, and on a
+  find everyone sees the roll, without the DC. The
   minimum proficiency from the hazard's Stealth entry applies. The Seek action reveals traps within
   30 feet in line of sight whose Stealth DC the result meets. Detect magic reports magic within 30 feet
   by its rank; an advanced setting lets it reveal magical traps.
@@ -139,6 +142,8 @@ Under "Configure Settings", per client:
 
 For the whole world (gamemaster):
 
+- **Advanced: Search: at most this many squares per move**: a searching character stops after this many
+  squares outside of combat (default 3, 0 = no limit).
 - **Advanced: Known terrain (house rule)**: a creature that already crossed a square of a narrow surface or
   uneven ground and rolled does not roll there again (for that creature and scene). Off by default: by the
   rules every crossing needs a roll. Hazardous terrain always deals damage.
@@ -280,9 +285,12 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
   Akteur mitbringen.
 - **Wirkungslinie**: Auslöser und Wirkung enden an Wänden, die Bewegung sperren, und an geschlossenen
   Türen. Offene Türen lassen sie durch, Wände nur für die Sicht halten sie nicht auf.
-- **Finden**: nur über Wahrnehmung. Eine Figur mit der Erkundung Absuchen würfelt geheim, wenn sie auf
-  eine versteckte Falle zufährt, und hält bei Erfolg 15 Fuß vor deren Auslösebereich; diese Suchzone
-  endet an Wänden und geschlossenen Türen, hinter einer verschlossenen Tür findet also niemand etwas. Der
+- **Finden**: nur über Wahrnehmung. Eine Figur mit der Erkundung Absuchen würfelt geheim, wenn sie die
+  Suchzone einer versteckten Falle betritt (30 Fuß um deren Auslösebereich), und danach alle 3 Felder in
+  ihr, über mehrere Züge gezählt; bei Erfolg hält sie dort. Zur Zone gehören nur Felder mit freier
+  Sichtlinie zur Falle, hinter einer Tür oder um eine Ecke findet also niemand etwas. Die Würfe machen
+  keine Chatnachricht und keine Würfelanimation: Die Spielleitung bekommt eine Zeile je Wurf, bei einem
+  Fund sehen alle den Wurf, ohne den SG. Der
   Mindestgrad aus dem Heimlichkeitseintrag der Gefahr gilt. Die Aktion Suchen deckt Fallen innerhalb von 30 Fuß in
   Sichtlinie auf, deren Heimlichkeits-SG das Ergebnis erreicht. Magie entdecken meldet Magie innerhalb
   von 30 Fuß nach seinem Grad; eine erweiterte Einstellung lässt es magische Fallen aufdecken.
@@ -348,6 +356,8 @@ Unter "Module einstellen", jeweils für den eigenen Rechner:
 
 Für die ganze Welt (Spielleitung):
 
+- **Erweitert: Suchen: höchstens so viele Felder je Zug**: Wer sucht, hält außerhalb des Kampfes nach so
+  vielen Feldern an (Vorgabe 3, 0 = ohne Grenze).
 - **Erweitert: Bekanntes Gelände (Hausregel)**: Wer auf schmaler Oberfläche oder unebenem Boden schon einmal
   über ein Feld gegangen ist und gewürfelt hat, würfelt dort nicht mehr (für diese Figur und Szene). Von Haus
   aus aus: Nach den Regeln wird bei jedem Durchqueren gewürfelt. Gefährliches Gelände verletzt immer.

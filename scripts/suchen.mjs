@@ -27,6 +27,21 @@ function istAktiveSpielleitung() {
 const imKampf = () => Boolean(game.combat?.started);
 const jetzt = () => Number(game.time?.worldTime ?? 0);
 
+/*
+ * Suchen in Schritten (0.3.19): nach wie vielen Feldern ein suchender Held anhält, außerhalb des Kampfes;
+ * 0 heißt ohne Grenze. Die Einstellung gilt für die Welt, ändern kann sie nur die SL.
+ */
+export function schrittGrenze(dokument) {
+  if (!istAktiveSpielleitung() || imKampf() || !suchtGerade(dokument?.actor)) return 0;
+  let wert = 0;
+  try {
+    wert = Math.trunc(Number(game.settings.get(MODUL, "suchenFelder")));
+  } catch {
+    wert = 0;
+  }
+  return Number.isFinite(wert) && wert > 0 ? wert : 0;
+}
+
 /* Erkundung "Suchen": wer sie im Erkunden gewählt hat (nur Charaktere). */
 export function suchtGerade(actor) {
   if (!actor?.isOfType?.("character")) return false;

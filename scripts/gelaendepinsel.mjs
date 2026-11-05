@@ -16,7 +16,7 @@ import { kennungGelaende, kennungLesen } from "./gefahren-logik.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.18";
+const VERSION = "0.3.19";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -144,6 +144,17 @@ function einstellungenAnmelden() {
     config: true,
     type: Boolean,
     default: false
+  });
+  // Suchen in Schritten (0.3.19, 05.11.2026: "das soll nur der GM in den Moduleinstellungen einstellen können",
+  // Vorgabe 3): Wer sucht, hält nach so vielen Feldern an; 0 heißt ohne Grenze.
+  game.settings.register(MODUL, "suchenFelder", {
+    name: "GELAENDEPINSEL.Einstellung.SuchenFelder.Name",
+    hint: "GELAENDEPINSEL.Einstellung.SuchenFelder.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: { min: 0, max: 10, step: 1 },
+    default: 3
   });
   game.settings.register(MODUL, "rasterModus", {
     name: "GELAENDEPINSEL.Einstellung.RasterModus.Name",
@@ -1599,18 +1610,102 @@ function zwischenLagen(a, b) {
 function wegFlaechen(dokument, alt, optionen = {}, ziel = zugZiel(dokument, optionen)) {
   const breite = groesseIn(dokument.width);
   const hoehe = groesseIn(dokument.height);
+  return wegLagen(dokument, alt, optionen, ziel).map((lage) => bedeckung(lage.x, lage.y, breite, hoehe));
+}
+
+// Die Lagen (linke obere Ecke) des Wegs je Achtelfeld, die Startlage zuerst; per Teleport nur sie.
+function wegLagen(dokument, alt, optionen = {}, ziel = zugZiel(dokument, optionen)) {
   const wegpunkte = optionen?._movement?.[dokument.id]?.passed?.waypoints;
   const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
   const lagen = [alt, ...(Array.isArray(wegpunkte) && wegpunkte.length ? wegpunkte : [ziel])]
     .filter((punkt) => Number.isFinite(Number(punkt?.x)) && Number.isFinite(Number(punkt?.y)));
   if (!lagen.length) return [];
-  const flaeche = (lage) => bedeckung(Number(lage.x), Number(lage.y), breite, hoehe);
-  const weg = [flaeche(lagen[0])];
+  const weg = [{ x: Number(lagen[0].x), y: Number(lagen[0].y) }];
   if (Array.isArray(wegpunkte) && wegpunkte.length > 0 && wegpunkte.every((punkt) => aktionen[punkt?.action]?.teleport)) return weg;
-  for (let index = 1; index < lagen.length; index += 1) {
-    for (const lage of zwischenLagen(lagen[index - 1], lagen[index])) weg.push(flaeche(lage));
-  }
+  for (let index = 1; index < lagen.length; index += 1) weg.push(...zwischenLagen(lagen[index - 1], lagen[index]));
   return weg;
+}
+
+/*
+ * Suchen in Schritten (0.3.19, 05.11.2026: "wenn jemand sucht, kann er nur 3 Felder ziehen, dann stoppt er",
+ * "das soll nur der GM in den Moduleinstellungen einstellen können"; gewählt: Vorgabe 3 und "würfeln je 3
+ * Felder"). Wer sucht, hält außerhalb des Kampfes nach so vielen Feldern an, wie die Einstellung sagt; jeder
+ * Wechsel des Felds unter seiner Mitte zählt eins, auch schräg. Gewürfelt wird, wenn er die Suchzone einer
+ * Falle betritt (oder in ihr steht und dort noch nicht gewürfelt hat), und danach alle 3 Felder, die er in ihr
+ * geht, über mehrere Züge gezählt: Ob er ein Feld oder drei auf einmal zieht, ändert nichts. Verlässt er die
+ * Zone, beginnt es beim nächsten Betreten wieder am Rand. Gezählt wird der geplante Weg bis zum Halt; hält ihn
+ * unterwegs etwas anderes an, zählen die Felder danach trotzdem.
+ */
+const SUCH_TAKT = 3;
+const suchWege = new Map();
+
+const gefahrAusArt = (art) => String(art).slice(6).split("#")[0];
+
+function mittelfeld(lage, breite, hoehe) {
+  const g = canvas.grid.size;
+  const feld = canvas.grid.getOffset({ x: Number(lage.x) + (breite * g) / 2, y: Number(lage.y) + (hoehe * g) / 2 });
+  return schluessel(feld.j, feld.i);
+}
+
+export function suchSchritte(dokument, start, optionen, ziel, zonen, grenze = 0) {
+  const breite = groesseIn(dokument.width);
+  const hoehe = groesseIn(dokument.height);
+  const lagen = wegLagen(dokument, start, optionen, ziel);
+  const ergebnis = { stopp: null, punkte: new Map(), breite, hoehe };
+  if (!lagen.length || (!zonen.size && !(grenze > 0))) return ergebnis;
+  // Feldwechsel entlang des Wegs; der Halt nur, wenn danach noch einer käme.
+  const wechsel = [];
+  let letztes = mittelfeld(lagen[0], breite, hoehe);
+  lagen.forEach((lage, index) => {
+    const feld = mittelfeld(lage, breite, hoehe);
+    if (feld !== letztes) wechsel.push({ index, feld });
+    letztes = feld;
+  });
+  let ende = lagen.length - 1;
+  if (grenze > 0 && wechsel.length > grenze) {
+    const halt = wechsel[grenze - 1];
+    ergebnis.stopp = { ...halt, lage: lagen[halt.index] };
+    ende = halt.index;
+  }
+  const gewechselt = new Set(wechsel.filter((w) => w.index <= ende).map((w) => w.index));
+  for (const [zone, menge] of zonen) {
+    const merken = `${dokument.id}:${gefahrAusArt(zone)}`;
+    const liste = [];
+    const erstes = bedeckung(lagen[0].x, lagen[0].y, breite, hoehe);
+    let drin = erstes.alle.some((feld) => menge.has(feld));
+    let seit = drin ? suchWege.get(merken) : undefined;
+    if (drin && seit === undefined) {
+      liste.push({ index: 0, feld: erstes.halb.find((feld) => menge.has(feld)) ?? erstes.alle.find((feld) => menge.has(feld)) });
+      seit = 0;
+    }
+    for (let index = 1; index <= ende; index += 1) {
+      const flaeche = bedeckung(lagen[index].x, lagen[index].y, breite, hoehe);
+      const neu = betretenSchritt(menge, flaeche, drin);
+      if (!drin) {
+        drin = neu.drin;
+        if (neu.feld) {
+          liste.push({ index, feld: neu.feld });
+          seit = 0;
+        }
+        continue;
+      }
+      drin = neu.drin;
+      if (!drin) {
+        seit = undefined;
+        continue;
+      }
+      if (!gewechselt.has(index)) continue;
+      seit += 1;
+      if (seit >= SUCH_TAKT) {
+        liste.push({ index, feld: mittelfeld(lagen[index], breite, hoehe) });
+        seit = 0;
+      }
+    }
+    if (drin) suchWege.set(merken, seit ?? 0);
+    else suchWege.delete(merken);
+    if (liste.length) ergebnis.punkte.set(zone, liste);
+  }
+  return ergebnis;
 }
 
 /**
@@ -1765,36 +1860,53 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
   const sofort = !start || optionen?.animate === false;
   start ??= alt;
   if (!start || gleicheLage(start, ziel)) return;
-  // Absuchen (0.3.5): Der Weg eines suchenden Helden kostet Spielzeit, 45 m pro Minute.
-  suchen.wegKostet(dokument, start, optionen, ziel);
-  if (!sofort) unterwegs.set(id, ziel);
   // Versteckte Fallen zählen wie Flächen (0.3.0, Gefahren-Karte): Wer ihr Feld erreicht, hält dort, die
   // Falle wird aufgedeckt und löst aus. Nur Kreaturen, keine Gefahr löst eine andere aus.
   const fallen = dokument.actor?.isOfType?.("creature") ? gefahren.versteckteFallen(dokument.parent) : new Map();
-  // Erkundung "Suchen" entlang des Wegs (0.3.3): Die Suchzonen um versteckte Fallen zählen wie Flächen,
-  // vor den Fallen, damit ein Fund im selben Schritt vorgeht.
+  // Erkundung "Suchen" entlang des Wegs (0.3.3): Die Würfelpunkte in den Suchzonen um versteckte Fallen zählen
+  // wie Flächen von einem Feld, vor den Fallen, damit ein Fund im selben Schritt vorgeht. Seit 0.3.19 in
+  // Schritten: am Rand der Zone und alle 3 Felder in ihr, und wer sucht, hält nach so vielen Feldern an, wie
+  // die Einstellung sagt.
   const zonen = gefahren.suchZonen(dokument);
-  const felder = { ...felderDerSzene(dokument.parent), ...Object.fromEntries(zonen), ...Object.fromEntries(fallen) };
+  const schritte = suchSchritte(dokument, start, optionen, ziel, zonen, suchen.schrittGrenze(dokument));
+  const punktFelder = {};
+  const startPunkte = [];
+  for (const [zone, liste] of schritte.punkte) {
+    liste.forEach((punkt, nummer) => {
+      const art = `${zone}#${nummer}`;
+      if (punkt.index === 0) startPunkte.push([art, punkt.feld]);
+      else punktFelder[art] = new Set([punkt.feld]);
+    });
+  }
+  const stopp = schritte.stopp ? { schritt: new Set([schritte.stopp.feld]) } : {};
+  // Absuchen (0.3.5): Der Weg eines suchenden Helden kostet Spielzeit, 45 m pro Minute; hält er nach den
+  // Schritten an, nur der Weg bis dorthin.
+  if (schritte.stopp) suchen.wegKostet(dokument, start, null, haltLage(schritte.stopp.feld, schritte.stopp.lage, schritte.breite, schritte.hoehe));
+  else suchen.wegKostet(dokument, start, optionen, ziel);
+  if (!sofort) unterwegs.set(id, ziel);
+  const felder = { ...felderDerSzene(dokument.parent), ...punktFelder, ...Object.fromEntries(fallen), ...stopp };
   const wegpunkte = optionen?._movement?.[id]?.passed?.waypoints;
   const aktion = (Array.isArray(wegpunkte) ? wegpunkte.at(-1)?.action : null) ?? dokument.movementAction ?? "walk";
   const aktionen = globalThis.CONFIG?.Token?.movement?.actions ?? {};
   // Je Art das Feld, mit dem die Fläche betreten wird; es liefert SG und Schaden (0.2.7).
   const erwartet = new Map();
-  for (const [art, feld] of betreteneArten(dokument, start, optionen, felder, [...PROBEN_ARTEN, ...zonen.keys(), ...fallen.keys()], ziel)) {
+  for (const [art, feld] of betreteneArten(dokument, start, optionen, felder, [...PROBEN_ARTEN, ...Object.keys(punktFelder), ...fallen.keys(), ...Object.keys(stopp)], ziel)) {
     // Fliegend oder per Teleport kein Balancieren und keine Gefahr am Boden (wie PF2e); eine Falle wie
     // gefährliches Gelände. Suchen geht auch fliegend, nur nicht per Teleport.
-    const wirkung = art.startsWith("suche:") ? (aktionen[aktion]?.teleport ? 0 : 1)
+    const wirkung = art.startsWith("suche:") || art === "schritt" ? (aktionen[aktion]?.teleport ? 0 : 1)
       : gelaendeWirkung(dokument.actor, art.startsWith("falle:") ? "gefahr" : art, aktion, aktionen);
     if (wirkung > 0) erwartet.set(art, feld);
   }
   const breite = groesseIn(dokument.width);
   const hoehe = groesseIn(dokument.height);
   const anfang = bedeckung(Number(start.x), Number(start.y), breite, hoehe).alle;
-  // Steht der Held schon in einer Suchzone, gilt sein Wurf gleich am Anfang.
-  const schonDrin = [...zonen].filter(([art, menge]) => !erwartet.has(art) && anfang.some((feld) => menge.has(feld)));
-  for (const art of erwartet.keys()) if (art.startsWith("suche:")) gefahren.sucheVorbereiten(dokument, art.slice(6));
+  // Je Würfelpunkt ein eigener Wurf, schon beim Losfahren, damit das Ergebnis dort feststeht. Steht der Held
+  // schon in einer Suchzone und hat dort noch nicht gewürfelt, gilt sein Wurf gleich am Anfang.
+  const wuerfe = new Map();
+  for (const [art] of startPunkte) wuerfe.set(art, gefahren.sucheVorbereiten(dokument, gefahrAusArt(art)));
+  for (const art of erwartet.keys()) if (art.startsWith("suche:")) wuerfe.set(art, gefahren.sucheVorbereiten(dokument, gefahrAusArt(art)));
   if (!erwartet.size) {
-    for (const [art] of schonDrin) void gefahren.sucheErreicht(dokument, art.slice(6));
+    for (const [art] of startPunkte) void gefahren.sucheErreicht(dokument, gefahrAusArt(art), wuerfe.get(art));
     return;
   }
   const bewegung = optionen?._movement?.[id] ?? null;
@@ -1808,11 +1920,10 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
     modulzug: Boolean(optionen?.aiBewegungsanzeigeModuleMove)
   });
   const drin = new Map([...erwartet.keys()].map((art) => [art, anfang.some((feld) => felder[art].has(feld))]));
-  const fahrt = { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin, suche: new Map(), haltFalle: null };
+  const fahrt = { dokument, ziel, letzte: { x: Number(start.x), y: Number(start.y) }, breite, hoehe, felder, erwartet, drin, suche: new Map(), wuerfe, haltFalle: null };
   fahrten.set(id, fahrt);
-  for (const [art, menge] of schonDrin) {
-    const feld = anfang.find((schl) => menge.has(schl));
-    if (sucheAmRand(id, fahrt, art.slice(6), feld, sofort ? null : start) && !sofort) {
+  for (const [art, feld] of startPunkte) {
+    if (sucheAmRand(id, fahrt, art, feld, sofort ? null : start) && !sofort) {
       fahrten.delete(id);
       ueberallAnhalten(dokument, haltLage(feld, start, breite, hoehe), feld);
       return;
@@ -1825,16 +1936,21 @@ function fahrtBeginnen(dokument, alt, optionen, ziel = zugZiel(dokument, optione
 // Erkundung "Suchen" am Rand der Suchzone (0.3.3): Findet der Held die Falle, hält er hier, vor ihr, und sie
 // löst nicht aus. Läuft der Wurf noch, entscheidet er nachträglich; bis dahin wartet die Falle auf ihn. Ohne
 // Lage (Zug ohne Fahrt, Ziel erreicht) hält er nicht, die Falle bleibt trotzdem still.
-function sucheAmRand(id, fahrt, gefahrId, feld, lage) {
-  const gefunden = gefahren.sucheErreicht(fahrt.dokument, gefahrId);
+function sucheAmRand(id, fahrt, art, feld, lage) {
+  const gefahrId = gefahrAusArt(art);
+  const gefunden = gefahren.sucheErreicht(fahrt.dokument, gefahrId, fahrt.wuerfe?.get(art));
   if (gefunden === true) {
     fahrt.erwartet.delete(`falle:${gefahrId}`);
     return true;
   }
   if (typeof gefunden?.then !== "function") return false;
-  fahrt.suche.set(gefahrId, gefunden);
+  // Laufen mehrere Würfe derselben Falle (Würfelpunkte alle 3 Felder, 0.3.19), wartet die Falle auf alle: Sie
+  // löst nur aus, wenn keiner sie findet.
+  const vorher = fahrt.suche.get(gefahrId);
+  const alle = vorher ? vorher.then((schon) => schon || gefunden) : gefunden;
+  fahrt.suche.set(gefahrId, alle);
   void gefunden.then((ja) => {
-    fahrt.suche.delete(gefahrId);
+    if (fahrt.suche.get(gefahrId) === alle) void alle.then(() => { if (fahrt.suche.get(gefahrId) === alle) fahrt.suche.delete(gefahrId); });
     if (!ja) return;
     fahrt.erwartet.delete(`falle:${gefahrId}`);
     // Weiter halten, solange die Fahrt läuft oder sie an eben dieser Falle hielt.
@@ -1994,6 +2110,7 @@ function fahrtPruefen(id, lage, grund = "bild") {
   for (const zwischen of zwischenLagen(fahrt.letzte, lage)) {
     const schritt = bedeckung(zwischen.x, zwischen.y, fahrt.breite, fahrt.hoehe);
     let erreicht = null;
+    let schrittEnde = null;
     for (const art of [...fahrt.erwartet.keys()]) {
       // Ein Fund beim Suchen nimmt die Falle aus der Fahrt (0.3.3).
       if (!fahrt.erwartet.has(art)) continue;
@@ -2002,15 +2119,27 @@ function fahrtPruefen(id, lage, grund = "bild") {
       if (!neu.feld) continue;
       fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, neu.feld, grund);
+      // Suchen in Schritten (0.3.19): Hier ist die Zahl der Felder erreicht.
+      if (art === "schritt") {
+        schrittEnde = neu.feld;
+        continue;
+      }
       // Bekanntes Gelände (0.3.16): schon einmal hier gewürfelt, also keine Karte und kein Halt.
       if (istBekannt(fahrt.dokument, art, neu.feld)) continue;
       if (art.startsWith("suche:")) {
-        if (sucheAmRand(id, fahrt, art.slice(6), neu.feld, zwischen)) erreicht ??= neu.feld;
+        if (sucheAmRand(id, fahrt, art, neu.feld, zwischen)) erreicht ??= neu.feld;
         continue;
       }
       if (art.startsWith("falle:") && fahrt.suche.has(art.slice(6))) falleNachSuche(fahrt, art, neu.feld);
       else karteAusloesen(fahrt.dokument, art, neu.feld);
       erreicht ??= neu.feld;
+    }
+    // Nach den Schritten hält er an, auch bei Zügen ohne Fahrt und wenn das Bild schon am Ziel ist; hält im
+    // selben Schritt eine Karte oder ein Fund, gilt deren Halt.
+    if (schrittEnde && !(erreicht && grund === "bild" && !gleicheLage(lage, fahrt.ziel))) {
+      fahrten.delete(id);
+      ueberallAnhalten(fahrt.dokument, haltLage(schrittEnde, zwischen, fahrt.breite, fahrt.hoehe), schrittEnde);
+      return;
     }
     // Während der sichtbaren Fahrt hält der Token, wo die Karte ausgelöst wird. Nicht bei Zügen ohne
     // Fahrt und nicht am Ziel: Dort steht er schon.
@@ -2026,8 +2155,8 @@ function fahrtPruefen(id, lage, grund = "bild") {
       if (!fahrt.erwartet.has(art)) continue;
       fahrt.erwartet.delete(art);
       diagnoseKarte(id, art, feld, `${grund}-ziel`);
-      if (istBekannt(fahrt.dokument, art, feld)) continue;
-      if (art.startsWith("suche:")) sucheAmRand(id, fahrt, art.slice(6), feld, null);
+      if (art === "schritt" || istBekannt(fahrt.dokument, art, feld)) continue;
+      if (art.startsWith("suche:")) sucheAmRand(id, fahrt, art, feld, null);
       else if (art.startsWith("falle:") && fahrt.suche.has(art.slice(6))) falleNachSuche(fahrt, art, feld);
       else karteAusloesen(fahrt.dokument, art, feld);
     }
