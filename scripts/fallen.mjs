@@ -14,15 +14,20 @@
 //   (Wunsch: "beschwört damit einen übermächtigen Gegner", "Gegner Stufe 8");
 // - äußere Veränderung (Wunsch: "teilweise können wir auch Charaktere äußerlich verändern") beim kritischen
 //   Fehlschlag als PF2e-Effekt; die Tönung des Tokens kommt aus PF2es Regel TokenImage und geht mit dem Effekt.
+//   Seit 0.5.0 auch beim kritischen Treffer einer Angriffsfalle;
+// - lange Zustände (0.5.0, 06.11.2026: "arbeite mehr mit Zuständen, die länger andauern, blind für 28 Stunden
+//   oder versteinert"): 24 Stunden oder 1 Woche, als PF2e-Effekt, der den Zustand trägt und mit der Spielzeit abläuft.
 import { DATEN_STAND, FALLEN } from "./fallen-daten.mjs";
-import { akteurDaten, klartext, sprache } from "./fallen-logik.mjs";
+import { akteurDaten, klartext, langeZustaende, sprache, zustandEffekt } from "./fallen-logik.mjs";
 import { ausloeseAktion } from "./gefahren-logik.mjs";
 import * as gefahren from "./gefahren.mjs";
 
 const MODUL = "gelaendepinsel";
 const BILD = "systems/pf2e/icons/default-icons/hazard.svg";
 const ARTEN = ["tuer", "schloss", "gelaende", "raum"];
+// Höchste Stufe des herbeigerufenen Gegners steht an der Falle (Stufe 5: 8, Stufe 6: 9); 8 nur als Rückfall.
 const STUFE_GEGNER = 8;
+const gegnerGrenze = (falle) => Number(falle?.beschwoerung?.stufe) || STUFE_GEGNER;
 
 const t = (schluessel, daten) => (daten ? game.i18n.format(`GELAENDEPINSEL.Fallen.${schluessel}`, daten) : game.i18n.localize(`GELAENDEPINSEL.Fallen.${schluessel}`));
 const html = (text) => foundry.utils.escapeHTML?.(String(text ?? "")) ?? String(text ?? "");
@@ -189,7 +194,7 @@ export async function fallenAbwurf(daten) {
   }
   let kreatur = null;
   if (falle.beschwoerung) {
-    kreatur = await kreaturWaehlenDialog(null);
+    kreatur = await kreaturWaehlenDialog(null, gegnerGrenze(falle));
     if (kreatur === undefined) return false;
   }
   const ecke = canvas.grid.getTopLeftPoint?.(punkt) ?? { x: Math.floor(punkt.x / groesse) * groesse, y: Math.floor(punkt.y / groesse) * groesse };
@@ -206,7 +211,7 @@ export async function fallenAbwurf(daten) {
 /* ---------------------------------------------------------------- Kreatur wählen */
 
 /* Fragt nach einer Kreatur (aus der Welt oder einem Kompendium hineinziehen). undefined = abgebrochen. */
-async function kreaturWaehlenDialog(vorher) {
+async function kreaturWaehlenDialog(vorher, grenze = STUFE_GEGNER) {
   const Editor = foundry.applications?.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
   let uuid = vorher ?? null;
   const name = async (u) => {
@@ -216,7 +221,7 @@ async function kreaturWaehlenDialog(vorher) {
   const anfang = await name(uuid);
   const ergebnis = await foundry.applications.api.DialogV2.wait({
     window: { title: t("KreaturTitel") },
-    content: `<p>${t("KreaturHinweis", { stufe: STUFE_GEGNER })}</p><div class="gp-ablage">${html(anfang)}</div>`,
+    content: `<p>${t("KreaturHinweis", { stufe: grenze })}</p><div class="gp-ablage">${html(anfang)}</div>`,
     buttons: [
       { action: "ok", label: t("KreaturUebernehmen"), default: true, callback: () => ({ uuid }) },
       { action: "ohne", label: t("KreaturSpaeter"), callback: () => ({ uuid: null }) }
@@ -233,7 +238,7 @@ async function kreaturWaehlenDialog(vorher) {
         const a = await fromUuid(daten.uuid);
         if (!a) return;
         const stufe = Number(a.level ?? a.system?.details?.level?.value);
-        if (stufe > STUFE_GEGNER) ui.notifications.warn(t("KreaturZuHoch", { name: a.name, stufe, grenze: STUFE_GEGNER }));
+        if (stufe > grenze) ui.notifications.warn(t("KreaturZuHoch", { name: a.name, stufe, grenze }));
         uuid = daten.uuid;
         ablage.textContent = await name(uuid);
       });
@@ -382,14 +387,14 @@ async function rundeVorbei(kampf) {
 
 /* ---------------------------------------------------------------- Äußere Veränderung */
 
-export function aussehenEffekt(aussehen, falleId, bild) {
+export function aussehenEffekt(aussehen, falleId, bild, stufe = 5) {
   const dauer = aussehen.dauer
     ? { value: aussehen.dauer.value, unit: aussehen.dauer.unit, expiry: "turn-start", sustained: false }
     : { value: -1, unit: "unlimited", expiry: null, sustained: false };
   return {
     type: "effect", name: aussehen.name, img: "systems/pf2e/icons/default-icons/effect.svg",
     system: {
-      description: { value: `<p>${html(aussehen.text)}</p>` }, duration: dauer, level: { value: 5 }, tokenIcon: { show: true },
+      description: { value: `<p>${html(aussehen.text)}</p>` }, duration: dauer, level: { value: stufe }, tokenIcon: { show: true },
       rules: aussehen.toenung && bild ? [{ key: "TokenImage", value: bild, tint: aussehen.toenung }] : []
     },
     flags: { [MODUL]: { aussehen: falleId } }
@@ -400,8 +405,38 @@ async function aussehenAnwenden(gefahr, falle, ziel) {
   const akteur = ziel.actor;
   if (!akteur || !falle.aussehen) return;
   if (akteur.items.some((it) => it.getFlag?.(MODUL, "aussehen") === falle.id)) return;
-  await akteur.createEmbeddedDocuments("Item", [aussehenEffekt(falle.aussehen, falle.id, ziel.texture?.src ?? null)]);
+  await akteur.createEmbeddedDocuments("Item", [aussehenEffekt(falle.aussehen, falle.id, ziel.texture?.src ?? null, falle.stufe ?? 5)]);
   await meldung(`<p>${t("Aussehen", { name: `<strong>${html(ziel.name)}</strong>`, fluch: html(falle.aussehen.name) })}</p>`, { alias: gefahr.name });
+}
+
+/* ---------------------------------------------------------------- Lange Zustände */
+
+/*
+ * Setzt die langen Zustände der Falle für dieses Ergebnis als PF2e-Effekte. Hat die Figur denselben Zustand von
+ * derselben Falle schon, wird er nicht doppelt gesetzt, sondern seine Laufzeit beginnt neu.
+ */
+async function langzeitAnwenden(gefahr, falleFlagge, ziel, ergebnis) {
+  const akteur = ziel.actor;
+  const falle = FALLEN.find((f) => f.id === falleFlagge?.id);
+  if (!akteur || !falle) return;
+  const liste = langeZustaende(falle, ergebnis);
+  if (!liste.length) return;
+  const s = sprache(falleFlagge.sprache ?? game.i18n?.lang);
+  const neu = [];
+  const erneuern = [];
+  for (const z of liste) {
+    const daten = zustandEffekt(z, falle, s);
+    const alt = akteur.items.find((it) => {
+      const lz = it.getFlag?.(MODUL, "langzeit");
+      return lz?.falle === falle.id && lz?.zustand === z.z;
+    });
+    if (alt) erneuern.push({ _id: alt.id, name: daten.name, "system.duration": daten.system.duration, "system.rules": daten.system.rules, "system.start": { value: game.time?.worldTime ?? 0 } });
+    else neu.push(daten);
+  }
+  if (neu.length) await akteur.createEmbeddedDocuments("Item", neu);
+  if (erneuern.length) await akteur.updateEmbeddedDocuments("Item", erneuern);
+  const namen = [...neu, ...erneuern].map((e) => html(e.name)).join(", ");
+  await meldung(`<p>${t("Langzeit", { name: `<strong>${html(ziel.name)}</strong>`, liste: namen })}</p>`, { alias: gefahr.name });
 }
 
 /* ---------------------------------------------------------------- Anmelden */
@@ -419,7 +454,7 @@ export function anmelden() {
     async handeln(gefahr, wahl) {
       if (wahl === "gp-schloss") { await schlossOeffnen(gefahr); return true; }
       if (wahl === "gp-kreatur") {
-        const uuid = await kreaturWaehlenDialog(gefahr.getFlag(MODUL, "kreatur"));
+        const uuid = await kreaturWaehlenDialog(gefahr.getFlag(MODUL, "kreatur"), gegnerGrenze(gefahren.falleVon(gefahr)));
         if (uuid !== undefined) await gefahr.setFlag(MODUL, "kreatur", uuid);
         return true;
       }
@@ -431,7 +466,9 @@ export function anmelden() {
     },
     async nachWurf(gefahr, ziel, grad) {
       const falle = gefahren.falleVon(gefahr);
-      if (grad === "criticalFailure" && falle?.aussehen) await aussehenAnwenden(gefahr, falle, ziel);
+      if (!falle) return;
+      await langzeitAnwenden(gefahr, falle, ziel, grad);
+      if ((grad === "criticalFailure" || grad === "criticalHit") && falle.aussehen) await aussehenAnwenden(gefahr, falle, ziel);
     }
   });
   // Ablegen auf der Karte, egal welche Ebene aktiv ist; false hält Foundrys eigene Behandlung an.

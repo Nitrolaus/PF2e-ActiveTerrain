@@ -17,7 +17,7 @@ import { kennungGelaende, kennungLesen } from "./gefahren-logik.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.4.3";
+const VERSION = "0.5.0";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit

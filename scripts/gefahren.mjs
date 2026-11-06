@@ -343,6 +343,8 @@ async function angreifen(gefahr, item, ziele) {
       const grad = Number(wurf?.degreeOfSuccess);
       if (grad === 3) await angriff.critical?.({ skipDialog: true });
       else if (grad === 2) await angriff.damage?.({ skipDialog: true });
+      // Seit 0.5.0 erfahren die Erweiterungen auch vom Treffer (lange Zustände, äußere Veränderung beim kritischen Treffer).
+      if (grad >= 2) for (const e of erweiterungen) await e.nachWurf?.(gefahr, ziel, grad === 3 ? "criticalHit" : "hit");
     }
   } finally {
     for (const objekt of globalThis.canvas?.tokens?.placeables ?? []) {

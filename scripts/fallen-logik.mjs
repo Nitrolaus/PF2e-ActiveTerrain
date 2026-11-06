@@ -23,15 +23,63 @@ export const ZUSTAENDE = Object.freeze({
   sickened: ["fesd1n5eVhpCSS18", "Kränkelnd", "Sickened"],
   slowed: ["xYTAsEpcJE1Ccni3", "Verlangsamt", "Slowed"],
   stunned: ["dfCMdR4wnpbYNTix", "Betäubt", "Stunned"],
-  stupefied: ["e1XGnhKNSQIm5IXg", "Benommen", "Stupefied"]
+  stupefied: ["e1XGnhKNSQIm5IXg", "Benommen", "Stupefied"],
+  // Seit 0.5.0 (Stufe 6), Kennungen aus demselben Pack, deutsche Namen wie in pf2e-de-patch-ju.
+  confused: ["yblD8fOR1J8rDwEQ", "Verwirrt", "Confused"],
+  doomed: ["3uh1r86TzbQvosxv", "Todgeweiht", "Doomed"],
+  fascinated: ["AdPVz7rbaVSRxHFg", "Fasziniert", "Fascinated"],
+  petrified: ["dTwPJuKgBQCMxixg", "Versteinert", "Petrified"],
+  unconscious: ["fBnFDH2MTzgFijKf", "Bewusstlos", "Unconscious"]
 });
 
 const DAUER = Object.freeze({
   r1: ["für 1 Runde", "for 1 round"],
   m1: ["für 1 Minute", "for 1 minute"],
   h1: ["für 1 Stunde", "for 1 hour"],
-  zug: ["bis zum Ende ihres nächsten Zugs", "until the end of its next turn"]
+  zug: ["bis zum Ende ihres nächsten Zugs", "until the end of its next turn"],
+  t1: ["für 24 Stunden", "for 24 hours"],
+  w1: ["für 1 Woche", "for 1 week"]
 });
+
+/*
+ * Lange Zustände (0.5.0, 06.11.2026: "arbeite mehr mit Zuständen, die länger andauern, blind für 28 Stunden oder
+ * versteinert"): Was 24 Stunden oder länger hält, setzt das Modul als PF2e-Effekt auf die Figur, so wie PF2e selbst
+ * Zustände an Zauberwirkungen hängt (GrantItem mit inMemoryOnly, Wert über badge-value). Der Effekt läuft mit der
+ * Spielzeit ab und nimmt den Zustand mit; vorher hilft nur Abnehmen von Hand (Heilung, Fluch brechen).
+ */
+export const LANGE_DAUER = Object.freeze({
+  t1: { value: 24, unit: "hours" },
+  w1: { value: 7, unit: "days" }
+});
+
+const GRAD_QUELLE = Object.freeze({ failure: "f", criticalFailure: "kf" });
+
+/* Die langen Zustände, die eine Falle bei diesem Ergebnis setzt: Rettungswurf (failure, criticalFailure) oder Angriff (hit, criticalHit). */
+export function langeZustaende(falle, ergebnis) {
+  let liste = [];
+  if (ergebnis === "hit") liste = falle?.trefferZ ?? [];
+  else if (ergebnis === "criticalHit") liste = falle?.kritZ ?? [];
+  else if (GRAD_QUELLE[ergebnis] && falle?.wurf) liste = falle.wurf.grade[GRAD_QUELLE[ergebnis]] ?? [];
+  return liste.filter((e) => e.z && LANGE_DAUER[e.dauer]);
+}
+
+/* Der PF2e-Effekt für einen langen Zustand: Name "Zustand (Falle)", Laufzeit aus LANGE_DAUER, Zustand als GrantItem. */
+export function zustandEffekt(z, falle, s) {
+  const eintrag = ZUSTAENDE[z.z];
+  if (!eintrag) throw new Error(`Zustand unbekannt: ${z.z}`);
+  const name = `${eintrag[ix(s) + 1]}${z.wert ? ` ${z.wert}` : ""}`;
+  const regel = { key: "GrantItem", uuid: `Compendium.pf2e.conditionitems.Item.${eintrag[0]}`, inMemoryOnly: true };
+  if (z.wert) regel.alterations = [{ mode: "override", property: "badge-value", value: z.wert }];
+  return {
+    type: "effect", name: `${name} (${falle[s].name})`, img: "systems/pf2e/icons/default-icons/effect.svg",
+    system: {
+      description: { value: `<p>${html(falle[s].name)}: ${html(name)} ${w(DAUER[z.dauer], s)}.</p>` },
+      duration: { ...LANGE_DAUER[z.dauer], expiry: "turn-start", sustained: false },
+      level: { value: falle.stufe }, tokenIcon: { show: true }, rules: [regel]
+    },
+    flags: { [MODUL]: { langzeit: { falle: falle.id, zustand: z.z } } }
+  };
+}
 
 const SCHADEN = Object.freeze({
   piercing: ["Stich", "piercing"], slashing: ["Hieb", "slashing"], bludgeoning: ["Wucht", "bludgeoning"],
@@ -232,7 +280,7 @@ export function akteurDaten(falle, s, stand) {
         ausloeser: typeof falle.ausloeser === "number" ? falle.ausloeser : 0,
         wirkung: falle.wirkung ?? 0,
         falle: {
-          id: falle.id, stand, sprache: s, art: falle.art, ausloesung: ausloeseArt(falle),
+          id: falle.id, stand, sprache: s, art: falle.art, ausloesung: ausloeseArt(falle), stufe: falle.stufe,
           beschwoerung: falle.beschwoerung ?? null,
           aussehen: falle.aussehen ? {
             name: falle.aussehen[s][0], text: falle.aussehen[s][1], toenung: falle.aussehen.toenung, dauer: falle.aussehen.dauer

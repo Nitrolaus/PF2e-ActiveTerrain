@@ -9,18 +9,21 @@
 // Grade: ke kritischer Erfolg, e Erfolg, f Fehlschlag, kf kritischer Fehlschlag. Der Schaden steht in jedem Grad
 // ausgeschrieben (halb und doppelt als halbe und doppelte Würfel), damit Zusatzschaden des Grads mitgewürfelt wird.
 
-export const DATEN_STAND = "0.4.0-1";
+// Seit 0.5.0 liegen die Bausteine in fallen-bausteine.mjs und jede weitere Stufe in einer eigenen Datei
+// (Stufe 6: fallen-stufe-6.mjs, 06.11.2026: "jetzt Fallen für Stufe 6 bauen").
+import { AUS, D, T, Z } from "./fallen-bausteine.mjs";
+import { STUFE_6 } from "./fallen-stufe-6.mjs";
 
-export const D = (formel, typ, kat = null) => ({ d: formel, typ, kat });
-export const Z = (slug, wert = null, dauer = null) => ({ z: slug, wert, dauer });
-export const T = (de, en) => ({ t: { de, en } });
+export { D, T, Z };
 
-const tuerAus = { de: "Die Tür wird geöffnet.", en: "The door is opened." };
-const schlossAus = { de: "Eine Kreatur öffnet das Schloss oder versucht, es zu knacken.", en: "A creature opens the lock or attempts to pick it." };
-const betretenAus = { de: "Eine Kreatur betritt den Auslösebereich.", en: "A creature enters the trigger area." };
-const feldAus = { de: "Eine Kreatur betritt das Feld.", en: "A creature enters the square." };
+export const DATEN_STAND = "0.5.0-1";
 
-export const FALLEN = [
+const tuerAus = AUS.tuer;
+const schlossAus = AUS.schloss;
+const betretenAus = AUS.betreten;
+const feldAus = AUS.feld;
+
+const STUFE_5 = [
   /* ---------------------------------------------------------------- Türen */
   {
     id: "tuer-bolzenwerfer", art: "tuer", stufe: 5, merkmale: ["mechanical", "trap"],
@@ -753,3 +756,5 @@ export const FALLEN = [
     }
   }
 ];
+
+export const FALLEN = [...STUFE_5, ...STUFE_6];

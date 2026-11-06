@@ -229,7 +229,8 @@
       "WerOeffnet": "Wer öffnet das Schloss?",
       "DurchTuer": "{name} hat die Tür geöffnet.",
       "DurchSchloss": "{name} macht sich am Schloss zu schaffen.",
-      "Aussehen": "{name} ist äußerlich verändert: {fluch}."
+      "Aussehen": "{name} ist äußerlich verändert: {fluch}.",
+      "Langzeit": "{name} leidet lange an: {liste}. Die Effekte laufen mit der Spielzeit ab."
     }
   }
 }

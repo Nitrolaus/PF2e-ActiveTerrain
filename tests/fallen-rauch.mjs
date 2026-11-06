@@ -287,6 +287,43 @@ assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.u
 await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [kennung] } } }, speaker: {} });
 assert.equal(effekte.length, 1, "nicht doppelt");
 
+// Lange Zustände (0.5.0, gemeldet: "blind für 28 Stunden oder versteinert"): Die Sonnenglyphe der Stufe 6 setzt beim
+// Fehlschlag Geblendet für 24 Stunden, beim kritischen Fehlschlag Blind für 24 Stunden samt Sonnenbrand; ein zweiter
+// kritischer Fehlschlag setzt nichts doppelt, sondern lässt die Laufzeit neu beginnen.
+const erneuert = [];
+brandyActor.updateEmbeddedDocuments = async (_art, liste) => { erneuert.push(...liste); };
+effekte.length = 0;
+brandyActor.items.length = 0;
+const sonneActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "tuer6-sonnenglyphe"), "de", "t"), "akt_sonne0000000");
+const sonne = dokument({ id: "sonne00000000001", name: "Sonnenglyphe", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: sonneActor });
+tokenListe.push(sonne);
+const sonnenKennung = `gelaendepinsel:falle:${sonne.id}:${sonneActor.items[0].id}:${brandy.id}`;
+const sonnenWurf = (outcome) => ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome, options: [sonnenKennung] } } }, speaker: {} });
+await sonnenWurf("success");
+assert.equal(effekte.length, 0, "Erfolg: nichts Langes");
+await sonnenWurf("failure");
+assert.deepEqual(effekte.map((e) => e.name), ["Geblendet (Sonnenglyphe)"]);
+assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.unit], [24, "hours"]);
+assert.equal(effekte[0].system.rules[0].uuid, "Compendium.pf2e.conditionitems.Item.TkIyaNPgTZFBCCuh");
+assert.ok(String(chat.at(-1)?.content).includes("leidet lange an: Geblendet (Sonnenglyphe)"), "Meldung an die SL");
+await sonnenWurf("criticalFailure");
+assert.deepEqual(effekte.map((e) => e.name), ["Geblendet (Sonnenglyphe)", "Blind (Sonnenglyphe)", "Sonnenbrand"]);
+assert.equal(effekte[1].system.rules[0].uuid, "Compendium.pf2e.conditionitems.Item.XgEqL1kFApUbl5Z2");
+assert.equal(effekte[2].system.level.value, 6, "Aussehen mit der Stufe der Falle");
+await sonnenWurf("criticalFailure");
+assert.equal(effekte.length, 3, "nicht doppelt");
+assert.deepEqual(erneuert.map((e) => e.name), ["Blind (Sonnenglyphe)"], "Laufzeit beginnt neu");
+
+// Angriffsfalle der Stufe 6: Der Treffer des Sägeblatts setzt Unbeholfen 1 für 24 Stunden.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const saegeActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "schloss6-saegeblatt"), "de", "t"), "akt_saege0000000");
+const saege = dokument({ id: "saege00000000001", name: "Sägeblatt", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: saegeActor });
+tokenListe.push(saege);
+await gefahren.ausloesen(saege, saegeActor.items[0], gefahren.mitAusloeser([brandy], brandy));
+assert.deepEqual(effekte.map((e) => e.name), ["Unbeholfen 1 (Sägeblatt im Schloss)"]);
+assert.deepEqual(effekte[0].system.rules[0].alterations, [{ mode: "override", property: "badge-value", value: 1 }]);
+
 // Höchstens drei Ziele (Gewitterstein): die Karte nennt drei, wer auslöst zuerst.
 const steinActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein0000000");
 const stein = dokument({ id: "stein00000000001", name: "Gewitterstein", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: steinActor });

@@ -95,8 +95,8 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
 
 A button with a skull at the top of the terrain toolbar opens a library of ready-made traps, not stored
 in a compendium. They are generic, made for places rather than for one adventure: doors, locks (chests,
-boxes, door locks), terrain outdoors and rooms indoors. Level 5 has 32 traps, 8 per place, 17 of them
-magical, in English and German.
+boxes, door locks), terrain outdoors and rooms indoors. Levels 5 and 6 have 32 traps each, 8 per place,
+17 of them magical, in English and German. Each level is deadlier than the one before.
 
 - **Built to be deadly**: a creature that fails its save should go down, a critical failure drops
   anyone. Players can find and disable them, that is the deal.
@@ -107,10 +107,14 @@ magical, in English and German.
   who opened it first.
 - **Lock traps** get an "Open / pick the lock" button in the hazard menu, against the creature next to
   the lock.
-- **Summoning traps** call a creature of up to level 8 that the GM picks when placing the trap. It rolls
+- **Summoning traps** call a creature up to three levels above the trap (level 8 or 9) that the GM picks
+  when placing the trap. It rolls
   initiative at once and vanishes after 1 minute (the guardian stays until defeated).
 - **Changed appearance**: some traps leave a mark on a critical failure, a PF2e effect that tints the
   token; removing the effect restores it.
+- **Lasting conditions** (level 6): many traps leave conditions that last 24 hours or a week, such as
+  blinded, petrified, doomed or stupefied. They are applied as PF2e effects that carry the condition and
+  expire with game time; the same trap hitting again restarts the duration instead of stacking.
 
 ## Search
 
@@ -329,8 +333,8 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 
 Ein Knopf mit Totenkopf oben in der Geländepinsel-Leiste öffnet eine Sammlung fertiger Fallen, nicht im
 Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes Abenteuer: Türen, Schlösser
-(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 hat 32 Fallen, je Ort 8,
-davon 17 magisch, auf Deutsch und Englisch.
+(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 und 6 haben je 32 Fallen,
+je Ort 8, davon 17 magisch, auf Deutsch und Englisch. Jede Stufe ist tödlicher als die vorige.
 
 - **Tödlich gebaut**: Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
   jeden um. Dafür können die Spieler sie finden und entschärfen.
@@ -341,10 +345,14 @@ davon 17 magisch, auf Deutsch und Englisch.
   Spielers, der geöffnet hat.
 - **Schlossfallen** bekommen im Menü der Gefahr den Knopf "Öffnen / Schloss knacken", gegen die Figur
   neben dem Schloss.
-- **Herbeirufende Fallen** rufen eine Kreatur bis Stufe 8, die die Spielleitung beim Setzen wählt. Sie
+- **Herbeirufende Fallen** rufen eine Kreatur bis drei Stufen über der Falle (Stufe 8 oder 9), die die
+  Spielleitung beim Setzen wählt. Sie
   würfelt sofort Initiative und verschwindet nach 1 Minute (der Wächter bleibt, bis er besiegt ist).
 - **Äußere Veränderung**: Manche Fallen hinterlassen beim kritischen Fehlschlag ein Mal, einen
   PF2e-Effekt, der den Token tönt; ohne den Effekt ist alles wie vorher.
+- **Lange Zustände** (Stufe 6): Viele Fallen hinterlassen Zustände für 24 Stunden oder eine Woche, etwa
+  Blind, Versteinert, Todgeweiht oder Benommen. Sie kommen als PF2e-Effekt, der den Zustand trägt und mit
+  der Spielzeit abläuft; trifft dieselbe Falle erneut, beginnt die Laufzeit neu, statt sich zu stapeln.
 
 ## Absuchen
 

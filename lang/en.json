@@ -229,7 +229,8 @@
       "WerOeffnet": "Who opens the lock?",
       "DurchTuer": "{name} opened the door.",
       "DurchSchloss": "{name} is working on the lock.",
-      "Aussehen": "{name} is changed in appearance: {fluch}."
+      "Aussehen": "{name} is changed in appearance: {fluch}.",
+      "Langzeit": "{name} suffers lasting harm: {liste}. The effects expire with game time."
     }
   }
 }
