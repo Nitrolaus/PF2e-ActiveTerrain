@@ -141,27 +141,61 @@ const fallen = await import("../scripts/fallen.mjs");
 gefahren.anmelden();
 fallen.anmelden();
 
-// Menü: Bolzenwerfer wählen, Klick neben die Tür setzt ihn versteckt mit der Tür als Flagge, im eigenen Ordner.
-dialogAntworten = ["tuer-bolzenwerfer"];
+// Menü (0.4.2, gemeldet: "per Drag and Drop, und es malt oder löscht da gerade kein Gelände"): Das Fenster bleibt offen,
+// ein Eintrag gibt beim Ziehen seine Kennung mit, das Ablegen auf der Karte setzt die Falle versteckt an der Tür.
+const fenster = [];
+const DialogAttrappe = class {
+  constructor(o) { this.o = o; this.rendered = false; fenster.push(this); }
+  async render() { this.rendered = true; }
+  bringToFront() { this.vorn = true; }
+};
+DialogAttrappe.wait = foundry.applications.api.DialogV2.wait;
+foundry.applications.api.DialogV2 = DialogAttrappe;
 await fallen.menueOeffnen();
-assert.ok(fallen.setztGerade(), "wartet auf den Klick");
-await fallen.setzenAnMaus();
-assert.equal(fallen.setztGerade(), false);
+assert.equal(fenster.length, 1, "ein Fenster");
+assert.ok(fenster[0].o.content.includes('draggable="true" data-falle="tuer-bolzenwerfer"'), "Einträge zum Ziehen");
+assert.deepEqual(fenster[0].o.buttons.map((b) => b.action), ["schliessen"], "nur Schließen, kein Setzen-Knopf");
+await fallen.menueOeffnen();
+assert.equal(fenster.length, 1, "zweiter Klick holt das offene Fenster nach vorn");
+assert.ok(fenster[0].vorn);
+const griffe = {};
+const eintrag = { dataset: { falle: "tuer-bolzenwerfer" }, addEventListener: (n, fn) => { griffe[n] = fn; } };
+const stufenwahl = { value: "5", addEventListener() {} };
+fallen.menueVerdrahten({ querySelector: () => stufenwahl, querySelectorAll: (sel) => (sel.includes("gp-falle") ? [eintrag] : []) });
+let gezogen = null;
+griffe.dragstart({ dataTransfer: { setData: (art, wert) => { gezogen = [art, JSON.parse(wert)]; } } });
+assert.deepEqual(gezogen, ["text/plain", { type: fallen.ZIEH_ART, id: "tuer-bolzenwerfer" }]);
+// Ablegen: Der Hook hält Foundrys eigene Behandlung an (false), fremde Daten lässt er durch.
+const abwurf = (daten) => (hooks.get("dropCanvasData") ?? []).map((fn) => fn(canvas, daten));
+assert.deepEqual(abwurf({ type: "Actor", uuid: "Actor.x" }), [undefined], "fremdes Ablegen unberührt");
+assert.deepEqual(abwurf({ ...gezogen[1], x: 450, y: 350 }), [false]);
+await warten();
 const bolzen = tokenListe.at(-1);
+assert.equal(bolzen.name, "Bolzenwerfer im Türrahmen");
 assert.equal(bolzen.hidden, true, "versteckt gesetzt");
 assert.deepEqual([bolzen.x, bolzen.y], [400, 300]);
 assert.equal(bolzen.getFlag("gelaendepinsel", "tuer"), tuer.id);
 assert.equal(ordner.length, 1, "eigener Ordner");
 assert.equal(bolzen.actor.folder, ordner[0].id);
-// Zweimal dieselbe Falle: ein Akteur.
-dialogAntworten = ["tuer-bolzenwerfer"];
-await fallen.menueOeffnen();
-canvas.mousePosition = { x: 2000, y: 2000 };
-await fallen.setzenAnMaus();
-assert.ok(meldungen.at(-1).includes("Keine Tür"), "ohne Tür nicht gesetzt");
-assert.ok(fallen.setztGerade(), "wartet weiter");
-assert.equal(fallen.abbrechen(), true);
+// Fern jeder Tür: nicht gesetzt, Hinweis. Dieselbe Falle noch einmal: derselbe Akteur.
+const vorherTokens = tokenListe.length;
+abwurf({ ...gezogen[1], x: 2000, y: 2000 });
+await warten();
+assert.equal(tokenListe.length, vorherTokens, "ohne Tür nicht gesetzt");
+assert.ok(meldungen.at(-1).includes("Keine Tür"));
 assert.equal(akteure.length, 1);
+// Herbeirufende Falle: Beim Ablegen fragt das Modul nach der Kreatur; abgebrochen wird nichts gesetzt.
+dialogAntworten = [null];
+abwurf({ type: fallen.ZIEH_ART, id: "gelaende-ruf-der-tiefe", x: 1450, y: 1450 });
+await warten();
+assert.equal(tokenListe.length, vorherTokens, "Kreaturwahl abgebrochen: nichts gesetzt");
+dialogAntworten = [{ uuid: "Actor.waechter00000001" }];
+abwurf({ type: fallen.ZIEH_ART, id: "gelaende-ruf-der-tiefe", x: 1450, y: 1450 });
+await warten();
+const ruf = tokenListe.at(-1);
+assert.equal(ruf.getFlag("gelaendepinsel", "kreatur"), "Actor.waechter00000001", "Kreatur am Token");
+assert.deepEqual([ruf.x, ruf.y], [1400, 1400]);
+tokenListe.splice(tokenListe.indexOf(ruf), 1);
 
 // Tür- und Schlossfallen lösen nicht beim Betreten aus; eine Geländefalle schon.
 const gelaende = dokument({ id: "gelaende00000001", name: "Pfahlgrube", x: 800, y: 800, width: 1, height: 1, hidden: true, parent: szene,

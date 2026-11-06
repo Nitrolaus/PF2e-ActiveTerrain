@@ -17,7 +17,7 @@ import { kennungGelaende, kennungLesen } from "./gefahren-logik.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.4.1";
+const VERSION = "0.4.3";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -1235,8 +1235,8 @@ function stempeln(feld) {
 }
 
 function strichBeginnen(art = einstellung("art")) {
-  // Der Werte-Knopf malt nicht (0.3.15), er klickt auf Flächen.
-  if (art === "werte") return false;
+  // Der Werte-Knopf malt nicht (0.3.15), er klickt auf Flächen. Das Fallen-Werkzeug malt auch nicht (0.4.3).
+  if (art === "werte" || art === "fallen") return false;
   strich.art = art;
   if (!rasterModus()) {
     // Frei malen (0.2.0): runder Pinsel, die Punkte sammeln sich bis zum Loslassen.
@@ -1336,11 +1336,6 @@ export function ebeneKlasse() {
 
     _onClickLeft() {
       if (!game.user?.isGM) return;
-      // Eigene Fallen (0.4.0): Nach der Wahl im Fallen-Menü setzt der nächste Klick die Falle, statt zu malen.
-      if (fallen.setztGerade()) {
-        void fallen.setzenAnMaus().catch((fehler) => console.error(`[${MODUL}] Falle setzen`, fehler));
-        return;
-      }
       if (einstellung("art") === "werte") {
         void werteKlick().catch((fehler) => console.error(`[${MODUL}] Werte`, fehler));
         return;
@@ -1353,12 +1348,13 @@ export function ebeneKlasse() {
     // Foundrys Verschieben der Karte.
     _onClickRight() {
       if (!game.user?.isGM) return;
-      if (fallen.abbrechen()) return;
+      // Mit dem Fallen-Werkzeug radiert auch der Rechtsklick nicht (0.4.3, 06.11.2026).
+      if (einstellung("art") === "fallen") return;
       if (strichBeginnen("radierer")) void strichBeenden();
     }
 
     _onDragLeftStart() {
-      if (!game.user?.isGM || fallen.setztGerade()) return;
+      if (!game.user?.isGM) return;
       strichBeginnen();
     }
 
@@ -1418,14 +1414,19 @@ function gruppeSpielleitung() {
   const tools = {};
   let nummer = 0;
   // Fallen-Menü (0.4.0, 06.11.2026: "einen Button unter den Modul-Button, der das Geländepinsel-Menü aufmacht"):
-  // der erste Knopf der Reihe, ein reiner Knopf ohne eigenes Werkzeug.
+  // der erste Knopf der Reihe. Seit 0.4.3 ein eigenes Werkzeug wie der Werte-Knopf (06.11.2026: "wenn der
+  // Totenkopf angeklickt und ausgewählt ist, darf auf der Leinwand nicht mehr gemalt werden"): Solange er gewählt
+  // ist, malt und radiert die Ebene nicht; Fallen kommen nur per Ziehen aus dem Menü auf die Karte.
   tools.fallen = {
     name: "fallen",
     order: nummer += 1,
     title: uebersetzen("GELAENDEPINSEL.Fallen.Knopf"),
     icon: "fa-solid fa-skull-crossbones",
-    button: true,
-    onChange: () => void fallen.menueOeffnen().catch((fehler) => console.error(`[${MODUL}] Fallen`, fehler))
+    onChange: (_event, aktiv) => {
+      if (aktiv === false) return;
+      void game.settings.set(MODUL, "art", "fallen");
+      void fallen.menueOeffnen().catch((fehler) => console.error(`[${MODUL}] Fallen`, fehler));
+    }
   };
   for (const [art, info] of Object.entries(ARTEN)) {
     tools[art] = {
@@ -1490,7 +1491,7 @@ function gruppeSpielleitung() {
     icon: "fa-solid fa-mountain-sun",
     layer: MODUL,
     visible: true,
-    activeTool: ARTEN[art] || ["radierer", "aufdecken", "werte"].includes(art) ? art : "schwierig",
+    activeTool: ARTEN[art] || ["fallen", "radierer", "aufdecken", "werte"].includes(art) ? art : "schwierig",
     // Wie bei Sequencer: Die Gruppe holt ihre Ebene selbst nach vorn.
     onChange: (_event, aktiv) => {
       if (aktiv) canvas?.[MODUL]?.activate?.();

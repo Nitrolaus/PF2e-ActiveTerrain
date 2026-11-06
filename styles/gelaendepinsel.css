@@ -44,3 +44,5 @@ button.gelaendepinsel-symbol-uneben, :not(button).gelaendepinsel-symbol-uneben::
 .gp-fallen .gp-marke { font-size: 0.75em; padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; opacity: 0.85; }
 .gp-fallen .gp-marke.gp-magisch { color: #c0583a; }
 .gp-ablage { border: 2px dashed var(--color-border-light-2, #999); border-radius: 6px; padding: 18px; text-align: center; margin: 8px 0; }
+.gp-fallen .gp-griff { cursor: grab; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gp-fallen .gp-falle[draggable="true"]:active .gp-griff { cursor: grabbing; }

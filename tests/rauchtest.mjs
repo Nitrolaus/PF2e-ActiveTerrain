@@ -162,7 +162,7 @@ const leiste = hooks.get("getSceneControlButtons")[0];
   assert.equal("order" in controls.gelaendepinsel, false, "Sequencer ohne Reihenfolge: die eigene auch ohne");
   assert.equal(controls.gelaendepinsel.layer, "gelaendepinsel");
   // Fallen-Menü (0.4.0) als erster Knopf, ein reiner Knopf.
-  assert.equal(controls.gelaendepinsel.tools.fallen.button, true);
+  assert.equal(controls.gelaendepinsel.tools.fallen.button, undefined, "seit 0.4.3 ein Werkzeug");
   assert.equal(typeof controls.gelaendepinsel.tools.fallen.onChange, "function");
   assert.deepEqual(Object.keys(controls.gelaendepinsel.tools), ["fallen", "schwierig", "sehr", "gefahr", "schmal", "uneben", "radierer", "aufdecken", "werte", "groesse05", "groesse1", "groesse2", "groesse3", "verborgen"]);
   // Verborgen malen (0.3.14): Aufdeck-Pinsel mit Auge, Schalter mit durchgestrichenem Auge neben den Größen
@@ -1254,7 +1254,6 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   for (const treffer of fallenCode.matchAll(/["'`](GELAENDEPINSEL\.[A-Za-z0-9_.]+)["'`]/g)) benutzt.add(treffer[1]);
   for (const art of ["tuer", "schloss", "gelaende", "raum"]) if (fallenCode.includes("t(`Art.${art}`)")) benutzt.add(`GELAENDEPINSEL.Fallen.Art.${art}`);
   for (const art of ["tuer", "knopf", "betreten"]) if (fallenCode.includes("t(`Ausloesung.${")) benutzt.add(`GELAENDEPINSEL.Fallen.Ausloesung.${art}`);
-  if (fallenCode.includes('t(falle.art === "tuer" ? "KlickTuer" : "KlickKarte"')) ["KlickTuer", "KlickKarte"].forEach((k) => benutzt.add(`GELAENDEPINSEL.Fallen.${k}`));
   const { de, en } = texte;
   assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort(), "de.json und en.json haben dieselben Schlüssel");
   for (const schl of benutzt) {
@@ -1654,6 +1653,31 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   ebene._onDragLeftDrop({});
   await ruhe();
   assert.equal(flags.gelaendepinsel.striche.length, strichZahl, "Ziehen mit dem Werte-Knopf malt nichts");
+  // Fallen-Werkzeug (0.4.3): gewählt malt und radiert nichts, weder links noch rechts.
+  {
+    assert.equal(c.gelaendepinsel.tools.fallen.button, undefined, "Totenkopf ist ein Werkzeug, kein Druckknopf");
+    const nutzerVorher = game.user;
+    game.user = { ...nutzerVorher, isGM: false }; // Menü bleibt im Test zu
+    c.gelaendepinsel.tools.fallen.onChange({}, true);
+    game.user = nutzerVorher;
+    await ruhe();
+    assert.equal(game.settings.get("gelaendepinsel", "art"), "fallen");
+    const leiste2 = { tokens: { order: 1 } };
+    leiste(leiste2);
+    assert.equal(leiste2.gelaendepinsel.activeTool, "fallen", "bleibt beim Neuzeichnen gewählt");
+    const zahl = flags.gelaendepinsel.striche.length;
+    canvas.mousePosition = { x: 250, y: 2650 };
+    ebene._onDragLeftStart({});
+    canvas.mousePosition = { x: 650, y: 2650 };
+    ebene._onDragLeftMove({});
+    ebene._onDragLeftDrop({});
+    ebene._onClickLeft({});
+    canvas.mousePosition = { x: 250, y: 3050 };
+    ebene._onClickRight({});
+    await ruhe();
+    assert.equal(flags.gelaendepinsel.striche.length, zahl, "Mit dem Totenkopf: kein Strich, kein Radieren");
+    await c.gelaendepinsel.tools.werte.onChange();
+  }
   // Klick auf die obere Fläche: Fenster mit ihren Werten, Übernehmen gilt nur für sie
   const promptVorher = foundry.applications.api.DialogV2.prompt;
   let fenster = null;

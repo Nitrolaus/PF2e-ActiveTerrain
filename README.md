@@ -100,7 +100,8 @@ magical, in English and German.
 
 - **Built to be deadly**: a creature that fails its save should go down, a critical failure drops
   anyone. Players can find and disable them, that is the deal.
-- **Placing**: pick a trap and place it on the map; it lies hidden there. Its actor is created once in a
+- **Placing**: drag a trap from the open library onto the map; it lies hidden there. While the skull
+  tool is selected, clicks and drags on the map paint or erase no terrain. Its actor is created once in a
   folder of its own and reused; any image you give it stays.
 - **Door traps** remember the nearest door and trigger when it opens, against the creature of the player
   who opened it first.
@@ -333,7 +334,8 @@ davon 17 magisch, auf Deutsch und Englisch.
 
 - **Tödlich gebaut**: Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
   jeden um. Dafür können die Spieler sie finden und entschärfen.
-- **Setzen**: Falle wählen und auf die Karte setzen, sie liegt dort versteckt. Ihr Akteur entsteht einmal
+- **Setzen**: Falle aus der offenen Sammlung auf die Karte ziehen, sie liegt dort versteckt. Solange der
+  Totenkopf gewählt ist, malt oder radiert ein Klick oder Ziehen auf der Karte kein Gelände. Ihr Akteur entsteht einmal
   in einem eigenen Ordner und wird wiederverwendet; ein Bild, das du ihm gibst, bleibt.
 - **Türfallen** merken sich die nächste Tür und lösen aus, wenn sie aufgeht, zuerst gegen die Figur des
   Spielers, der geöffnet hat.

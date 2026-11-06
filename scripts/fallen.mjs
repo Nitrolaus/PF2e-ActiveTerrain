@@ -1,8 +1,10 @@
 // Eigene Fallen (0.4.0, 06.11.2026: "wir packen die nicht in die Kompendien, sondern bauen uns einen Button
 // unter den Modul-Button, der das Geländepinsel-Menü aufmacht"; "Grafiken kann dann jeder ohnehin zuweisen").
 //
-// Der Knopf "Fallen" oben in der Leiste öffnet eine Auswahl nach Stufe und Ort. Die gewählte Falle wird mit dem
-// nächsten Klick auf die Karte versteckt gesetzt. Ihr Akteur entsteht beim ersten Setzen in einem eigenen Ordner der
+// Der Knopf "Fallen" oben in der Leiste öffnet eine Auswahl nach Stufe und Ort. Eine Falle wird per Ziehen und
+// Ablegen auf die Karte gesetzt, versteckt (0.4.2, 06.11.2026: "die Fallen gern nicht mit Setzen aufs Spielfeld,
+// weil da sonst, sobald man mit der Maus arbeitet, Gelände gemalt wird, sondern per Drag and Drop, und es malt oder
+// löscht da gerade kein Gelände"). Das Menü bleibt offen, mehrere Fallen hintereinander gehen. Ihr Akteur entsteht beim ersten Setzen in einem eigenen Ordner der
 // Welt und wird danach wiederverwendet; ein Bild, das die SL ihm gibt, bleibt erhalten. Ausgelöst wird wie bei jeder
 // Gefahr über die Gefahren-Karte (gefahren.mjs), dazu:
 // - Türfallen beim Öffnen der Tür, an der sie gesetzt wurden;
@@ -80,18 +82,8 @@ export async function akteurHolen(falle) {
 
 /* ---------------------------------------------------------------- Menü */
 
-let ausstehend = null;
-
-export function setztGerade() {
-  return Boolean(ausstehend);
-}
-
-export function abbrechen() {
-  if (!ausstehend) return false;
-  ausstehend = null;
-  ui.notifications.info(t("Abgebrochen"));
-  return true;
-}
+export const ZIEH_ART = "GelaendepinselFalle";
+let offenesMenue = null;
 
 function eintragHtml(falle, s) {
   const daten = akteurDaten(falle, s, DATEN_STAND);
@@ -102,7 +94,7 @@ function eintragHtml(falle, s) {
     falle.aussehen ? `<span class="gp-marke">${t("Veraendert")}</span>` : ""
   ].join("");
   const zeile = t("Zeile", { sg: falle.heimlichkeit, ausloesung: t(`Ausloesung.${daten.flags[MODUL].falle.ausloesung}`), wirkung: falle.wirkung ?? 0 });
-  return `<li class="gp-falle"><label><input type="radio" name="falle" value="${falle.id}"> <strong>${html(daten.name)}</strong> ${marken}</label>`
+  return `<li class="gp-falle" draggable="true" data-falle="${falle.id}"><div class="gp-griff"><i class="fa-solid fa-grip-vertical"></i> <strong>${html(daten.name)}</strong> ${marken}</div>`
     + `<div class="gp-zeile">${html(zeile)}</div>`
     + `<details><summary>${t("Mehr")}</summary><p>${html(falle[s].beschreibung)}</p><p>${html(klartext(daten.items[0].system.description.value, s))}</p>`
     + `<p>${html(klartext(daten.system.details.disable, s))}</p></details></li>`;
@@ -128,32 +120,34 @@ export async function menueOeffnen() {
     inhalt += `</div>`;
   }
   inhalt += `</div>`;
-  const id = await foundry.applications.api.DialogV2.wait({
+  if (offenesMenue?.rendered) {
+    offenesMenue.bringToFront?.();
+    return;
+  }
+  const Dialog = foundry.applications.api.DialogV2;
+  const dialog = new Dialog({
     window: { title: t("Titel"), resizable: true },
     position: { width: 560, height: 680 },
     content: inhalt,
-    buttons: [
-      { action: "setzen", label: t("Setzen"), default: true, callback: (_e, knopf) => knopf.form.querySelector('input[name="falle"]:checked')?.value ?? null },
-      { action: "abbrechen", label: t("Schliessen") }
-    ],
-    render: (_ereignis, dialog) => {
-      const wurzel = dialog.element ?? dialog;
-      const wahl = wurzel.querySelector?.('select[name="stufe"]');
-      const zeigen = () => wurzel.querySelectorAll(".gp-stufe").forEach((el) => { el.hidden = el.dataset.stufe !== wahl.value; });
-      wahl?.addEventListener("change", zeigen);
-      if (wahl) zeigen();
-    },
-    rejectClose: false
+    buttons: [{ action: "schliessen", label: t("Schliessen"), default: true }]
   });
-  const falle = FALLEN.find((f) => f.id === id);
-  if (!falle) return;
-  let kreatur = null;
-  if (falle.beschwoerung) {
-    kreatur = await kreaturWaehlenDialog(null);
-    if (kreatur === undefined) return;
+  offenesMenue = dialog;
+  await dialog.render({ force: true });
+  menueVerdrahten(dialog.element);
+}
+
+/* Stufenwahl und Ziehen; getrennt, damit der Rauchtest es ohne Foundry-Fenster prüfen kann. */
+export function menueVerdrahten(wurzel) {
+  if (!wurzel?.querySelector) return;
+  const wahl = wurzel.querySelector('select[name="stufe"]');
+  const zeigen = () => wurzel.querySelectorAll(".gp-stufe").forEach((el) => { el.hidden = el.dataset.stufe !== wahl.value; });
+  wahl?.addEventListener("change", zeigen);
+  if (wahl) zeigen();
+  for (const eintrag of wurzel.querySelectorAll(".gp-falle[data-falle]")) {
+    eintrag.addEventListener("dragstart", (ereignis) => {
+      ereignis.dataTransfer?.setData("text/plain", JSON.stringify({ type: ZIEH_ART, id: eintrag.dataset.falle }));
+    });
   }
-  ausstehend = { id: falle.id, kreatur };
-  ui.notifications.info(t(falle.art === "tuer" ? "KlickTuer" : "KlickKarte", { name: falle[s].name }));
 }
 
 /* ---------------------------------------------------------------- Setzen */
@@ -178,31 +172,33 @@ export function naechsteTuer(szene, punkt, groesse) {
   return weite <= groesse * 1.5 ? beste : null;
 }
 
-/* Vom Klick auf die Pinselebene: die ausstehende Falle an dieser Stelle versteckt setzen. */
-export async function setzenAnMaus() {
-  if (!ausstehend) return false;
+/* Abgelegt auf der Karte (dropCanvasData): die Falle an dieser Stelle versteckt setzen. */
+export async function fallenAbwurf(daten) {
   const szene = canvas.scene;
-  const falle = FALLEN.find((f) => f.id === ausstehend.id);
-  if (!falle || !szene) { ausstehend = null; return false; }
-  const punkt = canvas.mousePosition ?? { x: 0, y: 0 };
+  const falle = FALLEN.find((f) => f.id === daten?.id);
+  if (!falle || !szene) return false;
+  const punkt = { x: Number(daten.x) || 0, y: Number(daten.y) || 0 };
   const groesse = Number(canvas.grid?.size) || 100;
   let tuer = null;
   if (falle.art === "tuer") {
     tuer = naechsteTuer(szene, punkt, groesse);
     if (!tuer) {
       ui.notifications.warn(t("KeineTuer"));
-      return true;
+      return false;
     }
   }
-  const wahl = ausstehend;
-  ausstehend = null;
+  let kreatur = null;
+  if (falle.beschwoerung) {
+    kreatur = await kreaturWaehlenDialog(null);
+    if (kreatur === undefined) return false;
+  }
   const ecke = canvas.grid.getTopLeftPoint?.(punkt) ?? { x: Math.floor(punkt.x / groesse) * groesse, y: Math.floor(punkt.y / groesse) * groesse };
   const akteur = await akteurHolen(falle);
   const token = await akteur.getTokenDocument({ x: ecke.x, y: ecke.y, hidden: true });
-  const daten = token.toObject();
-  foundry.utils.setProperty(daten, `flags.${MODUL}.tuer`, tuer?.id ?? null);
-  foundry.utils.setProperty(daten, `flags.${MODUL}.kreatur`, wahl.kreatur ?? null);
-  await szene.createEmbeddedDocuments("Token", [daten]);
+  const tokenDaten = token.toObject();
+  foundry.utils.setProperty(tokenDaten, `flags.${MODUL}.tuer`, tuer?.id ?? null);
+  foundry.utils.setProperty(tokenDaten, `flags.${MODUL}.kreatur`, kreatur ?? null);
+  await szene.createEmbeddedDocuments("Token", [tokenDaten]);
   ui.notifications.info(t("Gesetzt", { name: akteur.name }));
   return true;
 }
@@ -437,6 +433,12 @@ export function anmelden() {
       const falle = gefahren.falleVon(gefahr);
       if (grad === "criticalFailure" && falle?.aussehen) await aussehenAnwenden(gefahr, falle, ziel);
     }
+  });
+  // Ablegen auf der Karte, egal welche Ebene aktiv ist; false hält Foundrys eigene Behandlung an.
+  Hooks.on("dropCanvasData", (_canvas, daten) => {
+    if (daten?.type !== ZIEH_ART) return;
+    if (game.user?.isGM) void fallenAbwurf(daten).catch((fehler) => console.error(`[${MODUL}] Falle setzen`, fehler));
+    return false;
   });
   Hooks.on("updateWall", (wand, aenderung, _optionen, nutzerId) => {
     if (!istAktiveSpielleitung() || aenderung?.ds !== CONST.WALL_DOOR_STATES.OPEN) return;
