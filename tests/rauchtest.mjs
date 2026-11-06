@@ -161,7 +161,10 @@ const leiste = hooks.get("getSceneControlButtons")[0];
   assert.deepEqual(Object.keys(controls), ["tokens", "walls", "sequencer", "gelaendepinsel", "fxmaster"]);
   assert.equal("order" in controls.gelaendepinsel, false, "Sequencer ohne Reihenfolge: die eigene auch ohne");
   assert.equal(controls.gelaendepinsel.layer, "gelaendepinsel");
-  assert.deepEqual(Object.keys(controls.gelaendepinsel.tools), ["schwierig", "sehr", "gefahr", "schmal", "uneben", "radierer", "aufdecken", "werte", "groesse05", "groesse1", "groesse2", "groesse3", "verborgen"]);
+  // Fallen-Menü (0.4.0) als erster Knopf, ein reiner Knopf.
+  assert.equal(controls.gelaendepinsel.tools.fallen.button, true);
+  assert.equal(typeof controls.gelaendepinsel.tools.fallen.onChange, "function");
+  assert.deepEqual(Object.keys(controls.gelaendepinsel.tools), ["fallen", "schwierig", "sehr", "gefahr", "schmal", "uneben", "radierer", "aufdecken", "werte", "groesse05", "groesse1", "groesse2", "groesse3", "verborgen"]);
   // Verborgen malen (0.3.14): Aufdeck-Pinsel mit Auge, Schalter mit durchgestrichenem Auge neben den Größen
   assert.equal(controls.gelaendepinsel.tools.aufdecken.icon, "fa-solid fa-eye");
   assert.equal(controls.gelaendepinsel.tools.verborgen.icon, "fa-solid fa-eye-slash");
@@ -1245,6 +1248,13 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   // Die Gefahren-Karte (0.3.0) ruft ihre Texte kurz über t("Knopf") auf, die Erfolgsgrade über t(`Grad.${grad}`).
   for (const treffer of code.matchAll(/\bt\("([A-Za-z0-9_.]+)"/g)) benutzt.add(`GELAENDEPINSEL.Gefahr.${treffer[1]}`);
   if (code.includes("t(`Grad.${grad}`)")) for (const grad of ["criticalSuccess", "success", "failure", "criticalFailure"]) benutzt.add(`GELAENDEPINSEL.Gefahr.Grad.${grad}`);
+  // Eigene Fallen (0.4.0): fallen.mjs ruft t("...") unter GELAENDEPINSEL.Fallen auf, dazu je Ort und Auslöseart.
+  const fallenCode = readFileSync(new URL("../scripts/fallen.mjs", import.meta.url), "utf8");
+  for (const treffer of fallenCode.matchAll(/\bt\("([A-Za-z0-9_.]+)"/g)) benutzt.add(`GELAENDEPINSEL.Fallen.${treffer[1]}`);
+  for (const treffer of fallenCode.matchAll(/["'`](GELAENDEPINSEL\.[A-Za-z0-9_.]+)["'`]/g)) benutzt.add(treffer[1]);
+  for (const art of ["tuer", "schloss", "gelaende", "raum"]) if (fallenCode.includes("t(`Art.${art}`)")) benutzt.add(`GELAENDEPINSEL.Fallen.Art.${art}`);
+  for (const art of ["tuer", "knopf", "betreten"]) if (fallenCode.includes("t(`Ausloesung.${")) benutzt.add(`GELAENDEPINSEL.Fallen.Ausloesung.${art}`);
+  if (fallenCode.includes('t(falle.art === "tuer" ? "KlickTuer" : "KlickKarte"')) ["KlickTuer", "KlickKarte"].forEach((k) => benutzt.add(`GELAENDEPINSEL.Fallen.${k}`));
   const { de, en } = texte;
   assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort(), "de.json und en.json haben dieselben Schlüssel");
   for (const schl of benutzt) {

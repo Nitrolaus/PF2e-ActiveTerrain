@@ -12,11 +12,12 @@ import { ARTEN, aussenkanten, ersetzt, pinselFelder, schluessel, spurFelder, zuR
 import { FEIN, beruehrteFelder, gelaendeWirkung, kleineStuecke, sichtbarAus, strichFlaechen, strichPunkte, vereinfachen, weicherRand, zaehlendeFelder } from "./flaeche.mjs";
 import { STIEFEL, STRICH, ZEICHEN } from "./symbole.mjs";
 import * as gefahren from "./gefahren.mjs";
+import * as fallen from "./fallen.mjs";
 import { kennungGelaende, kennungLesen } from "./gefahren-logik.mjs";
 import * as suchen from "./suchen.mjs";
 
 const MODUL = "gelaendepinsel";
-const VERSION = "0.3.19";
+const VERSION = "0.4.1";
 const KOSTEN_ARTEN = ["schwierig", "sehr"];
 const PROBEN_ARTEN = ["gefahr", "schmal", "uneben"];
 // Jede Art ein eigenes Symbol im Menü (23.10.2026: "da stehen 5 Pinsel gleich aussehend"), seit
@@ -1335,6 +1336,11 @@ export function ebeneKlasse() {
 
     _onClickLeft() {
       if (!game.user?.isGM) return;
+      // Eigene Fallen (0.4.0): Nach der Wahl im Fallen-Menü setzt der nächste Klick die Falle, statt zu malen.
+      if (fallen.setztGerade()) {
+        void fallen.setzenAnMaus().catch((fehler) => console.error(`[${MODUL}] Falle setzen`, fehler));
+        return;
+      }
       if (einstellung("art") === "werte") {
         void werteKlick().catch((fehler) => console.error(`[${MODUL}] Werte`, fehler));
         return;
@@ -1347,11 +1353,12 @@ export function ebeneKlasse() {
     // Foundrys Verschieben der Karte.
     _onClickRight() {
       if (!game.user?.isGM) return;
+      if (fallen.abbrechen()) return;
       if (strichBeginnen("radierer")) void strichBeenden();
     }
 
     _onDragLeftStart() {
-      if (!game.user?.isGM) return;
+      if (!game.user?.isGM || fallen.setztGerade()) return;
       strichBeginnen();
     }
 
@@ -1410,6 +1417,16 @@ export function groesseWaehlen(g) {
 function gruppeSpielleitung() {
   const tools = {};
   let nummer = 0;
+  // Fallen-Menü (0.4.0, 06.11.2026: "einen Button unter den Modul-Button, der das Geländepinsel-Menü aufmacht"):
+  // der erste Knopf der Reihe, ein reiner Knopf ohne eigenes Werkzeug.
+  tools.fallen = {
+    name: "fallen",
+    order: nummer += 1,
+    title: uebersetzen("GELAENDEPINSEL.Fallen.Knopf"),
+    icon: "fa-solid fa-skull-crossbones",
+    button: true,
+    onChange: () => void fallen.menueOeffnen().catch((fehler) => console.error(`[${MODUL}] Fallen`, fehler))
+  };
   for (const [art, info] of Object.entries(ARTEN)) {
     tools[art] = {
       name: art,
@@ -2203,6 +2220,7 @@ if (typeof InteractionLayer !== "function") {
   console.error(`[${MODUL}] ${VERSION} braucht Foundry V14 (InteractionLayer).`);
 } else {
   gefahren.anmelden();
+  fallen.anmelden();
   suchen.anmelden();
   Hooks.once("init", () => {
     einstellungenAnmelden();

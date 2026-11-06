@@ -36,6 +36,28 @@ function entschaerft(dokument) {
   return Boolean(dokument?.getFlag?.(MODUL, "entschaerft"));
 }
 
+/*
+ * Erweiterungen (0.4.0, eigene Fallen): fallen.mjs hängt sich hier ein, ohne dass dieses Teil es kennt.
+ * knoepfe(gefahr) liefert weitere Knöpfe fürs Totenkopf-Menü, handeln(gefahr, wahl) führt sie aus (true, wenn
+ * erledigt), nachAusloesen(gefahr, item, ziele) läuft nach jeder Auslösung, nachWurf(gefahr, ziel, grad) nach
+ * jedem Rettungswurf gegen die Falle.
+ */
+const erweiterungen = [];
+export function erweitern(erweiterung) {
+  erweiterungen.push(erweiterung);
+}
+
+/* Die Daten einer eigenen Falle am Akteur (0.4.0), sonst null. */
+export function falleVon(dokument) {
+  return dokument?.actor?.getFlag?.(MODUL, "falle") ?? null;
+}
+
+/* Wer auslöst, steht vorn: Er wird zuerst getroffen, auch wenn die Falle nur wenige Ziele hat. */
+export function mitAusloeser(ziele, dokument) {
+  if (!dokument) return ziele;
+  return [dokument, ...ziele.filter((z) => z.id !== dokument.id)];
+}
+
 /* ---------------------------------------------------------------- Felder und Nähe */
 
 /* Rasterfelder eines Tokens als "spalte,zeile", wie der Pinsel sie führt. */
@@ -95,7 +117,7 @@ let linieFehltGemeldet = false;
 // Zwei Linien je 1 Pixel neben der Mitte, beide müssen frei sein: Eine Linie genau durch die Ecke, an der zwei
 // Wandstücke aneinanderstoßen (schräg über die Wand), ginge sonst je nach Rechnung durch. Art "move" für Auslöser
 // und Wirkung, "sight" für die Suchzone (0.3.12).
-function linieFrei(gefahr, von, nach, art = "move") {
+export function linieFrei(gefahr, von, nach, art = "move") {
   const laenge = Math.hypot(nach.x - von.x, nach.y - von.y) || 1;
   const quer = { x: -(nach.y - von.y) / laenge, y: (nach.x - von.x) / laenge };
   return [-1, 1].every((s) => strahlFrei(gefahr,
@@ -206,6 +228,9 @@ export function betroffene(gefahr) {
 export function versteckteFallen(szene) {
   const aus = new Map();
   for (const dokument of szene?.tokens ?? []) {
+    // Tür- und Schlossfallen (0.4.0) lösen nicht beim Betreten aus, sondern beim Öffnen der Tür oder am Knopf.
+    const ausloesung = falleVon(dokument)?.ausloesung;
+    if (ausloesung && ausloesung !== "betreten") continue;
     if (istGefahr(dokument) && dokument.hidden && !entschaerft(dokument)) aus.set(`falle:${dokument.id}`, ausloeseFelder(dokument));
   }
   return aus;
@@ -240,6 +265,32 @@ export async function aufdecken(gefahr, grund = "") {
 export async function ausloesen(gefahr, item, ziele = betroffene(gefahr)) {
   if (!item) return;
   if (["melee", "ranged"].includes(item.type)) return angreifen(gefahr, item, ziele);
+  // Eigene Fallen (0.4.0): höchstens so viele Ziele, wer auslöst zuerst; Angriffsfallen greifen gleich an.
+  const hoechstens = Number(item.getFlag?.(MODUL, "hoechstens"));
+  if (hoechstens > 0) ziele = ziele.slice(0, hoechstens);
+  const angriff = item.getFlag?.(MODUL, "rolle") === "ausloesen"
+    ? Array.from(gefahr.actor?.items ?? []).find((it) => it.getFlag?.(MODUL, "rolle") === "angriff") : null;
+  if (angriff) {
+    await meldung(`<p><strong>${html(gefahr.name)}: ${html(item.name)}</strong></p>${ziele.length ? "" : `<p><em>${t("Niemand")}</em></p>`}${String(item.system?.description?.value ?? "")}`, { gefahr, oeffentlich: true });
+    if (ziele.length) await angreifen(gefahr, angriff, ziele);
+    await nachAusloesenMelden(gefahr, item, ziele);
+    return;
+  }
+  await karteAusloesen(gefahr, item, ziele);
+  await nachAusloesenMelden(gefahr, item, ziele);
+}
+
+async function nachAusloesenMelden(gefahr, item, ziele) {
+  for (const e of erweiterungen) {
+    try {
+      await e.nachAusloesen?.(gefahr, item, ziele);
+    } catch (fehler) {
+      console.error(`[${MODUL}] Falle`, fehler);
+    }
+  }
+}
+
+async function karteAusloesen(gefahr, item, ziele) {
   const text = String(item.system?.description?.value ?? "");
   const kopf = `<p><strong>${html(gefahr.name)}: ${html(item.name)}</strong></p>`;
   if (!ziele.length) {
@@ -342,6 +393,14 @@ async function nachRettungswurf(kennung, grad, nachricht) {
   for (const formel of schaden.formeln) await schadenWuerfeln(formel, item);
 }
 
+async function nachWurfMelden(kennung, grad) {
+  const szene = game.scenes.find((s) => s.tokens.has(kennung.gefahr));
+  const gefahr = szene?.tokens.get(kennung.gefahr);
+  const ziel = szene?.tokens.get(kennung.ziel);
+  if (!gefahr || !ziel) return;
+  for (const e of erweiterungen) await e.nachWurf?.(gefahr, ziel, grad);
+}
+
 /*
  * Rettungswurf auf der Karte für gefährliches Gelände (0.3.18, 29.10.2026: "ja, bau das wie bei den Fallen"):
  * Erfolgsgrad und Schaden wie beim einfachen Rettungswurf einer Falle, der Schaden wird gewürfelt.
@@ -414,9 +473,7 @@ async function nachEntschaerfen(kennung, grad, nachricht) {
   if (schritt.ausloesen) {
     await meldung(`<p>${t("LoestAus", { name })}</p>`, { gefahr });
     // Die Wirkung trifft alle im Wirkungsbereich (0.3.9), dazu immer den, der daran gearbeitet hat.
-    const ziele = betroffene(gefahr);
-    if (!ziele.some((z) => z.id === von.id)) ziele.unshift(von);
-    await ausloesen(gefahr, ausloeseAktion(Array.from(gefahr.actor?.items ?? [])), ziele);
+    await ausloesen(gefahr, ausloeseAktion(Array.from(gefahr.actor?.items ?? [])), mitAusloeser(betroffene(gefahr), von));
     return;
   }
   if (!schritt.erfolge) return;
@@ -582,6 +639,12 @@ export function sucheErreicht(dokument, gefahrId, eintragVorher = null) {
  * ab Grad 3 die Stufe der stärksten; ab Grad 4 dazu deren Quelle, eingegrenzt auf ein Feld von 5 Fuß, ohne
  * genaue Lage. Die Meldung geht an die Spielleitung. Mit der Einstellung "magieAufdecken" deckt der Zauber
  * versteckte magische Fallen im Bereich auf (25.10.2026, Vorgabe aus).
+ *
+ * Wirkungslinie (0.4.1, 06.11.2026: "auch wenn der Zauber etwas aufdeckt, dies aber hinter der Tür ist, kann ein
+ * Spieler nicht sehen, was hinter einer Tür ist"). Der Zauber ist eine Ausstrahlung; ein Bereich wirkt nach PF2e nur
+ * dort, wohin vom Ursprung eine Wirkungslinie führt. Gemeldet wird also nur Magie mit freier Linie vom Zaubernden zur
+ * Falle (Wände, die Bewegung sperren: Mauern, Glas, geschlossene Türen). Aufgedeckt wird darüber hinaus nur, was der
+ * Zaubernde auch sieht (freie Sichtlinie), wie bei der Suchzone seit 0.3.12.
  */
 async function nachMagieEntdecken(nachricht) {
   const actor = nachricht.actor;
@@ -590,7 +653,8 @@ async function nachMagieEntdecken(nachricht) {
   if (!von) return;
   const grad = Number(nachricht.flags?.pf2e?.casting?.castRank ?? nachricht.item?.rank ?? 1);
   const magisch = Array.from(szene.tokens).filter((gefahr) => istGefahr(gefahr) && !entschaerft(gefahr)
-    && (gefahr.actor?.system?.traits?.value ?? []).includes("magical") && abstandFuss(von, gefahr) <= MAGIE_FUSS);
+    && (gefahr.actor?.system?.traits?.value ?? []).includes("magical") && abstandFuss(von, gefahr) <= MAGIE_FUSS
+    && linieFrei(gefahr, mitte(von), mitte(gefahr), "move"));
   if (!magisch.length) {
     await meldung(`<p>${t("Magie.Keine", { name: html(actor.name) })}</p>`);
     return;
@@ -601,7 +665,9 @@ async function nachMagieEntdecken(nachricht) {
   if (grad >= 4) text += ` ${t("Magie.Quelle", { gefahr: html(staerkste.name) })}`;
   await meldung(`<p>${text}</p>`);
   if (game.settings.get(MODUL, "magieAufdecken")) {
-    for (const gefahr of magisch) await aufdecken(gefahr, t("DurchMagie", { name: actor.name }));
+    for (const gefahr of magisch) {
+      if (linieFrei(gefahr, mitte(von), mitte(gefahr), "sight")) await aufdecken(gefahr, t("DurchMagie", { name: actor.name }));
+    }
   }
 }
 
@@ -612,9 +678,7 @@ export async function ueberFalle(dokument, gefahrId) {
   const gefahr = dokument.parent?.tokens?.get?.(gefahrId);
   if (!gefahr || !gefahr.hidden || entschaerft(gefahr) || !istAktiveSpielleitung()) return;
   await aufdecken(gefahr, t("DurchBetreten", { name: dokument.name }));
-  const ziele = betroffene(gefahr);
-  if (!ziele.some((z) => z.id === dokument.id)) ziele.unshift(dokument);
-  await ausloesen(gefahr, ausloeseAktion(Array.from(gefahr.actor?.items ?? [])), ziele);
+  await ausloesen(gefahr, ausloeseAktion(Array.from(gefahr.actor?.items ?? [])), mitAusloeser(betroffene(gefahr), dokument));
 }
 
 /*
@@ -663,6 +727,7 @@ export async function menue(gefahr) {
     knoepfe.push({ action: "entschaerfen", label: t("EntschaerfenAnbieten") });
   }
   knoepfe.push({ action: "bereich", label: t("BereichEinstellen") });
+  for (const e of erweiterungen) knoepfe.unshift(...(e.knoepfe?.(gefahr) ?? []));
   const zahl = betroffene(gefahr).length;
   const Dialog = foundry.applications.api.DialogV2;
   const wahl = await Dialog.wait({
@@ -672,6 +737,7 @@ export async function menue(gefahr) {
     rejectClose: false
   });
   if (!wahl) return;
+  for (const e of erweiterungen) if (await e.handeln?.(gefahr, wahl)) return;
   if (wahl === "fern") return fernAusloesen(gefahr);
   if (wahl === "bereich") return bereichEinstellen(gefahr);
   if (wahl === "aufdecken") return aufdecken(gefahr);
@@ -723,7 +789,11 @@ export function anmelden() {
     const kontext = nachricht.flags?.pf2e?.context ?? null;
     const kennung = kennungLesen(kontext?.options);
     const weiter = (versprechen) => void versprechen.catch((fehler) => console.error(`[${MODUL}] Gefahr`, fehler));
-    if (kennung?.art === "falle" && kontext?.outcome) return weiter(nachRettungswurf(kennung, kontext.outcome, nachricht));
+    if (kennung?.art === "falle" && kontext?.outcome) {
+      // Die äußere Veränderung (0.4.0) kommt auch, wenn der Schadenswurf scheitert.
+      const schaden = nachRettungswurf(kennung, kontext.outcome, nachricht).catch((fehler) => console.error(`[${MODUL}] Gefahr`, fehler));
+      return weiter(schaden.then(() => nachWurfMelden(kennung, kontext.outcome)));
+    }
     if (kennung?.art === "entschaerfen" && kontext?.outcome) return weiter(nachEntschaerfen(kennung, kontext.outcome, nachricht));
     if (kontext?.type === "perception-check" && (kontext.options ?? []).includes("action:seek")) return weiter(nachSuchen(nachricht));
     if (!kontext && nachricht.item?.type === "spell" && nachricht.item?.slug === "detect-magic") return weiter(nachMagieEntdecken(nachricht));

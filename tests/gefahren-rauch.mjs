@@ -227,6 +227,37 @@ einstellungen.set("gelaendepinsel.magieAufdecken", true);
 await ausloesen("createChatMessage", { actor: heldin, item: { type: "spell", slug: "detect-magic" }, flags: { pf2e: { casting: { castRank: 4 } } } });
 assert.ok(chat.some((c) => /Quelle der stärksten Magie/u.test(c.content)));
 assert.equal(vierte.hidden, false, "mit Einstellung aufgedeckt");
+// Wirkungslinie (0.4.1, gemeldet: "hinter einer Tür kann ein Spieler nicht sehen"): Wand oder geschlossene Tür bei x = 1000.
+const magieHinten = dokument({ id: "gefahr0000000009", name: "Hinter der Tür", x: 1000, y: 300, width: 1, height: 1, hidden: true, actor: gefahrActor, parent: szene });
+szene.tokens.push(magieHinten);
+const quert = (a, b) => (a.x - 1000) * (b.x - 1000) < 0;
+const backends = globalThis.CONFIG.Canvas.polygonBackends;
+const sichtVorher = backends.sight;
+brandy.x = 900;
+vierte.hidden = true;
+backends.move = { testCollision: (a, b) => quert(a, b) };
+backends.sight = { testCollision: (a, b) => quert(a, b) };
+magieHinten.x = 1100;
+await ausloesen("createChatMessage", { actor: heldin, item: { type: "spell", slug: "detect-magic" }, flags: { pf2e: { casting: { castRank: 4 } } } });
+assert.equal(magieHinten.hidden, true, "hinter der geschlossenen Tür nicht aufgedeckt");
+assert.equal(vierte.hidden, false, "diesseits schon");
+const anzahlMagie = () => Number(/\((\d+) magische/u.exec(chat.filter((c) => /Magie in 9 m/u.test(c.content)).at(-1).content)[1]);
+const diesseits = anzahlMagie();
+// Glas: sperrt die Bewegung, nicht die Sicht - keine Wirkungslinie, also auch keine Meldung.
+backends.sight = { testCollision: () => false };
+await ausloesen("createChatMessage", { actor: heldin, item: { type: "spell", slug: "detect-magic" }, flags: { pf2e: { casting: { castRank: 1 } } } });
+assert.equal(magieHinten.hidden, true, "durch Glas keine Wirkungslinie");
+assert.equal(anzahlMagie(), diesseits, "durch Glas nicht gemeldet");
+// Nur die Sicht gesperrt (etwa ein Vorhang): Magie gemeldet, aber nicht aufgedeckt, weil der Held nichts sieht.
+backends.move = { testCollision: () => false };
+backends.sight = { testCollision: (a, b) => quert(a, b) };
+vierte.hidden = false;
+await ausloesen("createChatMessage", { actor: heldin, item: { type: "spell", slug: "detect-magic" }, flags: { pf2e: { casting: { castRank: 1 } } } });
+assert.equal(anzahlMagie(), diesseits + 1, "hinter dem Vorhang gemeldet");
+assert.equal(magieHinten.hidden, true, "ohne Sicht nicht aufgedeckt");
+delete backends.move;
+backends.sight = sichtVorher;
+szene.tokens.splice(szene.tokens.indexOf(magieHinten), 1);
 
 // Knopf im Token-HUD nur für die SL und nur an Gefahren
 const spalte = { kinder: [], querySelector: () => null, append(k) { this.kinder.push(k); } };

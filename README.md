@@ -81,7 +81,8 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
   find everyone sees the roll, without the DC. The
   minimum proficiency from the hazard's Stealth entry applies. The Seek action reveals traps within
   30 feet in line of sight whose Stealth DC the result meets. Detect magic reports magic within 30 feet
-  by its rank; an advanced setting lets it reveal magical traps.
+  by its rank, only with line of effect from the caster (walls, glass and closed doors block it); an
+  advanced setting lets it reveal magical traps the caster can see.
 - **Disabling**: the hazard menu posts a card with the checks from the hazard's Disable entry. A check
   counts only for a creature adjacent to the hazard and with the required proficiency. The number of
   successes needed is read from the text; a critical failure triggers the trap.
@@ -89,6 +90,26 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
   whoever stands in the effect area.
 - **Simple hazards** have no "Toggle Combat" button in the token HUD; complex hazards keep it to roll
   initiative.
+
+## Trap library
+
+A button with a skull at the top of the terrain toolbar opens a library of ready-made traps, not stored
+in a compendium. They are generic, made for places rather than for one adventure: doors, locks (chests,
+boxes, door locks), terrain outdoors and rooms indoors. Level 5 has 32 traps, 8 per place, 17 of them
+magical, in English and German.
+
+- **Built to be deadly**: a creature that fails its save should go down, a critical failure drops
+  anyone. Players can find and disable them, that is the deal.
+- **Placing**: pick a trap and place it on the map; it lies hidden there. Its actor is created once in a
+  folder of its own and reused; any image you give it stays.
+- **Door traps** remember the nearest door and trigger when it opens, against the creature of the player
+  who opened it first.
+- **Lock traps** get an "Open / pick the lock" button in the hazard menu, against the creature next to
+  the lock.
+- **Summoning traps** call a creature of up to level 8 that the GM picks when placing the trap. It rolls
+  initiative at once and vanishes after 1 minute (the guardian stays until defeated).
+- **Changed appearance**: some traps leave a mark on a critical failure, a PF2e effect that tints the
+  token; removing the effect restores it.
 
 ## Search
 
@@ -293,7 +314,8 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
   Fund sehen alle den Wurf, ohne den SG. Der
   Mindestgrad aus dem Heimlichkeitseintrag der Gefahr gilt. Die Aktion Suchen deckt Fallen innerhalb von 30 Fuß in
   Sichtlinie auf, deren Heimlichkeits-SG das Ergebnis erreicht. Magie entdecken meldet Magie innerhalb
-  von 30 Fuß nach seinem Grad; eine erweiterte Einstellung lässt es magische Fallen aufdecken.
+  von 30 Fuß nach seinem Grad, nur mit Wirkungslinie vom Zaubernden (Wände, Glas und geschlossene Türen
+  sperren sie); eine erweiterte Einstellung lässt es magische Fallen aufdecken, die der Zaubernde sieht.
 - **Entschärfen**: Das Menü der Gefahr schickt eine Karte mit den Würfen aus ihrem Eintrag zum
   Entschärfen. Ein Wurf zählt nur für eine Figur, die neben der Gefahr steht und den nötigen Übungsgrad
   hat. Wie viele Erfolge nötig sind, steht im Text; ein kritischer Fehlschlag löst die Falle aus.
@@ -301,6 +323,26 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
   im Wirkungsbereich steht.
 - **Einfache Gefahren** haben im Token-HUD keinen Knopf "Kampf beitreten"; komplexe behalten ihn, um
   Initiative zu würfeln.
+
+## Fallensammlung
+
+Ein Knopf mit Totenkopf oben in der Geländepinsel-Leiste öffnet eine Sammlung fertiger Fallen, nicht im
+Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes Abenteuer: Türen, Schlösser
+(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 hat 32 Fallen, je Ort 8,
+davon 17 magisch, auf Deutsch und Englisch.
+
+- **Tödlich gebaut**: Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
+  jeden um. Dafür können die Spieler sie finden und entschärfen.
+- **Setzen**: Falle wählen und auf die Karte setzen, sie liegt dort versteckt. Ihr Akteur entsteht einmal
+  in einem eigenen Ordner und wird wiederverwendet; ein Bild, das du ihm gibst, bleibt.
+- **Türfallen** merken sich die nächste Tür und lösen aus, wenn sie aufgeht, zuerst gegen die Figur des
+  Spielers, der geöffnet hat.
+- **Schlossfallen** bekommen im Menü der Gefahr den Knopf "Öffnen / Schloss knacken", gegen die Figur
+  neben dem Schloss.
+- **Herbeirufende Fallen** rufen eine Kreatur bis Stufe 8, die die Spielleitung beim Setzen wählt. Sie
+  würfelt sofort Initiative und verschwindet nach 1 Minute (der Wächter bleibt, bis er besiegt ist).
+- **Äußere Veränderung**: Manche Fallen hinterlassen beim kritischen Fehlschlag ein Mal, einen
+  PF2e-Effekt, der den Token tönt; ohne den Effekt ist alles wie vorher.
 
 ## Absuchen
 

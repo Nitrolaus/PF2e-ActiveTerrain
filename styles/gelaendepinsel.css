@@ -32,3 +32,15 @@ button.gelaendepinsel-symbol-sehr, :not(button).gelaendepinsel-symbol-sehr::befo
 button.gelaendepinsel-symbol-gefahr, :not(button).gelaendepinsel-symbol-gefahr::before { background-image: url("../assets/symbole/gefahr.png") !important; }
 button.gelaendepinsel-symbol-schmal, :not(button).gelaendepinsel-symbol-schmal::before { background-image: url("../assets/symbole/schmal.png") !important; }
 button.gelaendepinsel-symbol-uneben, :not(button).gelaendepinsel-symbol-uneben::before { background-image: url("../assets/symbole/uneben.png") !important; }
+
+/* Fallen-Menü (0.4.0) */
+.gp-fallen { max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.gp-fallen h3 { margin: 12px 0 4px; border-bottom: 1px solid var(--color-border-light-2, #999); }
+.gp-fallen ul { list-style: none; margin: 0; padding: 0; }
+.gp-fallen .gp-falle { margin: 6px 0; }
+.gp-fallen .gp-falle label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gp-fallen .gp-zeile { font-size: 0.85em; opacity: 0.8; margin-left: 22px; }
+.gp-fallen details { margin-left: 22px; font-size: 0.85em; }
+.gp-fallen .gp-marke { font-size: 0.75em; padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; opacity: 0.85; }
+.gp-fallen .gp-marke.gp-magisch { color: #c0583a; }
+.gp-ablage { border: 2px dashed var(--color-border-light-2, #999); border-radius: 6px; padding: 18px; text-align: center; margin: 8px 0; }

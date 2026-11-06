@@ -166,7 +166,7 @@
       "Einstellung": {
         "Magie": {
           "Name": "Erweitert: Magie entdecken deckt magische Fallen in 9 m auf",
-          "Hinweis": "Nach den Regeln meldet Magie entdecken nur, ob Magie da ist (ab Grad 3 die Stufe, ab Grad 4 grob die Quelle); die Meldung geht an die Spielleitung. Eingeschaltet deckt der Zauber versteckte magische Fallen in 9 m zusätzlich für alle auf."
+          "Hinweis": "Nach den Regeln meldet Magie entdecken nur, ob Magie da ist (ab Grad 3 die Stufe, ab Grad 4 grob die Quelle); die Meldung geht an die Spielleitung. Eingeschaltet deckt der Zauber versteckte magische Fallen in 9 m zusätzlich für alle auf. Hinter Wänden und geschlossenen Türen meldet der Zauber nichts (keine Wirkungslinie); aufgedeckt wird nur, was der Zaubernde sehen kann."
         }
       },
       "FernAusloesen": "Aus der Ferne auslösen",
@@ -185,6 +185,55 @@
       "Einschalten": "Suchen (Erkundung) einschalten, {minuten} Minuten Spielzeit",
       "Ausschalten": "Suchen ausschalten, noch {minuten} Minuten",
       "Fehlt": "Die Aktion Suchen fehlt im PF2e-Kompendium."
+    },
+    "Fallen": {
+      "Knopf": "Fallen: setzen",
+      "Titel": "Fallen setzen",
+      "Hinweis": "Falle wählen und Setzen drücken, dann auf die Karte klicken. Die Falle liegt danach versteckt dort. Rechtsklick bricht ab. Türfallen gehören auf ein Feld an der Tür.",
+      "Stufe": "Stufe",
+      "StufeN": "Stufe {stufe}",
+      "Mehr": "Mehr",
+      "Setzen": "Setzen",
+      "Schliessen": "Schließen",
+      "Abgebrochen": "Falle setzen abgebrochen.",
+      "KeineSzene": "Keine Szene aktiv.",
+      "Art": {
+        "tuer": "Türen",
+        "schloss": "Schlösser (Truhen, Kisten, Türschlösser)",
+        "gelaende": "Gelände (draußen)",
+        "raum": "Räume (drinnen)"
+      },
+      "Ausloesung": {
+        "tuer": "beim Öffnen der Tür",
+        "knopf": "Knopf Öffnen / Schloss knacken",
+        "betreten": "beim Betreten"
+      },
+      "Zeile": "Heimlichkeit SG {sg}, Auslöser {ausloesung}, Wirkung {wirkung} Fuß",
+      "Magisch": "magisch",
+      "RuftGegner": "ruft Gegner Stufe {stufe}",
+      "Veraendert": "verändert das Aussehen",
+      "KlickKarte": "{name}: Klick auf die Karte, wo die Falle liegen soll. Rechtsklick bricht ab.",
+      "KlickTuer": "{name}: Klick auf das Feld an der Tür. Rechtsklick bricht ab.",
+      "KeineTuer": "Keine Tür in der Nähe. Klick auf ein Feld direkt an einer Tür.",
+      "Gesetzt": "{name} versteckt gesetzt.",
+      "Ordner": "Geländepinsel: Fallen",
+      "KreaturTitel": "Herbeigerufene Kreatur",
+      "KreaturHinweis": "Kreatur aus der Akteursliste oder einem Kompendium hierher ziehen, bis Stufe {stufe}.",
+      "KreaturOhne": "Noch keine Kreatur gewählt.",
+      "KreaturUebernehmen": "Übernehmen",
+      "KreaturSpaeter": "Später wählen",
+      "KreaturZuHoch": "{name} ist Stufe {stufe}, über der Grenze von {grenze}.",
+      "KreaturWaehlen": "Herbeigerufene Kreatur wählen",
+      "KeineKreatur": "{falle} hat ausgelöst, aber keine Kreatur ist gewählt. Im Totenkopf-Menü der Falle festlegen.",
+      "KreaturFehlt": "{falle}: Die gewählte Kreatur gibt es nicht mehr.",
+      "Herbeigerufen": "{falle} ruft {kreatur} herbei. Sie greift zuerst {ziel} an.",
+      "Verschwindet": "{name} verschwindet wieder.",
+      "SchlossOeffnen": "Öffnen / Schloss knacken",
+      "NiemandAmSchloss": "Niemand steht neben dem Schloss.",
+      "WerOeffnet": "Wer öffnet das Schloss?",
+      "DurchTuer": "{name} hat die Tür geöffnet.",
+      "DurchSchloss": "{name} macht sich am Schloss zu schaffen.",
+      "Aussehen": "{name} ist äußerlich verändert: {fluch}."
     }
   }
 }
