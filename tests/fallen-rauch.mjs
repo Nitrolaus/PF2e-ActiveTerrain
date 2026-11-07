@@ -337,6 +337,20 @@ assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.u
 assert.deepEqual([effekte[2].system.duration.value, effekte[2].system.duration.unit], [30, "days"]);
 assert.ok(effekte.every((e) => e.system.level.value === 7), "Stufe der Falle");
 
+// Stufe 8 (0.7.0): Die Tür der Totenstarre lähmt beim kritischen Fehlschlag für 24 Stunden, Unbeholfen 2 für 1 Woche,
+// dazu 7 Tage Leichenblässe.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const starrActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "tuer8-totenstarre"), "de", "t"), "akt_starr0000000");
+const starr = dokument({ id: "starr00000000001", name: "Totenstarre", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: starrActor });
+tokenListe.push(starr);
+await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [`gelaendepinsel:falle:${starr.id}:${starrActor.items[0].id}:${brandy.id}`] } } }, speaker: {} });
+assert.deepEqual(effekte.map((e) => e.name), ["Gelähmt (Tür der Totenstarre)", "Unbeholfen 2 (Tür der Totenstarre)", "Leichenblässe"]);
+assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.unit], [24, "hours"]);
+assert.equal(effekte[0].system.rules[0].uuid, "Compendium.pf2e.conditionitems.Item.6uEgoh53GbXuHpTF");
+assert.deepEqual([effekte[1].system.duration.value, effekte[1].system.duration.unit], [7, "days"]);
+assert.ok(effekte.every((e) => e.system.level.value === 8), "Stufe der Falle");
+
 // Höchstens drei Ziele (Gewitterstein): die Karte nennt drei, wer auslöst zuerst.
 const steinActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein0000000");
 const stein = dokument({ id: "stein00000000001", name: "Gewitterstein", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: steinActor });
