@@ -10,13 +10,14 @@ const SPRACHEN = ["de", "en"];
 const bau = (f, s) => akteurDaten(f, s, DATEN_STAND);
 const reaktion = (a) => a.items.find((it) => it.flags.gelaendepinsel.rolle === "ausloesen");
 const als = (it) => ({ ...it, getFlag: () => undefined });
-const STUFEN = [5, 6];
+const STUFEN = [5, 6, 7];
 // Je Stufe: Rettungswurf-SG, Angriffsbonus, Gegnerstufe, Mindestschaden Fehlschlag und kritischer Fehlschlag, Fallen mit Aussehen.
-const MASS = { 5: { dc: 23, bonus: 17, gegner: 8, f: 28, kf: 50, aussehen: 6 }, 6: { dc: 25, bonus: 19, gegner: 9, f: 45, kf: 90, aussehen: 7 } };
+const MASS = { 5: { dc: 23, bonus: 17, gegner: 8, f: 28, kf: 50, aussehen: 6 }, 6: { dc: 25, bonus: 19, gegner: 9, f: 45, kf: 90, aussehen: 7 },
+  7: { dc: 27, bonus: 21, gegner: 10, f: 55, kf: 110, aussehen: 8 } };
 
-test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 5 und 6)", () => {
-  assert.equal(FALLEN.length, 64);
-  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 64);
+test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 5, 6 und 7)", () => {
+  assert.equal(FALLEN.length, 96);
+  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 96);
   assert.deepEqual([...new Set(FALLEN.map((f) => f.stufe))].sort(), STUFEN);
   for (const st of STUFEN) {
     const liste = FALLEN.filter((f) => f.stufe === st);
@@ -84,7 +85,7 @@ test("Rettungswurf-Fallen: Schaden je Erfolgsgrad aus dem Absatz, Zusatzschaden 
   assert.deepEqual(schadenFuer(flamme, "criticalFailure", false).formeln, ["20d6[fire],3d6[persistent,fire]"]);
 });
 
-test("Wer auslöst, fällt um: Mindestschaden je Stufe (5: 28 und 50, 6: 45 und 90)", () => {
+test("Wer auslöst, fällt um: Mindestschaden je Stufe (5: 28 und 50, 6: 45 und 90, 7: 55 und 110)", () => {
   const schnitt = (formel) => formel.split(/[,+]/u).reduce((summe, teil) => {
     const m = /(\d+)d(\d+)/u.exec(teil);
     if (m) return summe + Number(m[1]) * (Number(m[2]) + 1) / 2;
@@ -122,7 +123,7 @@ test("Auslöseart: Tür beim Öffnen, Schloss am Knopf, sonst Betreten", () => {
   }
 });
 
-test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Tönung als Farbe oder keine", () => {
+test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht, Tönung als Farbe oder keine", () => {
   for (const st of STUFEN) assert.equal(FALLEN.filter((f) => f.stufe === st && f.aussehen).length, MASS[st].aussehen, `Stufe ${st}`);
   const mit = FALLEN.filter((f) => f.aussehen);
   for (const f of mit) {
@@ -132,13 +133,29 @@ test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Tönung als F
   }
 });
 
-test("Lange Zustände (Wunsch: blind für 28 Stunden oder versteinert): nur Stufe 6, als PF2e-Effekt mit Laufzeit", () => {
+test("Lange Zustände (Wunsch: blind für 28 Stunden oder versteinert): ab Stufe 6, als PF2e-Effekt mit Laufzeit", () => {
   const lang = (f) => ["failure", "criticalFailure", "hit", "criticalHit"].flatMap((g) => langeZustaende(f, g));
   assert.ok(FALLEN.filter((f) => f.stufe === 5).every((f) => lang(f).length === 0), "Stufe 5 bleibt wie live");
   const sechs = FALLEN.filter((f) => f.stufe === 6);
   assert.ok(sechs.filter((f) => lang(f).length).length >= 24, "die meisten Fallen der Stufe 6 hinterlassen Langes");
   const slugs = new Set(sechs.flatMap((f) => lang(f).map((z) => z.z)));
   for (const z of ["blinded", "petrified", "doomed", "stupefied", "enfeebled", "clumsy", "deafened"]) assert.ok(slugs.has(z), z);
+  // Stufe 7: jede Falle ohne Gift und ohne Beschwörung hinterlässt Langes, der kritische Fehlschlag meist 1 Woche.
+  const sieben = FALLEN.filter((f) => f.stufe === 7);
+  const mitLang = sieben.filter((f) => !f.gift && !f.beschwoerung);
+  assert.equal(mitLang.length, 24);
+  for (const f of mitLang) assert.ok(lang(f).length, `${f.id} ohne Langes`);
+  const kritWoche = mitLang.filter((f) => [...langeZustaende(f, "criticalFailure"), ...langeZustaende(f, "criticalHit")].some((z) => z.dauer === "w1"));
+  assert.ok(kritWoche.length >= 18, `kritisch 1 Woche: ${kritWoche.length}`);
+  const slugs7 = new Set(sieben.flatMap((f) => lang(f).map((z) => z.z)));
+  for (const z of ["petrified", "blinded", "unconscious", "fascinated", "doomed", "slowed", "sickened"]) assert.ok(slugs7.has(z), `Stufe 7 ${z}`);
+  // Versteinert für 1 Woche (Gorgonentür), Zauberschlaf für 24 Stunden (Schlafdorn), nur beim kritischen Fehlschlag.
+  const gorgo = FALLEN.find((f) => f.id === "tuer7-gorgonentuer");
+  assert.deepEqual(langeZustaende(gorgo, "criticalFailure").map((z) => [z.z, z.dauer]), [["petrified", "w1"]]);
+  assert.deepEqual(langeZustaende(gorgo, "failure").map((z) => [z.z, z.dauer]), [["slowed", "t1"]]);
+  const schlaf = FALLEN.find((f) => f.id === "tuer7-schlafdorn");
+  assert.deepEqual(langeZustaende(schlaf, "criticalFailure").map((z) => [z.z, z.dauer]), [["unconscious", "t1"]]);
+  assert.ok(gradText(gorgo.wurf.grade.kf, "de").includes("{Versteinert} für 1 Woche"));
   // Blind 24 Stunden bei der Sonnenglyphe, versteinert 24 Stunden beim Basiliskensiegel, nur beim kritischen Fehlschlag.
   const sonne = FALLEN.find((f) => f.id === "tuer6-sonnenglyphe");
   assert.deepEqual(langeZustaende(sonne, "criticalFailure").map((z) => [z.z, z.dauer]), [["blinded", "t1"]]);

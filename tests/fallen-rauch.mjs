@@ -324,6 +324,19 @@ await gefahren.ausloesen(saege, saegeActor.items[0], gefahren.mitAusloeser([bran
 assert.deepEqual(effekte.map((e) => e.name), ["Unbeholfen 1 (Sägeblatt im Schloss)"]);
 assert.deepEqual(effekte[0].system.rules[0].alterations, [{ mode: "override", property: "badge-value", value: 1 }]);
 
+// Stufe 7 (0.6.0): Das Siegel der verlorenen Jahre lässt beim kritischen Fehlschlag um Jahrzehnte altern, Kraftlos 2
+// und Unbeholfen 2 für 1 Woche, dazu 30 Tage ergrautes Haar; Ausgelaugt bleibt PF2es eigener Zustand ohne Laufzeit.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const zeitActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "schloss7-zeitsiegel"), "de", "t"), "akt_zeit00000000");
+const zeit = dokument({ id: "zeit000000000001", name: "Zeitsiegel", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: zeitActor });
+tokenListe.push(zeit);
+await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [`gelaendepinsel:falle:${zeit.id}:${zeitActor.items[0].id}:${brandy.id}`] } } }, speaker: {} });
+assert.deepEqual(effekte.map((e) => e.name), ["Kraftlos 2 (Siegel der verlorenen Jahre)", "Unbeholfen 2 (Siegel der verlorenen Jahre)", "Ergrautes Haar"]);
+assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.unit], [7, "days"]);
+assert.deepEqual([effekte[2].system.duration.value, effekte[2].system.duration.unit], [30, "days"]);
+assert.ok(effekte.every((e) => e.system.level.value === 7), "Stufe der Falle");
+
 // Höchstens drei Ziele (Gewitterstein): die Karte nennt drei, wer auslöst zuerst.
 const steinActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein0000000");
 const stein = dokument({ id: "stein00000000001", name: "Gewitterstein", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: steinActor });

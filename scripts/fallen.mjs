@@ -25,7 +25,7 @@ import * as gefahren from "./gefahren.mjs";
 const MODUL = "gelaendepinsel";
 const BILD = "systems/pf2e/icons/default-icons/hazard.svg";
 const ARTEN = ["tuer", "schloss", "gelaende", "raum"];
-// Höchste Stufe des herbeigerufenen Gegners steht an der Falle (Stufe 5: 8, Stufe 6: 9); 8 nur als Rückfall.
+// Höchste Stufe des herbeigerufenen Gegners steht an der Falle (Stufe 5: 8, Stufe 6: 9, Stufe 7: 10); 8 nur als Rückfall.
 const STUFE_GEGNER = 8;
 const gegnerGrenze = (falle) => Number(falle?.beschwoerung?.stufe) || STUFE_GEGNER;
 

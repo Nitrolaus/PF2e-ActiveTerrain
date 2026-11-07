@@ -10,13 +10,15 @@
 // ausgeschrieben (halb und doppelt als halbe und doppelte Würfel), damit Zusatzschaden des Grads mitgewürfelt wird.
 
 // Seit 0.5.0 liegen die Bausteine in fallen-bausteine.mjs und jede weitere Stufe in einer eigenen Datei
-// (Stufe 6: fallen-stufe-6.mjs, 06.11.2026: "jetzt Fallen für Stufe 6 bauen").
+// (Stufe 6: fallen-stufe-6.mjs, 06.11.2026: "jetzt Fallen für Stufe 6 bauen"; Stufe 7: fallen-stufe-7.mjs,
+// 07.11.2026: "jetzt Fallen für Stufe 7 bauen").
 import { AUS, D, T, Z } from "./fallen-bausteine.mjs";
 import { STUFE_6 } from "./fallen-stufe-6.mjs";
+import { STUFE_7 } from "./fallen-stufe-7.mjs";
 
 export { D, T, Z };
 
-export const DATEN_STAND = "0.5.0-1";
+export const DATEN_STAND = "0.6.0-1";
 
 const tuerAus = AUS.tuer;
 const schlossAus = AUS.schloss;
@@ -757,4 +759,4 @@ const STUFE_5 = [
   }
 ];
 
-export const FALLEN = [...STUFE_5, ...STUFE_6];
+export const FALLEN = [...STUFE_5, ...STUFE_6, ...STUFE_7];
