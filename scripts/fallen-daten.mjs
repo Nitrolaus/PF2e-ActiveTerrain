@@ -12,15 +12,18 @@
 // Seit 0.5.0 liegen die Bausteine in fallen-bausteine.mjs und jede weitere Stufe in einer eigenen Datei
 // (Stufe 6: fallen-stufe-6.mjs, 06.11.2026: "jetzt Fallen für Stufe 6 bauen"; Stufe 7: fallen-stufe-7.mjs,
 // 07.11.2026: "jetzt Fallen für Stufe 7 bauen"; Stufe 8: fallen-stufe-8.mjs, 07.11.2026: "jetzt Fallen für
-// Stufe 8 bauen").
+// Stufe 8 bauen"; Stufe 9: fallen-stufe-9.mjs, 07.11.2026: "jetzt Fallen für Stufe 9 bauen";
+// Stufe 10: fallen-stufe-10.mjs, 07.11.2026: "Stufe 10, etwas kürzere Zustände, dafür aber mehrere").
 import { AUS, D, T, Z } from "./fallen-bausteine.mjs";
 import { STUFE_6 } from "./fallen-stufe-6.mjs";
 import { STUFE_7 } from "./fallen-stufe-7.mjs";
 import { STUFE_8 } from "./fallen-stufe-8.mjs";
+import { STUFE_9 } from "./fallen-stufe-9.mjs";
+import { STUFE_10 } from "./fallen-stufe-10.mjs";
 
 export { D, T, Z };
 
-export const DATEN_STAND = "0.7.0-1";
+export const DATEN_STAND = "0.9.0-1";
 
 const tuerAus = AUS.tuer;
 const schlossAus = AUS.schloss;
@@ -761,4 +764,4 @@ const STUFE_5 = [
   }
 ];
 
-export const FALLEN = [...STUFE_5, ...STUFE_6, ...STUFE_7, ...STUFE_8];
+export const FALLEN = [...STUFE_5, ...STUFE_6, ...STUFE_7, ...STUFE_8, ...STUFE_9, ...STUFE_10];

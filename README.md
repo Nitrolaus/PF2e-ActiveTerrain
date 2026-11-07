@@ -95,7 +95,7 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
 
 A button with a skull at the top of the terrain toolbar opens a library of ready-made traps, not stored
 in a compendium. They are generic, made for places rather than for one adventure: doors, locks (chests,
-boxes, door locks), terrain outdoors and rooms indoors. Levels 5 to 8 have 32 traps each, 8 per
+boxes, door locks), terrain outdoors and rooms indoors. Levels 5 to 10 have 32 traps each, 8 per
 place, 17 of them magical, in English and German. Each level is deadlier than the one before.
 
 - **Built to be deadly**: a creature that fails its save should go down, a critical failure drops
@@ -107,7 +107,7 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
   who opened it first.
 - **Lock traps** get an "Open / pick the lock" button in the hazard menu, against the creature next to
   the lock.
-- **Summoning traps** call a creature up to three levels above the trap (level 8 to 11) that the GM picks
+- **Summoning traps** call a creature up to three levels above the trap (level 8 to 13) that the GM picks
   when placing the trap. It rolls
   initiative at once and vanishes after 1 minute (the guardian stays until defeated).
 - **Changed appearance**: some traps leave a mark on a critical failure, a PF2e effect that tints the
@@ -115,7 +115,9 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
 - **Lasting conditions** (from level 6): many traps leave conditions that last 24 hours or a week, such as
   blinded, petrified, doomed or stupefied. At level 7 every trap that is neither poison nor summoning
   leaves one, a critical failure mostly for a week. At level 8 even a failure leaves one, a critical
-  failure always lasts a week, with paralysis and confusion for 24 hours among them. They are applied as PF2e effects that carry the condition and
+  failure always lasts a week, with paralysis and confusion for 24 hours among them. Level 9 adds
+  unconsciousness and petrification for a week. At level 10 lasting conditions last 24 hours only, but a
+  failure leaves at least two and a critical failure at least three. They are applied as PF2e effects that carry the condition and
   expire with game time; the same trap hitting again restarts the duration instead of stacking.
 
 ## Search
@@ -335,7 +337,7 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 
 Ein Knopf mit Totenkopf oben in der Geländepinsel-Leiste öffnet eine Sammlung fertiger Fallen, nicht im
 Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes Abenteuer: Türen, Schlösser
-(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 bis 8 haben je
+(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 bis 10 haben je
 32 Fallen, je Ort 8, davon 17 magisch, auf Deutsch und Englisch. Jede Stufe ist tödlicher als die vorige.
 
 - **Tödlich gebaut**: Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
@@ -347,7 +349,7 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
   Spielers, der geöffnet hat.
 - **Schlossfallen** bekommen im Menü der Gefahr den Knopf "Öffnen / Schloss knacken", gegen die Figur
   neben dem Schloss.
-- **Herbeirufende Fallen** rufen eine Kreatur bis drei Stufen über der Falle (Stufe 8 bis 11), die die
+- **Herbeirufende Fallen** rufen eine Kreatur bis drei Stufen über der Falle (Stufe 8 bis 13), die die
   Spielleitung beim Setzen wählt. Sie
   würfelt sofort Initiative und verschwindet nach 1 Minute (der Wächter bleibt, bis er besiegt ist).
 - **Äußere Veränderung**: Manche Fallen hinterlassen beim kritischen Fehlschlag ein Mal, einen
@@ -356,7 +358,9 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
   Blind, Versteinert, Todgeweiht oder Benommen. Auf Stufe 7 hinterlässt jede Falle, die weder Gift ist noch
   herbeiruft, einen, der kritische Fehlschlag meist für eine Woche. Auf Stufe 8 hinterlässt schon der
   Fehlschlag einen, der kritische Fehlschlag hält immer eine Woche, darunter Gelähmt und Verwirrt für
-  24 Stunden. Sie kommen als PF2e-Effekt, der den Zustand trägt und mit
+  24 Stunden. Stufe 9 bringt Bewusstlos und Versteinert für eine Woche. Auf Stufe 10 halten lange Zustände
+  nur 24 Stunden, dafür hinterlässt der Fehlschlag mindestens zwei und der kritische Fehlschlag mindestens
+  drei. Sie kommen als PF2e-Effekt, der den Zustand trägt und mit
   der Spielzeit abläuft; trifft dieselbe Falle erneut, beginnt die Laufzeit neu, statt sich zu stapeln.
 
 ## Absuchen

@@ -10,16 +10,17 @@ const SPRACHEN = ["de", "en"];
 const bau = (f, s) => akteurDaten(f, s, DATEN_STAND);
 const reaktion = (a) => a.items.find((it) => it.flags.gelaendepinsel.rolle === "ausloesen");
 const als = (it) => ({ ...it, getFlag: () => undefined });
-const STUFEN = [5, 6, 7, 8];
+const STUFEN = [5, 6, 7, 8, 9, 10];
 // Je Stufe: Rettungswurf-SG, Angriffsbonus, Gegnerstufe, Mindestschaden Fehlschlag und kritischer Fehlschlag, Fallen mit Aussehen.
 const MASS = { 5: { dc: 23, bonus: 17, gegner: 8, f: 28, kf: 50, aussehen: 6 }, 6: { dc: 25, bonus: 19, gegner: 9, f: 45, kf: 90, aussehen: 7 },
-  7: { dc: 27, bonus: 21, gegner: 10, f: 55, kf: 110, aussehen: 8 }, 8: { dc: 29, bonus: 23, gegner: 11, f: 65, kf: 130, aussehen: 9 } };
+  7: { dc: 27, bonus: 21, gegner: 10, f: 55, kf: 110, aussehen: 8 }, 8: { dc: 29, bonus: 23, gegner: 11, f: 65, kf: 130, aussehen: 9 },
+  9: { dc: 31, bonus: 25, gegner: 12, f: 75, kf: 150, aussehen: 10 }, 10: { dc: 33, bonus: 27, gegner: 13, f: 85, kf: 170, aussehen: 11 } };
 
-test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 5 bis 8)", () => {
-  assert.equal(FALLEN.length, 128);
-  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 128);
-  for (const s of ["de", "en"]) assert.equal(new Set(FALLEN.map((f) => f[s].name)).size, 128, `Namen eindeutig ${s}`);
-  assert.deepEqual([...new Set(FALLEN.map((f) => f.stufe))].sort(), STUFEN);
+test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 5 bis 10)", () => {
+  assert.equal(FALLEN.length, 192);
+  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 192);
+  for (const s of ["de", "en"]) assert.equal(new Set(FALLEN.map((f) => f[s].name)).size, 192, `Namen eindeutig ${s}`);
+  assert.deepEqual([...new Set(FALLEN.map((f) => f.stufe))].sort((a, b) => a - b), STUFEN);
   for (const st of STUFEN) {
     const liste = FALLEN.filter((f) => f.stufe === st);
     assert.equal(liste.length, 32, `Stufe ${st}`);
@@ -86,7 +87,7 @@ test("Rettungswurf-Fallen: Schaden je Erfolgsgrad aus dem Absatz, Zusatzschaden 
   assert.deepEqual(schadenFuer(flamme, "criticalFailure", false).formeln, ["20d6[fire],3d6[persistent,fire]"]);
 });
 
-test("Wer auslöst, fällt um: Mindestschaden je Stufe (5: 28 und 50, 6: 45 und 90, 7: 55 und 110, 8: 65 und 130)", () => {
+test("Wer auslöst, fällt um: Mindestschaden je Stufe (5: 28 und 50, 6: 45 und 90, 7: 55 und 110, 8: 65 und 130, 9: 75 und 150, 10: 85 und 170)", () => {
   const schnitt = (formel) => formel.split(/[,+]/u).reduce((summe, teil) => {
     const m = /(\d+)d(\d+)/u.exec(teil);
     if (m) return summe + Number(m[1]) * (Number(m[2]) + 1) / 2;
@@ -124,7 +125,7 @@ test("Auslöseart: Tür beim Öffnen, Schloss am Knopf, sonst Betreten", () => {
   }
 });
 
-test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht, Stufe 8 neun, Tönung als Farbe oder keine", () => {
+test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht, Stufe 8 neun, Stufe 9 zehn, Stufe 10 elf, Tönung als Farbe oder keine", () => {
   for (const st of STUFEN) assert.equal(FALLEN.filter((f) => f.stufe === st && f.aussehen).length, MASS[st].aussehen, `Stufe ${st}`);
   const mit = FALLEN.filter((f) => f.aussehen);
   for (const f of mit) {
@@ -177,6 +178,35 @@ test("Lange Zustände (Wunsch: blind für 28 Stunden oder versteinert): ab Stufe
   const fluester = FALLEN.find((f) => f.id === "raum8-fluesterkammer");
   assert.deepEqual(langeZustaende(fluester, "criticalFailure").map((z) => [z.z, z.dauer]), [["confused", "t1"], ["stupefied", "w1"]]);
   assert.ok(gradText(starre.wurf.grade.kf, "de").includes("{Gelähmt} für 24 Stunden"));
+  // Stufe 9: Langes schon beim Fehlschlag oder Treffer, mindestens acht davon schon 1 Woche, kritisch immer 1 Woche;
+  // neu Bewusstlos für 1 Woche und Blind und Taub zugleich.
+  const neun = FALLEN.filter((f) => f.stufe === 9);
+  const mitLang9 = neun.filter((f) => !f.gift && !f.beschwoerung);
+  assert.equal(mitLang9.length, 24);
+  const leicht9 = (f) => (f.wurf ? langeZustaende(f, "failure") : langeZustaende(f, "hit"));
+  for (const f of mitLang9) assert.ok(leicht9(f).length, `${f.id} ohne Langes beim Fehlschlag oder Treffer`);
+  assert.ok(mitLang9.filter((f) => leicht9(f).some((z) => z.dauer === "w1")).length >= 8, "Stufe 9 Fehlschlag 1 Woche");
+  for (const f of mitLang9) assert.ok([...langeZustaende(f, "criticalFailure"), ...langeZustaende(f, "criticalHit")].some((z) => z.dauer === "w1"), `${f.id} kritisch ohne Woche`);
+  const slugs9 = new Set(neun.flatMap((f) => lang(f).map((z) => z.z)));
+  for (const z of ["unconscious", "petrified", "paralyzed", "blinded", "deafened", "confused", "doomed"]) assert.ok(slugs9.has(z), `Stufe 9 ${z}`);
+  const ruhe = FALLEN.find((f) => f.id === "tuer9-ewige-ruhe");
+  assert.deepEqual(langeZustaende(ruhe, "criticalFailure").map((z) => [z.z, z.dauer]), [["unconscious", "w1"]]);
+  const stille = FALLEN.find((f) => f.id === "tuer9-stille");
+  assert.deepEqual(langeZustaende(stille, "criticalFailure").map((z) => [z.z, z.dauer]), [["blinded", "w1"], ["deafened", "w1"]]);
+  assert.ok(gradText(ruhe.wurf.grade.kf, "de").includes("{Bewusstlos} für 1 Woche"));
+  // Stufe 10 (Wunsch: "etwas kürzere Zustände, dafür aber mehrere"): alles Lange hält 24 Stunden, keines 1 Woche;
+  // beim Fehlschlag oder Treffer mindestens zwei, beim kritischen Fehlschlag oder Treffer mindestens drei.
+  const zehn = FALLEN.filter((f) => f.stufe === 10);
+  const mitLang10 = zehn.filter((f) => !f.gift && !f.beschwoerung);
+  assert.equal(mitLang10.length, 24);
+  for (const f of mitLang10) {
+    const leicht = f.wurf ? langeZustaende(f, "failure") : langeZustaende(f, "hit");
+    const schwer = f.wurf ? langeZustaende(f, "criticalFailure") : langeZustaende(f, "criticalHit");
+    assert.ok(leicht.length >= 2, `${f.id} Fehlschlag ${leicht.length}`);
+    assert.ok(schwer.length >= 3, `${f.id} kritisch ${schwer.length}`);
+    assert.ok([...leicht, ...schwer].every((z) => z.dauer === "t1"), `${f.id} nur 24 Stunden`);
+  }
+  assert.ok(new Set(zehn.flatMap((f) => lang(f).map((z) => z.z))).size >= 10, "Stufe 10 viele verschiedene Zustände");
   // Blind 24 Stunden bei der Sonnenglyphe, versteinert 24 Stunden beim Basiliskensiegel, nur beim kritischen Fehlschlag.
   const sonne = FALLEN.find((f) => f.id === "tuer6-sonnenglyphe");
   assert.deepEqual(langeZustaende(sonne, "criticalFailure").map((z) => [z.z, z.dauer]), [["blinded", "t1"]]);

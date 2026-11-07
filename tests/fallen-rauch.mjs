@@ -351,6 +351,31 @@ assert.equal(effekte[0].system.rules[0].uuid, "Compendium.pf2e.conditionitems.It
 assert.deepEqual([effekte[1].system.duration.value, effekte[1].system.duration.unit], [7, "days"]);
 assert.ok(effekte.every((e) => e.system.level.value === 8), "Stufe der Falle");
 
+// Stufe 9 (0.8.0): Die Pforte der Stille nimmt beim kritischen Fehlschlag Sicht und Gehör für 1 Woche, dazu
+// 7 Tage blutige Tränen.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const stilleActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "tuer9-stille"), "de", "t"), "akt_still0000000");
+const stille = dokument({ id: "still00000000001", name: "Stille", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: stilleActor });
+tokenListe.push(stille);
+await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [`gelaendepinsel:falle:${stille.id}:${stilleActor.items[0].id}:${brandy.id}`] } } }, speaker: {} });
+assert.deepEqual(effekte.map((e) => e.name), ["Blind (Pforte der Stille)", "Taub (Pforte der Stille)", "Blutige Tränen"]);
+assert.ok(effekte.every((e) => e.system.duration.value === 7 && e.system.duration.unit === "days"), "alles 1 Woche");
+assert.equal(effekte[1].system.rules[0].uuid, "Compendium.pf2e.conditionitems.Item.9PR9y0bi4JPKnHPR");
+assert.ok(effekte.every((e) => e.system.level.value === 9), "Stufe der Falle");
+
+// Stufe 10 (0.9.0): Die Tür der Hexe setzt beim kritischen Fehlschlag vier Zustände für 24 Stunden, dazu 7 Tage Hexenmal.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const hexeActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "tuer10-hexentuer"), "de", "t"), "akt_hexe00000000");
+const hexe = dokument({ id: "hexe000000000001", name: "Hexe", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: hexeActor });
+tokenListe.push(hexe);
+await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [`gelaendepinsel:falle:${hexe.id}:${hexeActor.items[0].id}:${brandy.id}`] } } }, speaker: {} });
+assert.deepEqual(effekte.map((e) => e.name), ["Kraftlos 2 (Tür der Hexe)", "Unbeholfen 2 (Tür der Hexe)", "Benommen 2 (Tür der Hexe)", "Todgeweiht 1 (Tür der Hexe)", "Hexenmal"]);
+assert.ok(effekte.slice(0, 4).every((e) => e.system.duration.value === 24 && e.system.duration.unit === "hours"), "alles 24 Stunden");
+assert.deepEqual([effekte[4].system.duration.value, effekte[4].system.duration.unit], [7, "days"]);
+assert.ok(effekte.every((e) => e.system.level.value === 10), "Stufe der Falle");
+
 // Höchstens drei Ziele (Gewitterstein): die Karte nennt drei, wer auslöst zuerst.
 const steinActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein0000000");
 const stein = dokument({ id: "stein00000000001", name: "Gewitterstein", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: steinActor });
