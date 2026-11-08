@@ -14,7 +14,14 @@
 // 07.11.2026: "jetzt Fallen für Stufe 7 bauen"; Stufe 8: fallen-stufe-8.mjs, 07.11.2026: "jetzt Fallen für
 // Stufe 8 bauen"; Stufe 9: fallen-stufe-9.mjs, 07.11.2026: "jetzt Fallen für Stufe 9 bauen";
 // Stufe 10: fallen-stufe-10.mjs, 07.11.2026: "Stufe 10, etwas kürzere Zustände, dafür aber mehrere").
+// Seit 0.10.0 die Stufen 1 bis 4 in fallen-stufe-1.mjs bis fallen-stufe-4.mjs, mit eigenem, mildem Maßstab
+// (07.11.2026: "gerecht für die normalen PF2e-Spieler, die nicht so starke Gruppen haben und eventuell nicht so gut
+// heilen können"); er steht im Kopf von fallen-stufe-1.mjs.
 import { AUS, D, T, Z } from "./fallen-bausteine.mjs";
+import { STUFE_1 } from "./fallen-stufe-1.mjs";
+import { STUFE_2 } from "./fallen-stufe-2.mjs";
+import { STUFE_3 } from "./fallen-stufe-3.mjs";
+import { STUFE_4 } from "./fallen-stufe-4.mjs";
 import { STUFE_6 } from "./fallen-stufe-6.mjs";
 import { STUFE_7 } from "./fallen-stufe-7.mjs";
 import { STUFE_8 } from "./fallen-stufe-8.mjs";
@@ -23,7 +30,7 @@ import { STUFE_10 } from "./fallen-stufe-10.mjs";
 
 export { D, T, Z };
 
-export const DATEN_STAND = "0.9.0-1";
+export const DATEN_STAND = "0.10.0-1";
 
 const tuerAus = AUS.tuer;
 const schlossAus = AUS.schloss;
@@ -764,4 +771,4 @@ const STUFE_5 = [
   }
 ];
 
-export const FALLEN = [...STUFE_5, ...STUFE_6, ...STUFE_7, ...STUFE_8, ...STUFE_9, ...STUFE_10];
+export const FALLEN = [...STUFE_1, ...STUFE_2, ...STUFE_3, ...STUFE_4, ...STUFE_5, ...STUFE_6, ...STUFE_7, ...STUFE_8, ...STUFE_9, ...STUFE_10];

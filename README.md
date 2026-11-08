@@ -95,10 +95,13 @@ Hazards are tokens of PF2e hazard actors, usually placed hidden by the gamemaste
 
 A button with a skull at the top of the terrain toolbar opens a library of ready-made traps, not stored
 in a compendium. They are generic, made for places rather than for one adventure: doors, locks (chests,
-boxes, door locks), terrain outdoors and rooms indoors. Levels 5 to 10 have 32 traps each, 8 per
+boxes, door locks), terrain outdoors and rooms indoors. Levels 1 to 10 have 32 traps each, 8 per
 place, 17 of them magical, in English and German. Each level is deadlier than the one before.
 
-- **Built to be deadly**: a creature that fails its save should go down, a critical failure drops
+- **Fair at levels 1 to 4**, for ordinary groups that may not heal well: a failed save or a hit does
+  not drop even a fragile character at full hit points, a critical failure never kills outright. Only
+  short conditions (up to 1 minute), no lasting ones; a changed appearance lasts one day.
+- **Built to be deadly** (from level 5): a creature that fails its save should go down, a critical failure drops
   anyone. Players can find and disable them, that is the deal.
 - **Placing**: drag a trap from the open library onto the map; it lies hidden there. While the skull
   tool is selected, clicks and drags on the map paint or erase no terrain. Its actor is created once in a
@@ -107,7 +110,8 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
   who opened it first.
 - **Lock traps** get an "Open / pick the lock" button in the hazard menu, against the creature next to
   the lock.
-- **Summoning traps** call a creature up to three levels above the trap (level 8 to 13) that the GM picks
+- **Summoning traps** call a creature up to one level above the trap at levels 1 to 4 and up to three levels
+  above from level 5 (level 2 to 13) that the GM picks
   when placing the trap. It rolls
   initiative at once and vanishes after 1 minute (the guardian stays until defeated).
 - **Changed appearance**: some traps leave a mark on a critical failure, a PF2e effect that tints the
@@ -337,10 +341,14 @@ Gefahren sind Tokens von PF2e-Gefahren, meist von der Spielleitung versteckt auf
 
 Ein Knopf mit Totenkopf oben in der Geländepinsel-Leiste öffnet eine Sammlung fertiger Fallen, nicht im
 Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes Abenteuer: Türen, Schlösser
-(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 5 bis 10 haben je
+(Truhen, Kisten, Türschlösser), Gelände draußen und Räume drinnen. Stufe 1 bis 10 haben je
 32 Fallen, je Ort 8, davon 17 magisch, auf Deutsch und Englisch. Jede Stufe ist tödlicher als die vorige.
 
-- **Tödlich gebaut**: Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
+- **Gerecht auf Stufe 1 bis 4**, für normale Gruppen, die vielleicht nicht so gut heilen können: Ein
+  Fehlschlag oder Treffer wirft auch eine zerbrechliche Figur mit vollen Trefferpunkten nicht um, ein
+  kritischer Fehlschlag tötet nie sofort. Nur kurze Zustände (höchstens 1 Minute), keine langen; eine
+  äußere Veränderung hält einen Tag.
+- **Tödlich gebaut** (ab Stufe 5): Wem der Rettungswurf misslingt, der soll umfallen, ein kritischer Fehlschlag wirft
   jeden um. Dafür können die Spieler sie finden und entschärfen.
 - **Setzen**: Falle aus der offenen Sammlung auf die Karte ziehen, sie liegt dort versteckt. Solange der
   Totenkopf gewählt ist, malt oder radiert ein Klick oder Ziehen auf der Karte kein Gelände. Ihr Akteur entsteht einmal
@@ -349,7 +357,8 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
   Spielers, der geöffnet hat.
 - **Schlossfallen** bekommen im Menü der Gefahr den Knopf "Öffnen / Schloss knacken", gegen die Figur
   neben dem Schloss.
-- **Herbeirufende Fallen** rufen eine Kreatur bis drei Stufen über der Falle (Stufe 8 bis 13), die die
+- **Herbeirufende Fallen** rufen eine Kreatur bis eine Stufe über der Falle auf Stufe 1 bis 4 und bis drei Stufen
+  darüber ab Stufe 5 (Stufe 2 bis 13), die die
   Spielleitung beim Setzen wählt. Sie
   würfelt sofort Initiative und verschwindet nach 1 Minute (der Wächter bleibt, bis er besiegt ist).
 - **Äußere Veränderung**: Manche Fallen hinterlassen beim kritischen Fehlschlag ein Mal, einen

@@ -376,6 +376,18 @@ assert.ok(effekte.slice(0, 4).every((e) => e.system.duration.value === 24 && e.s
 assert.deepEqual([effekte[4].system.duration.value, effekte[4].system.duration.unit], [7, "days"]);
 assert.ok(effekte.every((e) => e.system.level.value === 10), "Stufe der Falle");
 
+// Stufe 1 bis 4 (0.10.0, gerecht): Das Färberpulver der Stufe 2 setzt beim kritischen Fehlschlag keinen langen Zustand,
+// nur die Färbung, und die verblasst nach 1 Tag.
+effekte.length = 0;
+brandyActor.items.length = 0;
+const farbeActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "schloss2-faerberpulver"), "de", "t"), "akt_farbe0000000");
+const farbe = dokument({ id: "farbe00000000001", name: "Färberpulver", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: farbeActor });
+tokenListe.push(farbe);
+await ausloesen("createChatMessage", { flags: { pf2e: { context: { type: "saving-throw", outcome: "criticalFailure", options: [`gelaendepinsel:falle:${farbe.id}:${farbeActor.items[0].id}:${brandy.id}`] } } }, speaker: {} });
+assert.deepEqual(effekte.map((e) => e.name), ["Grün gefärbt"]);
+assert.deepEqual([effekte[0].system.duration.value, effekte[0].system.duration.unit], [1, "days"]);
+assert.equal(effekte[0].system.level.value, 2, "Stufe der Falle");
+
 // Höchstens drei Ziele (Gewitterstein): die Karte nennt drei, wer auslöst zuerst.
 const steinActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein0000000");
 const stein = dokument({ id: "stein00000000001", name: "Gewitterstein", x: 400, y: 300, width: 1, height: 1, hidden: false, parent: szene, actor: steinActor });

@@ -10,16 +10,17 @@ const SPRACHEN = ["de", "en"];
 const bau = (f, s) => akteurDaten(f, s, DATEN_STAND);
 const reaktion = (a) => a.items.find((it) => it.flags.gelaendepinsel.rolle === "ausloesen");
 const als = (it) => ({ ...it, getFlag: () => undefined });
-const STUFEN = [5, 6, 7, 8, 9, 10];
+const STUFEN = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 // Je Stufe: Rettungswurf-SG, Angriffsbonus, Gegnerstufe, Mindestschaden Fehlschlag und kritischer Fehlschlag, Fallen mit Aussehen.
-const MASS = { 5: { dc: 23, bonus: 17, gegner: 8, f: 28, kf: 50, aussehen: 6 }, 6: { dc: 25, bonus: 19, gegner: 9, f: 45, kf: 90, aussehen: 7 },
+const MASS = { 1: { dc: 17, bonus: 9, gegner: 2, aussehen: 2 }, 2: { dc: 18, bonus: 11, gegner: 3, aussehen: 3 },
+  3: { dc: 20, bonus: 12, gegner: 4, aussehen: 4 }, 4: { dc: 21, bonus: 14, gegner: 5, aussehen: 5 }, 5: { dc: 23, bonus: 17, gegner: 8, f: 28, kf: 50, aussehen: 6 }, 6: { dc: 25, bonus: 19, gegner: 9, f: 45, kf: 90, aussehen: 7 },
   7: { dc: 27, bonus: 21, gegner: 10, f: 55, kf: 110, aussehen: 8 }, 8: { dc: 29, bonus: 23, gegner: 11, f: 65, kf: 130, aussehen: 9 },
   9: { dc: 31, bonus: 25, gegner: 12, f: 75, kf: 150, aussehen: 10 }, 10: { dc: 33, bonus: 27, gegner: 13, f: 85, kf: 170, aussehen: 11 } };
 
-test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 5 bis 10)", () => {
-  assert.equal(FALLEN.length, 192);
-  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 192);
-  for (const s of ["de", "en"]) assert.equal(new Set(FALLEN.map((f) => f[s].name)).size, 192, `Namen eindeutig ${s}`);
+test("Je Stufe 32 Fallen, je Ort 8, 17 magisch, Kennungen eindeutig (Stufe 1 bis 10)", () => {
+  assert.equal(FALLEN.length, 320);
+  assert.equal(new Set(FALLEN.map((f) => f.id)).size, 320);
+  for (const s of ["de", "en"]) assert.equal(new Set(FALLEN.map((f) => f[s].name)).size, 320, `Namen eindeutig ${s}`);
   assert.deepEqual([...new Set(FALLEN.map((f) => f.stufe))].sort((a, b) => a - b), STUFEN);
   for (const st of STUFEN) {
     const liste = FALLEN.filter((f) => f.stufe === st);
@@ -37,7 +38,7 @@ test("Werte je Stufe: Rettungswurf-SG, Mindestgrad höchstens Experte", () => {
   }
 });
 
-test("Herbeigerufene Gegner drei Stufen über der Falle (Wunsch: Gegner Stufe 8 bei Stufe 5)", () => {
+test("Herbeigerufene Gegner ab Stufe 5 drei Stufen über der Falle (Wunsch: Gegner Stufe 8 bei Stufe 5), bis Stufe 4 eine darüber", () => {
   for (const st of STUFEN) {
     const rufen = FALLEN.filter((f) => f.stufe === st && f.beschwoerung);
     assert.ok(rufen.length >= 3, `Stufe ${st}`);
@@ -94,7 +95,7 @@ test("Wer auslöst, fällt um: Mindestschaden je Stufe (5: 28 und 50, 6: 45 und 
     const n = /^\(?(\d+)\)?/u.exec(teil);
     return summe + (n ? Number(n[1]) : 0);
   }, 0);
-  for (const f of FALLEN.filter((x) => x.wurf && x.wurf.grade.f.some((e) => e.d))) {
+  for (const f of FALLEN.filter((x) => x.stufe >= 5 && x.wurf && x.wurf.grade.f.some((e) => e.d))) {
     const text = reaktion(bau(f, "de")).system.description.value;
     const roh = (grad) => befehle(absatzFuer(text, grad), "Damage")[0].formel.replace(/\[[^\]]*\]/gu, "");
     assert.ok(schnitt(roh("failure")) >= MASS[f.stufe].f, `${f.id} Fehlschlag ${schnitt(roh("failure"))}`);
@@ -125,7 +126,7 @@ test("Auslöseart: Tür beim Öffnen, Schloss am Knopf, sonst Betreten", () => {
   }
 });
 
-test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht, Stufe 8 neun, Stufe 9 zehn, Stufe 10 elf, Tönung als Farbe oder keine", () => {
+test("Äußere Veränderung: Stufe 1 zwei Fallen, je Stufe eine mehr, Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht, Stufe 8 neun, Stufe 9 zehn, Stufe 10 elf, Tönung als Farbe oder keine", () => {
   for (const st of STUFEN) assert.equal(FALLEN.filter((f) => f.stufe === st && f.aussehen).length, MASS[st].aussehen, `Stufe ${st}`);
   const mit = FALLEN.filter((f) => f.aussehen);
   for (const f of mit) {
@@ -138,6 +139,7 @@ test("Äußere Veränderung: Stufe 5 sechs Fallen, Stufe 6 sieben, Stufe 7 acht,
 test("Lange Zustände (Wunsch: blind für 28 Stunden oder versteinert): ab Stufe 6, als PF2e-Effekt mit Laufzeit", () => {
   const lang = (f) => ["failure", "criticalFailure", "hit", "criticalHit"].flatMap((g) => langeZustaende(f, g));
   assert.ok(FALLEN.filter((f) => f.stufe === 5).every((f) => lang(f).length === 0), "Stufe 5 bleibt wie live");
+  assert.ok(FALLEN.filter((f) => f.stufe <= 4).every((f) => lang(f).length === 0), "Stufe 1 bis 4 ohne lange Zustände");
   const sechs = FALLEN.filter((f) => f.stufe === 6);
   assert.ok(sechs.filter((f) => lang(f).length).length >= 24, "die meisten Fallen der Stufe 6 hinterlassen Langes");
   const slugs = new Set(sechs.flatMap((f) => lang(f).map((z) => z.z)));
@@ -230,6 +232,63 @@ test("Lange Zustände (Wunsch: blind für 28 Stunden oder versteinert): ab Stufe
   // Der Text der Karte nennt die Dauer.
   assert.ok(gradText(sonne.wurf.grade.kf, "de").includes("{Blind} für 24 Stunden"));
   assert.ok(gradText(FALLEN.find((f) => f.id === "tuer6-verwesungsfluch").wurf.grade.kf, "de").includes("{Todgeweiht 1} für 1 Woche"));
+});
+
+/*
+ * Stufe 1 bis 4 (0.10.0, 07.11.2026: "gerecht für die normalen PF2e-Spieler, die nicht so starke Gruppen haben und
+ * eventuell nicht so gut heilen können"). Maßstab: zerbrechliche Figur der Stufe (Elf, Magier, Konstitution +0) mit
+ * 12, 18, 24 oder 30 TP. Ein Fehlschlag oder Treffer wirft sie mit vollen TP nicht um (höchster Wurf ohne anhaltenden
+ * Schaden unter den TP), ein kritischer Fehlschlag tötet nie sofort (höchster Wurf unter dem Doppelten der TP).
+ */
+const GERECHT = { 1: { tp: 12, f: [7, 10], heim: [14, 17], ent: [15, 17] }, 2: { tp: 18, f: [10, 14], heim: [15, 18], ent: [15, 18] },
+  3: { tp: 24, f: [14, 19], heim: [17, 20], ent: [17, 20] }, 4: { tp: 30, f: [17, 23], heim: [18, 22], ent: [18, 22] } };
+const wert = (formel, hoechst) => formel.split("+").reduce((s, teil) => {
+  const m = /^(\d+)d(\d+)$/u.exec(teil);
+  return s + (m ? Number(m[1]) * (hoechst ? Number(m[2]) : (Number(m[2]) + 1) / 2) : Number(teil));
+}, 0);
+const schaden = (liste, hoechst) => (liste ?? []).filter((e) => e.d && (!hoechst || e.kat !== "persistent")).reduce((s, e) => s + wert(e.d, hoechst), 0);
+const alleZustaende = (f) => [...Object.values(f.wurf?.grade ?? {}).flat(), ...(f.gift?.stufen.flat() ?? []), ...(f.trefferZ ?? []), ...(f.kritZ ?? [])].filter((e) => e.z);
+
+test("Stufe 1 bis 4 gerecht: Fehlschlag wirft niemanden mit vollen TP um, kritisch kein Sofort-Tod", () => {
+  for (const f of FALLEN.filter((x) => x.stufe <= 4)) {
+    const g = GERECHT[f.stufe];
+    if (f.wurf?.grade.f.some((e) => e.d)) {
+      const s = schaden(f.wurf.grade.f, false);
+      assert.ok(s >= g.f[0] && s <= g.f[1], `${f.id} Fehlschlag im Schnitt ${s}`);
+      assert.ok(schaden(f.wurf.grade.f, true) < g.tp, `${f.id} Fehlschlag höchstens ${schaden(f.wurf.grade.f, true)}`);
+    }
+    if (f.wurf) assert.ok(schaden(f.wurf.grade.kf, true) < 2 * g.tp, `${f.id} kritisch höchstens ${schaden(f.wurf.grade.kf, true)}`);
+    if (f.angriff) {
+      assert.ok(schaden(f.angriff.schaden, true) < g.tp, `${f.id} Treffer höchstens ${schaden(f.angriff.schaden, true)}`);
+      assert.ok(schaden(f.angriff.schaden, false) >= g.f[0] - 1, `${f.id} Treffer zu schwach`);
+    }
+    for (const stufe of f.gift?.stufen ?? []) assert.ok(schaden(stufe, true) < g.tp, `${f.id} Giftstufe höchstens ${schaden(stufe, true)}`);
+    const anhaltend = [...Object.values(f.wurf?.grade ?? {}).flat(), ...(f.angriff?.schaden ?? [])].filter((e) => e.kat === "persistent");
+    for (const e of anhaltend) assert.ok(wert(e.d, true) <= (f.stufe <= 2 ? 4 : 6), `${f.id} anhaltend ${e.d}`);
+    assert.ok(f.heimlichkeit >= g.heim[0] && f.heimlichkeit <= g.heim[1], `${f.id} Heimlichkeit ${f.heimlichkeit}`);
+    assert.ok(f.rang <= 1, `${f.id} Mindestgrad`);
+    for (const [, dc, rang] of f.entschaerfen) assert.ok(dc >= g.ent[0] && dc <= g.ent[1] && rang <= 1, `${f.id} Entschärfen ${dc} (${rang})`);
+  }
+});
+
+test("Stufe 1 bis 4 gerecht: nur kurze Zustände, nichts, was nur Heilung oder Rast abnimmt", () => {
+  const verboten = ["drained", "doomed", "petrified", "unconscious", "paralyzed"];
+  const tief = FALLEN.filter((x) => x.stufe <= 4);
+  for (const f of tief) {
+    for (const z of alleZustaende(f)) {
+      assert.ok(!verboten.includes(z.z), `${f.id} ${z.z}`);
+      assert.ok(!z.dauer || ["r1", "m1", "zug"].includes(z.dauer), `${f.id} ${z.z} ${z.dauer}`);
+      assert.ok(!z.wert || z.wert <= 2, `${f.id} ${z.z} ${z.wert}`);
+      if (["blinded", "fleeing", "fascinated", "confused", "slowed"].includes(z.z)) assert.ok(!z.dauer || z.dauer === "r1" || z.dauer === "zug", `${f.id} ${z.z} zu lang`);
+      if (z.z === "stunned") assert.ok(z.wert === 1, `${f.id} Betäubt ${z.wert}`);
+      if (z.z === "confused") assert.ok(f.stufe >= 3, `${f.id} Verwirrt unter Stufe 3`);
+    }
+    if (f.aussehen) assert.deepEqual(f.aussehen.dauer, { value: 1, unit: "days" }, `${f.id} Aussehen 1 Tag`);
+    if (f.gift) assert.ok(["4 Runden", "6 Runden"].includes(f.gift.max.de), `${f.id} Giftdauer`);
+  }
+  assert.equal(tief.filter((f) => f.gift).length, 16, "je Stufe 4 Gifte");
+  assert.equal(tief.filter((f) => f.angriff).length, 16, "je Stufe 4 Angriffsfallen");
+  assert.ok(tief.filter((f) => alleZustaende(f).some((z) => z.z === "confused")).every((f) => f.stufe >= 3));
 });
 
 test("Bausteine: Schaden, Zustände, Satzbau", () => {
