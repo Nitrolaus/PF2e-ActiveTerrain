@@ -20,14 +20,14 @@ export const STUFE_10 = [
     de: {
       name: "Klingenkranz im Türrahmen", ausloeser: AUS.tuer.de,
       beschreibung: "Rund um den Türrahmen läuft eine Nut, in der hin und wieder eine Schneide aufblitzt.",
-      wirkung: "Ein Kranz kreisender Klingen fährt aus dem Rahmen: je ein Nahkampf-Angriff +27 gegen jede Kreatur im Wirkungsbereich, 11W10+22 Hieb und 6W6 anhaltende Blutung. Treffer: Schnitte an Armen und Beinen, Kraftlos 1 und Unbeholfen 1 für 24 Stunden.",
+      wirkung: "Ein Kranz kreisender Klingen fährt aus dem Rahmen: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 11W10+22 Hieb und 6W6 anhaltende Blutung. Treffer: Schnitte an Armen und Beinen, Kraftlos 1 und Unbeholfen 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und die Klingen gehen bis auf die Knochen: Kraftlos 2, Unbeholfen 2 und Verlangsamt 1 für 24 Stunden.",
       entschaerfen: "die Nut mit Eisenkeilen füllen", ruecksetzen: "Spannt sich nach 1 Minute selbst."
     },
     en: {
       name: "Blade Wreath in the Door Frame", ausloeser: AUS.tuer.en,
       beschreibung: "A groove runs all around the door frame, now and then a cutting edge flashes in it.",
-      wirkung: "A wreath of circling blades sweeps out of the frame: one melee Strike +27 against each creature in the area, 11d10+22 slashing and 6d6 persistent bleed. Hit: cuts on arms and legs, enfeebled 1 and clumsy 1 for 24 hours.",
+      wirkung: "A wreath of circling blades sweeps out of the frame: one melee hit (no attack roll) against each creature in the area, 11d10+22 slashing and 6d6 persistent bleed. Hit: cuts on arms and legs, enfeebled 1 and clumsy 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the blades cut to the bone: enfeebled 2, clumsy 2 and slowed 1 for 24 hours.",
       entschaerfen: "fill the groove with iron wedges", ruecksetzen: "Rewinds itself after 1 minute."
     },
@@ -233,14 +233,14 @@ export const STUFE_10 = [
     de: {
       name: "Schlüssellochbohrer", ausloeser: AUS.schloss.de,
       beschreibung: "Tief im Schlüsselloch dreht sich etwas, wenn man das Ohr ans Holz legt, hört man ein Surren.",
-      wirkung: "Ein Bohrer schießt aus dem Schlüsselloch in die Hand: Nahkampf-Angriff +27, 11W8+24 Stich und 6W6 anhaltende Blutung. Treffer: Die Hand ist durchbohrt, Unbeholfen 2 und Kraftlos 1 für 24 Stunden.",
+      wirkung: "Ein Bohrer schießt aus dem Schlüsselloch in die Hand: Nahkampf-Treffer (ohne Angriffswurf), 11W8+24 Stich und 6W6 anhaltende Blutung. Treffer: Die Hand ist durchbohrt, Unbeholfen 2 und Kraftlos 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, der Bohrer zermalmt die Handknochen: Unbeholfen 3, Kraftlos 2 und Kränkelnd 1 für 24 Stunden.",
       entschaerfen: "den Bohrer mit einem Nagel im Schlüsselloch blockieren", ruecksetzen: "Von Hand neu aufziehen."
     },
     en: {
       name: "Keyhole Drill", ausloeser: AUS.schloss.en,
       beschreibung: "Something turns deep in the keyhole, pressing an ear to the wood reveals a whirring.",
-      wirkung: "A drill shoots out of the keyhole into the hand: melee Strike +27, 11d8+24 piercing and 6d6 persistent bleed. Hit: the hand is pierced, clumsy 2 and enfeebled 1 for 24 hours.",
+      wirkung: "A drill shoots out of the keyhole into the hand: melee hit (no attack roll), 11d8+24 piercing and 6d6 persistent bleed. Hit: the hand is pierced, clumsy 2 and enfeebled 1 for 24 hours.",
       krit: "Critical hit: double damage, the drill crushes the bones of the hand: clumsy 3, enfeebled 2 and sickened 1 for 24 hours.",
       entschaerfen: "block the drill with a nail in the keyhole", ruecksetzen: "Wind it up again by hand."
     },
@@ -398,14 +398,14 @@ export const STUFE_10 = [
     de: {
       name: "Armbrustnester in den Felsen", ausloeser: AUS.betreten.de,
       beschreibung: "In den Felsen zu beiden Seiten der Schlucht sitzen dunkle Nischen, darin glänzt Metall.",
-      wirkung: "Armbrüste feuern aus den Nischen: je ein Fernkampf-Angriff +27 gegen jede Kreatur im Wirkungsbereich, 11W10+22 Stich und 6W6 anhaltende Blutung. Treffer: Der Bolzen steckt tief, Kraftlos 1 und Verlangsamt 1 für 24 Stunden.",
+      wirkung: "Armbrüste feuern aus den Nischen: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 11W10+22 Stich und 6W6 anhaltende Blutung. Treffer: Der Bolzen steckt tief, Kraftlos 1 und Verlangsamt 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Bolzen splittert im Knochen: Kraftlos 2, Verlangsamt 1 und Unbeholfen 1 für 24 Stunden.",
       entschaerfen: "die Auslöseleine in der Schlucht finden und kappen", ruecksetzen: "Armbrüste neu spannen (10 Minuten)."
     },
     en: {
       name: "Crossbow Nests in the Rocks", ausloeser: AUS.betreten.en,
       beschreibung: "Dark niches sit in the rocks on both sides of the gorge, metal gleams inside.",
-      wirkung: "Crossbows fire from the niches: one ranged Strike +27 against each creature in the area, 11d10+22 piercing and 6d6 persistent bleed. Hit: the bolt lodges deep, enfeebled 1 and slowed 1 for 24 hours.",
+      wirkung: "Crossbows fire from the niches: one ranged hit (no attack roll) against each creature in the area, 11d10+22 piercing and 6d6 persistent bleed. Hit: the bolt lodges deep, enfeebled 1 and slowed 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the bolt splinters in the bone: enfeebled 2, slowed 1 and clumsy 1 for 24 hours.",
       entschaerfen: "find and cut the trigger line in the gorge", ruecksetzen: "Cock the crossbows again (10 minutes)."
     },
@@ -586,14 +586,14 @@ export const STUFE_10 = [
     de: {
       name: "Klingenarme an der Decke", ausloeser: AUS.platte.de,
       beschreibung: "An der Decke hängen gefaltete Eisenarme wie die Beine einer riesigen Spinne.",
-      wirkung: "Die Arme klappen herab und schlagen mit Klingen um sich: je ein Nahkampf-Angriff +27 gegen jede Kreatur im Wirkungsbereich, 11W10+22 Hieb und 6W6 anhaltende Blutung. Treffer: Schnitte an Kopf und Schultern, Unbeholfen 1 und Kraftlos 1 für 24 Stunden.",
+      wirkung: "Die Arme klappen herab und schlagen mit Klingen um sich: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 11W10+22 Hieb und 6W6 anhaltende Blutung. Treffer: Schnitte an Kopf und Schultern, Unbeholfen 1 und Kraftlos 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und eine Klinge trifft tief: Unbeholfen 2, Kraftlos 2 und Kränkelnd 1 für 24 Stunden.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Faltet sich nach 1 Minute selbst zurück."
     },
     en: {
       name: "Blade Arms on the Ceiling", ausloeser: AUS.platte.en,
       beschreibung: "Folded iron arms hang from the ceiling like the legs of a giant spider.",
-      wirkung: "The arms fold down and lash about with blades: one melee Strike +27 against each creature in the area, 11d10+22 slashing and 6d6 persistent bleed. Hit: cuts to head and shoulders, clumsy 1 and enfeebled 1 for 24 hours.",
+      wirkung: "The arms fold down and lash about with blades: one melee hit (no attack roll) against each creature in the area, 11d10+22 slashing and 6d6 persistent bleed. Hit: cuts to head and shoulders, clumsy 1 and enfeebled 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and a blade strikes deep: clumsy 2, enfeebled 2 and sickened 1 for 24 hours.",
       entschaerfen: "wedge the plate", ruecksetzen: "Folds back by itself after 1 minute."
     },

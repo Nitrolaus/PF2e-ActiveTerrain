@@ -1027,8 +1027,8 @@ await game.settings.set("gelaendepinsel", "darstellung", "weich");
   delete game.socket;
   delete f14.stopMovement;
   delete f14.move;
-  // Haltmessung (0.2.23): seit 0.2.27 aus, seit 0.3.16 vorübergehend wieder an (Wunsch: "bau die Messung"), in der
-  // öffentlichen Fassung aus. Nach 2,5 s liegt eine Haltdatei vor, wenn die Messung an ist, sonst keine.
+  // Haltmessung (0.2.23): seit 0.2.27 aus, von 0.3.16 bis 0.10.0 vorübergehend wieder an (Wunsch: "bau die Messung"), seit
+  // 0.10.1 wieder aus. Nach 2,5 s liegt eine Haltdatei vor, wenn die Messung an ist, sonst keine.
   await new Promise((fertig) => echteUhr(fertig, 2700));
   await ruhe();
   const haltDateien = hochgeladen.filter((werte) => werte[2].name.startsWith("gelaendepinsel-halt-")).length;

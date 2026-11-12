@@ -139,6 +139,10 @@
       "DurchBetreten": "{name} ist hineingeraten.",
       "DurchMagie": "Magie entdecken von {name}.",
       "KeinAngriff": "Zum Angriff {name} findet PF2e keine Angriffsdaten.",
+      "Getroffen": "Die Falle trifft {namen}, ohne Angriffswurf. Den Schaden wendest du auf der Schadenskarte an. Für einen kritischen Treffer den Knopf drücken: doppelter Schaden und die kritischen Folgen, dann nur die kritische Schadenskarte anwenden.",
+      "Kritisch": "Kritisch: {name}",
+      "KritischWeg": "Die Falle oder die Figur gibt es nicht mehr, kein kritischer Treffer.",
+      "KnopfDarunter": "Falle darunter: {name}",
       "KeinSchaden": "{name}: {grad}, kein Schaden.",
       "SchadenFuer": "{name}: {grad}.",
       "Schaden": {

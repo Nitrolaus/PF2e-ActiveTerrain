@@ -22,14 +22,14 @@ export const STUFE_1 = [
     de: {
       name: "Federarmbrust in der Tür", ausloeser: AUS.tuer.de,
       beschreibung: "Hinter einem Astloch im Türblatt sitzt eine kleine Federarmbrust, ein Faden läuft zur Angel.",
-      wirkung: "Ein Bolzen schnellt durch das Astloch auf die öffnende Kreatur: Fernkampf-Angriff +9, 1W8+3 Stich.",
+      wirkung: "Ein Bolzen schnellt durch das Astloch auf die öffnende Kreatur: Fernkampf-Treffer (ohne Angriffswurf), 1W8+3 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "den Faden lösen, bevor die Tür weiter aufgeht", ruecksetzen: "Von Hand neu spannen (1 Minute)."
     },
     en: {
       name: "Spring Crossbow in the Door", ausloeser: AUS.tuer.en,
       beschreibung: "Behind a knothole in the door leaf sits a small spring crossbow, a thread runs to the hinge.",
-      wirkung: "A bolt snaps through the knothole at the creature opening the door: ranged Strike +9, 1d8+3 piercing.",
+      wirkung: "A bolt snaps through the knothole at the creature opening the door: ranged hit (no attack roll), 1d8+3 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "loosen the thread before the door opens further", ruecksetzen: "Rearm by hand (1 minute)."
     }
@@ -229,14 +229,14 @@ export const STUFE_1 = [
     de: {
       name: "Schnappmesser im Schloss", ausloeser: AUS.schloss.de,
       beschreibung: "Unter dem Schlossblech liegt eine gefederte Klinge, die beim Drehen herausschnellt.",
-      wirkung: "Die Klinge schnappt heraus: Nahkampf-Angriff +9 gegen die Kreatur am Schloss, 1W8+3 Hieb.",
+      wirkung: "Die Klinge schnappt heraus: Nahkampf-Treffer (ohne Angriffswurf) gegen die Kreatur am Schloss, 1W8+3 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "die Feder mit einem Draht festsetzen", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Snap Knife in the Lock", ausloeser: AUS.schloss.en,
       beschreibung: "A sprung blade lies under the lock plate and snaps out when the lock is turned.",
-      wirkung: "The blade snaps out: melee Strike +9 against the creature at the lock, 1d8+3 slashing.",
+      wirkung: "The blade snaps out: melee hit (no attack roll) against the creature at the lock, 1d8+3 slashing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "pin the spring with a wire", ruecksetzen: "Rearm by hand."
     }
@@ -454,14 +454,14 @@ export const STUFE_1 = [
     de: {
       name: "Dornenkugel am Seil", ausloeser: AUS.feld.de,
       beschreibung: "Eine mit Dornen gespickte Holzkugel hängt hoch im Geäst, ein Stolperseil hält sie.",
-      wirkung: "Die Kugel schwingt herab: Nahkampf-Angriff +9 gegen die auslösende Kreatur, 1W8+3 Stich.",
+      wirkung: "Die Kugel schwingt herab: Nahkampf-Treffer (ohne Angriffswurf) gegen die auslösende Kreatur, 1W8+3 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden und Liegend.",
       entschaerfen: "das Stolperseil durchtrennen, während jemand die Kugel hält", ruecksetzen: "Kugel wieder hochziehen."
     },
     en: {
       name: "Spiked Ball on a Rope", ausloeser: AUS.feld.en,
       beschreibung: "A wooden ball studded with thorns hangs high in the branches, held by a trip rope.",
-      wirkung: "The ball swings down: melee Strike +9 against the triggering creature, 1d8+3 piercing.",
+      wirkung: "The ball swings down: melee hit (no attack roll) against the triggering creature, 1d8+3 piercing.",
       krit: "Critical hit: double damage and prone.",
       entschaerfen: "cut the trip rope while someone holds the ball", ruecksetzen: "Hoist the ball up again."
     },
@@ -566,14 +566,14 @@ export const STUFE_1 = [
     de: {
       name: "Pfeilschlitze in der Wand", ausloeser: AUS.platte.de,
       beschreibung: "Schmale Schlitze in den Wandfugen, eine Bodenplatte sitzt etwas höher als die anderen.",
-      wirkung: "Zwei Pfeile schießen aus den Schlitzen: je ein Fernkampf-Angriff +9 gegen bis zu zwei Kreaturen im Wirkungsbereich, die auslösende zuerst, 1W8+3 Stich.",
+      wirkung: "Zwei Pfeile schießen aus den Schlitzen: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen bis zu zwei Kreaturen im Wirkungsbereich, die auslösende zuerst, 1W8+3 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Pfeile nachladen."
     },
     en: {
       name: "Arrow Slits in the Wall", ausloeser: AUS.platte.en,
       beschreibung: "Narrow slits in the wall joints, one floor slab sits a little higher than the rest.",
-      wirkung: "Two arrows shoot from the slits: one ranged Strike +9 each against up to two creatures in the area, the triggering one first, 1d8+3 piercing.",
+      wirkung: "Two arrows shoot from the slits: one ranged hit (no attack roll) each against up to two creatures in the area, the triggering one first, 1d8+3 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "wedge the slab", ruecksetzen: "Reload the arrows."
     }

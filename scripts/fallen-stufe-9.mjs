@@ -23,14 +23,14 @@ export const STUFE_9 = [
     de: {
       name: "Harpunen in der Tür", ausloeser: AUS.tuer.de,
       beschreibung: "Das Türblatt ist mit Eisen beschlagen, zwischen den Beschlägen sitzen runde Klappen.",
-      wirkung: "Aus den Klappen schießen Harpunen mit Widerhaken: je ein Fernkampf-Angriff +25 gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Die Widerhaken reißen beim Herausziehen, Kraftlos 2 und Unbeholfen 1 für 24 Stunden.",
+      wirkung: "Aus den Klappen schießen Harpunen mit Widerhaken: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Die Widerhaken reißen beim Herausziehen, Kraftlos 2 und Unbeholfen 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und die Harpune zerreißt Muskeln und Sehnen: Kraftlos 2 und Unbeholfen 2 für 1 Woche.",
       entschaerfen: "die Klappen von innen vernageln", ruecksetzen: "Harpunen neu laden (10 Minuten)."
     },
     en: {
       name: "Harpoons in the Door", ausloeser: AUS.tuer.en,
       beschreibung: "The door leaf is shod with iron, round flaps sit between the fittings.",
-      wirkung: "Barbed harpoons shoot out of the flaps: one ranged Strike +25 against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the barbs tear when pulled out, enfeebled 2 and clumsy 1 for 24 hours.",
+      wirkung: "Barbed harpoons shoot out of the flaps: one ranged hit (no attack roll) against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the barbs tear when pulled out, enfeebled 2 and clumsy 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the harpoon tears muscles and tendons: enfeebled 2 and clumsy 2 for 1 week.",
       entschaerfen: "nail the flaps shut from inside", ruecksetzen: "Reload the harpoons (10 minutes)."
     },
@@ -237,14 +237,14 @@ export const STUFE_9 = [
     de: {
       name: "Beißender Deckel", ausloeser: AUS.schloss.de,
       beschreibung: "Die Kante des Deckels ist mit einer Leiste beschlagen, darunter blitzt eine Schneide.",
-      wirkung: "Der Deckel schlägt mit einer Klinge an der Kante auf die Hand am Schloss: Nahkampf-Angriff +25, 10W8+22 Hieb und 5W6 anhaltende Blutung. Treffer: Die Hand ist tief geschnitten, Unbeholfen 2 und Kraftlos 2 für 24 Stunden.",
+      wirkung: "Der Deckel schlägt mit einer Klinge an der Kante auf die Hand am Schloss: Nahkampf-Treffer (ohne Angriffswurf), 10W8+22 Hieb und 5W6 anhaltende Blutung. Treffer: Die Hand ist tief geschnitten, Unbeholfen 2 und Kraftlos 2 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, die Hand ist halb abgetrennt: Unbeholfen 3 und Kraftlos 2 für 1 Woche.",
       entschaerfen: "den Deckel mit einem Keil offen halten", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Biting Lid", ausloeser: AUS.schloss.en,
       beschreibung: "The edge of the lid is shod with a strip, a cutting edge flashes beneath it.",
-      wirkung: "The lid slams down on the hand at the lock with a blade on its edge: melee Strike +25, 10d8+22 slashing and 5d6 persistent bleed. Hit: the hand is cut deep, clumsy 2 and enfeebled 2 for 24 hours.",
+      wirkung: "The lid slams down on the hand at the lock with a blade on its edge: melee hit (no attack roll), 10d8+22 slashing and 5d6 persistent bleed. Hit: the hand is cut deep, clumsy 2 and enfeebled 2 for 24 hours.",
       krit: "Critical hit: double damage, the hand is half severed: clumsy 3 and enfeebled 2 for 1 week.",
       entschaerfen: "keep the lid open with a wedge", ruecksetzen: "Rearm by hand."
     },
@@ -401,14 +401,14 @@ export const STUFE_9 = [
     de: {
       name: "Bogenfalle am Wildwechsel", ausloeser: AUS.betreten.de,
       beschreibung: "Ein schmaler Wildwechsel, an den Stämmen daneben sind Bögen festgebunden und mit Laub verdeckt.",
-      wirkung: "Ein Draht löst die Bögen: je ein Fernkampf-Angriff +25 gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Der Pfeil steckt im Oberschenkel, Kraftlos 1 und Verlangsamt 1 für 24 Stunden.",
+      wirkung: "Ein Draht löst die Bögen: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Der Pfeil steckt im Oberschenkel, Kraftlos 1 und Verlangsamt 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Pfeil zertrümmert das Knie: Verlangsamt 1 und Kraftlos 2 für 1 Woche.",
       entschaerfen: "den Draht entlasten und die Sehnen kappen", ruecksetzen: "Bögen neu spannen (10 Minuten)."
     },
     en: {
       name: "Bow Trap on the Game Trail", ausloeser: AUS.betreten.en,
       beschreibung: "A narrow game trail, bows are tied to the trunks beside it and hidden with leaves.",
-      wirkung: "A wire releases the bows: one ranged Strike +25 against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the arrow lodges in the thigh, enfeebled 1 and slowed 1 for 24 hours.",
+      wirkung: "A wire releases the bows: one ranged hit (no attack roll) against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the arrow lodges in the thigh, enfeebled 1 and slowed 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the arrow shatters the knee: slowed 1 and enfeebled 2 for 1 week.",
       entschaerfen: "take the load off the wire and cut the strings", ruecksetzen: "Restring the bows (10 minutes)."
     },
@@ -589,14 +589,14 @@ export const STUFE_9 = [
     de: {
       name: "Speerboden", ausloeser: AUS.platte.de,
       beschreibung: "Der Boden besteht aus Bohlen mit fingerbreiten Fugen, in denen es metallisch schimmert.",
-      wirkung: "Speere schießen aus den Fugen: je ein Nahkampf-Angriff +25 gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Der Speer durchbohrt den Fuß, Verlangsamt 1 für 24 Stunden.",
+      wirkung: "Speere schießen aus den Fugen: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 10W10+20 Stich und 5W6 anhaltende Blutung. Treffer: Der Speer durchbohrt den Fuß, Verlangsamt 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Speer fährt durch Fuß und Knie: Verlangsamt 1 und Unbeholfen 1 für 1 Woche.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Zieht sich nach 1 Minute selbst zurück."
     },
     en: {
       name: "Spear Floor", ausloeser: AUS.platte.en,
       beschreibung: "The floor consists of planks with finger-wide gaps in which something gleams like metal.",
-      wirkung: "Spears shoot out of the gaps: one melee Strike +25 against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the spear pierces the foot, slowed 1 for 24 hours.",
+      wirkung: "Spears shoot out of the gaps: one melee hit (no attack roll) against each creature in the area, 10d10+20 piercing and 5d6 persistent bleed. Hit: the spear pierces the foot, slowed 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the spear drives through foot and knee: slowed 1 and clumsy 1 for 1 week.",
       entschaerfen: "wedge the plate", ruecksetzen: "Withdraws by itself after 1 minute."
     },

@@ -21,14 +21,14 @@ export const STUFE_7 = [
     de: {
       name: "Speerfront im Türblatt", ausloeser: AUS.tuer.de,
       beschreibung: "Das Türblatt ist ungewöhnlich dick, in der Maserung sitzen feine Löcher in einer Reihe.",
-      wirkung: "Speere schießen aus dem Türblatt: je ein Nahkampf-Angriff +21 gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 3W6 anhaltende Blutung. Treffer: Die Spitze reißt Muskeln auf, Kraftlos 1 für 24 Stunden.",
+      wirkung: "Speere schießen aus dem Türblatt: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 3W6 anhaltende Blutung. Treffer: Die Spitze reißt Muskeln auf, Kraftlos 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Speer durchbohrt die Schulter: Kraftlos 2 für 1 Woche.",
       entschaerfen: "die Speere durch die Löcher verkeilen", ruecksetzen: "Spannt sich nach 1 Minute selbst."
     },
     en: {
       name: "Spear Front in the Door Leaf", ausloeser: AUS.tuer.en,
       beschreibung: "The door leaf is unusually thick, a row of fine holes sits in the grain.",
-      wirkung: "Spears shoot out of the door leaf: one melee Strike +21 against each creature in the area, 8d10+16 piercing and 3d6 persistent bleed. Hit: the tip tears the muscles, enfeebled 1 for 24 hours.",
+      wirkung: "Spears shoot out of the door leaf: one melee hit (no attack roll) against each creature in the area, 8d10+16 piercing and 3d6 persistent bleed. Hit: the tip tears the muscles, enfeebled 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the spear pierces the shoulder: enfeebled 2 for 1 week.",
       entschaerfen: "wedge the spears through the holes", ruecksetzen: "Rewinds itself after 1 minute."
     },
@@ -232,14 +232,14 @@ export const STUFE_7 = [
     de: {
       name: "Fingerbrecher", ausloeser: AUS.schloss.de,
       beschreibung: "Das Schlüsselloch ist auffällig breit, dahinter liegen zwei gezahnte Eisenbacken.",
-      wirkung: "Die Backen schnappen um die Hand am Schloss zu: Nahkampf-Angriff +21, 8W8+18 Wucht und 3W6 anhaltende Blutung. Treffer: Die Finger sind gequetscht, Unbeholfen 2 für 24 Stunden.",
+      wirkung: "Die Backen schnappen um die Hand am Schloss zu: Nahkampf-Treffer (ohne Angriffswurf), 8W8+18 Wucht und 3W6 anhaltende Blutung. Treffer: Die Finger sind gequetscht, Unbeholfen 2 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, die Hand ist zertrümmert: Unbeholfen 3 und Kraftlos 1 für 1 Woche.",
       entschaerfen: "die Backen mit einem Keil offen halten", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Finger Breaker", ausloeser: AUS.schloss.en,
       beschreibung: "The keyhole is strikingly wide, two toothed iron jaws lie behind it.",
-      wirkung: "The jaws snap shut around the hand at the lock: melee Strike +21, 8d8+18 bludgeoning and 3d6 persistent bleed. Hit: the fingers are crushed, clumsy 2 for 24 hours.",
+      wirkung: "The jaws snap shut around the hand at the lock: melee hit (no attack roll), 8d8+18 bludgeoning and 3d6 persistent bleed. Hit: the fingers are crushed, clumsy 2 for 24 hours.",
       krit: "Critical hit: double damage, the hand is shattered: clumsy 3 and enfeebled 1 for 1 week.",
       entschaerfen: "keep the jaws open with a wedge", ruecksetzen: "Rearm by hand."
     },
@@ -445,14 +445,14 @@ export const STUFE_7 = [
     de: {
       name: "Schwingender Stachelbaum", ausloeser: AUS.betreten.de,
       beschreibung: "Ein mit Eisendornen gespickter Stamm hängt in den Baumkronen, ein Draht läuft dicht über den Boden.",
-      wirkung: "Der Stamm schwingt herab und fegt über den Pfad: je ein Nahkampf-Angriff +21 gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 2W8 anhaltende Blutung. Treffer: Liegend.",
+      wirkung: "Der Stamm schwingt herab und fegt über den Pfad: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 2W8 anhaltende Blutung. Treffer: Liegend.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und die Dornen reißen tief: Kraftlos 2 und Verlangsamt 1 für 24 Stunden.",
       entschaerfen: "den Draht entlasten und den Stamm festbinden", ruecksetzen: "Stamm hochziehen (10 Minuten)."
     },
     en: {
       name: "Swinging Spiked Log", ausloeser: AUS.betreten.en,
       beschreibung: "A log studded with iron spikes hangs in the treetops, a wire runs just above the ground.",
-      wirkung: "The log swings down and sweeps across the path: one melee Strike +21 against each creature in the area, 8d10+16 piercing and 2d8 persistent bleed. Hit: prone.",
+      wirkung: "The log swings down and sweeps across the path: one melee hit (no attack roll) against each creature in the area, 8d10+16 piercing and 2d8 persistent bleed. Hit: prone.",
       krit: "Critical hit: double damage, prone, and the spikes tear deep: enfeebled 2 and slowed 1 for 24 hours.",
       entschaerfen: "take the load off the wire and tie down the log", ruecksetzen: "Haul the log back up (10 minutes)."
     },
@@ -609,14 +609,14 @@ export const STUFE_7 = [
     de: {
       name: "Bolzenkammer", ausloeser: AUS.platte.de,
       beschreibung: "Die Wände sind mit Reliefs von Kriegern bedeckt, in deren Schilden kleine Öffnungen sitzen.",
-      wirkung: "Aus den Schilden schießen Bolzen: je ein Fernkampf-Angriff +21 gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 3W6 anhaltende Blutung.",
+      wirkung: "Aus den Schilden schießen Bolzen: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 8W10+16 Stich und 3W6 anhaltende Blutung.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Bolzen steckt im Knie: Verlangsamt 1 für 24 Stunden.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Magazine neu füllen (10 Minuten)."
     },
     en: {
       name: "Bolt Chamber", ausloeser: AUS.platte.en,
       beschreibung: "The walls are covered with reliefs of warriors, small openings in their shields.",
-      wirkung: "Bolts shoot out of the shields: one ranged Strike +21 against each creature in the area, 8d10+16 piercing and 3d6 persistent bleed.",
+      wirkung: "Bolts shoot out of the shields: one ranged hit (no attack roll) against each creature in the area, 8d10+16 piercing and 3d6 persistent bleed.",
       krit: "Critical hit: double damage, prone, and the bolt lodges in the knee: slowed 1 for 24 hours.",
       entschaerfen: "wedge the plate", ruecksetzen: "Refill the magazines (10 minutes)."
     },

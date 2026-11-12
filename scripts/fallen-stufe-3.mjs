@@ -20,14 +20,14 @@ export const STUFE_3 = [
     de: {
       name: "Klinge in der Türkante", ausloeser: AUS.tuer.de,
       beschreibung: "In der Kante des Türblatts verläuft ein feiner Schlitz, darin eine gefederte Klinge.",
-      wirkung: "Die Klinge fährt seitlich heraus: Nahkampf-Angriff +12 gegen die öffnende Kreatur, 2W8+6 Hieb und 1W4 anhaltende Blutung.",
+      wirkung: "Die Klinge fährt seitlich heraus: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 2W8+6 Hieb und 1W4 anhaltende Blutung.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "die Klinge mit einem Keil im Schlitz festsetzen", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Blade in the Door Edge", ausloeser: AUS.tuer.en,
       beschreibung: "A fine slit runs along the edge of the door leaf, a sprung blade inside it.",
-      wirkung: "The blade shoots out sideways: melee Strike +12 against the creature opening the door, 2d8+6 slashing and 1d4 persistent bleed.",
+      wirkung: "The blade shoots out sideways: melee hit (no attack roll) against the creature opening the door, 2d8+6 slashing and 1d4 persistent bleed.",
       krit: "Critical hit: double damage.",
       entschaerfen: "fix the blade in the slit with a wedge", ruecksetzen: "Rearm by hand."
     }
@@ -226,14 +226,14 @@ export const STUFE_3 = [
     de: {
       name: "Bohrdorn im Deckel", ausloeser: AUS.schloss.de,
       beschreibung: "Im Deckel sitzt ein gewundener Dorn, der beim Öffnen nach unten schnellt.",
-      wirkung: "Der Dorn stößt herab: Nahkampf-Angriff +12 gegen die öffnende Kreatur, 1W12+8 Stich.",
+      wirkung: "Der Dorn stößt herab: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 1W12+8 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "den Deckel nur einen Spalt heben und die Feder blockieren", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Drill Spike in the Lid", ausloeser: AUS.schloss.en,
       beschreibung: "A twisted spike sits in the lid and snaps downward when it opens.",
-      wirkung: "The spike stabs down: melee Strike +12 against the creature opening it, 1d12+8 piercing.",
+      wirkung: "The spike stabs down: melee hit (no attack roll) against the creature opening it, 1d12+8 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "lift the lid only a crack and block the spring", ruecksetzen: "Rearm by hand."
     }
@@ -430,14 +430,14 @@ export const STUFE_3 = [
     de: {
       name: "Bärenfalle im Laub", ausloeser: AUS.feld.de,
       beschreibung: "Ein gezahntes Eisen liegt unter dem Laub, die Kette ist an einen Baum geschlagen.",
-      wirkung: "Das Eisen schnappt zu: Nahkampf-Angriff +12, 2W8+6 Stich. Treffer: Bewegungsunfähig (Entkommen SG 20 oder Athletik SG 20 zum Aufstemmen), solange das Eisen hält.",
+      wirkung: "Das Eisen schnappt zu: Nahkampf-Treffer (ohne Angriffswurf), 2W8+6 Stich. Treffer: Bewegungsunfähig (Entkommen SG 20 oder Athletik SG 20 zum Aufstemmen), solange das Eisen hält.",
       krit: "Kritischer Treffer: doppelter Schaden, dazu Auf dem Falschen Fuß, solange das Eisen hält.",
       entschaerfen: "die Feder mit einem Stock sperren", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Bear Trap in the Leaves", ausloeser: AUS.feld.en,
       beschreibung: "A toothed iron lies beneath the leaves, its chain nailed to a tree.",
-      wirkung: "The jaws snap shut: melee Strike +12, 2d8+6 piercing. Hit: immobilized (Escape DC 20 or Athletics DC 20 to pry open) while the trap holds.",
+      wirkung: "The jaws snap shut: melee hit (no attack roll), 2d8+6 piercing. Hit: immobilized (Escape DC 20 or Athletics DC 20 to pry open) while the trap holds.",
       krit: "Critical hit: double damage, and off-guard while the trap holds.",
       entschaerfen: "lock the spring with a stick", ruecksetzen: "Rearm by hand."
     },
@@ -566,14 +566,14 @@ export const STUFE_3 = [
     de: {
       name: "Klingen aus der Wandleiste", ausloeser: AUS.platte.de,
       beschreibung: "Eine Holzleiste läuft in Hüfthöhe um den Raum, dahinter liegen Schlitze im Stein.",
-      wirkung: "Klingen schnellen aus der Leiste: je ein Nahkampf-Angriff +12 gegen bis zu zwei Kreaturen im Wirkungsbereich, die auslösende zuerst, 2W8+6 Hieb.",
+      wirkung: "Klingen schnellen aus der Leiste: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen bis zu zwei Kreaturen im Wirkungsbereich, die auslösende zuerst, 2W8+6 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "die Druckplatte verkeilen", ruecksetzen: "Setzt sich nach 1 Minute selbst zurück."
     },
     en: {
       name: "Blades from the Wall Moulding", ausloeser: AUS.platte.en,
       beschreibung: "A wooden moulding runs around the room at hip height, slits in the stone behind it.",
-      wirkung: "Blades snap out of the moulding: one melee Strike +12 each against up to two creatures in the area, the triggering one first, 2d8+6 slashing.",
+      wirkung: "Blades snap out of the moulding: one melee hit (no attack roll) each against up to two creatures in the area, the triggering one first, 2d8+6 slashing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "wedge the pressure plate", ruecksetzen: "Resets itself after 1 minute."
     }

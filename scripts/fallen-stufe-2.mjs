@@ -20,14 +20,14 @@ export const STUFE_2 = [
     de: {
       name: "Speer im Türspalt", ausloeser: AUS.tuer.de,
       beschreibung: "Im Spalt neben der Angel steckt eine Speerspitze, kaum zu sehen im Schatten des Rahmens.",
-      wirkung: "Der Speer stößt aus dem Spalt: Nahkampf-Angriff +11 gegen die öffnende Kreatur, 2W6+4 Stich.",
+      wirkung: "Der Speer stößt aus dem Spalt: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 2W6+4 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "den Speer im Spalt verkeilen", ruecksetzen: "Von Hand zurückziehen und spannen."
     },
     en: {
       name: "Spear in the Door Gap", ausloeser: AUS.tuer.en,
       beschreibung: "A spearhead sits in the gap beside the hinge, barely visible in the shadow of the frame.",
-      wirkung: "The spear thrusts from the gap: melee Strike +11 against the creature opening the door, 2d6+4 piercing.",
+      wirkung: "The spear thrusts from the gap: melee hit (no attack roll) against the creature opening the door, 2d6+4 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "wedge the spear in the gap", ruecksetzen: "Pull back and cock by hand."
     }
@@ -226,14 +226,14 @@ export const STUFE_2 = [
     de: {
       name: "Hakenfalle im Schlüsselloch", ausloeser: AUS.schloss.de,
       beschreibung: "Tief im Schlüsselloch glänzt ein gebogener Haken, der beim Drehen herausschnellt.",
-      wirkung: "Der Haken schnellt heraus: Nahkampf-Angriff +11 gegen die Kreatur am Schloss, 1W10+5 Stich.",
+      wirkung: "Der Haken schnellt heraus: Nahkampf-Treffer (ohne Angriffswurf) gegen die Kreatur am Schloss, 1W10+5 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden, und die Hand hängt am Haken fest, Bewegungsunfähig bis Entkommen SG 18.",
       entschaerfen: "den Haken mit einem Draht festhalten", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Hook Trap in the Keyhole", ausloeser: AUS.schloss.en,
       beschreibung: "Deep in the keyhole gleams a curved hook that snaps out when the lock is turned.",
-      wirkung: "The hook snaps out: melee Strike +11 against the creature at the lock, 1d10+5 piercing.",
+      wirkung: "The hook snaps out: melee hit (no attack roll) against the creature at the lock, 1d10+5 piercing.",
       krit: "Critical hit: double damage, and the hand is caught on the hook, immobilized until it Escapes (DC 18).",
       entschaerfen: "hold the hook in place with a wire", ruecksetzen: "Rearm by hand."
     },
@@ -452,14 +452,14 @@ export const STUFE_2 = [
     de: {
       name: "Bolzenfalle am Wildwechsel", ausloeser: AUS.feld.de,
       beschreibung: "Eine gespannte Armbrust ist im Gebüsch am Wildwechsel festgebunden, ein Faden läuft über den Pfad.",
-      wirkung: "Die Armbrust schießt: Fernkampf-Angriff +11 gegen die auslösende Kreatur, 2W6+4 Stich.",
+      wirkung: "Die Armbrust schießt: Fernkampf-Treffer (ohne Angriffswurf) gegen die auslösende Kreatur, 2W6+4 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "den Faden lösen oder die Armbrust entspannen", ruecksetzen: "Neu spannen und laden."
     },
     en: {
       name: "Bolt Trap on the Game Trail", ausloeser: AUS.feld.en,
       beschreibung: "A cocked crossbow is tied in the bushes by the game trail, a thread runs across the path.",
-      wirkung: "The crossbow fires: ranged Strike +11 against the triggering creature, 2d6+4 piercing.",
+      wirkung: "The crossbow fires: ranged hit (no attack roll) against the triggering creature, 2d6+4 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "loosen the thread or uncock the crossbow", ruecksetzen: "Cock and load it again."
     }
@@ -564,14 +564,14 @@ export const STUFE_2 = [
     de: {
       name: "Sichelpendel", ausloeser: AUS.platte.de,
       beschreibung: "Eine Rinne in der Decke, darin eine rostige Sichel an einem Pendelarm.",
-      wirkung: "Die Sichel schwingt herab: Nahkampf-Angriff +11 gegen jede Kreatur in der Bahn, 2W6+4 Hieb.",
+      wirkung: "Die Sichel schwingt herab: Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur in der Bahn, 2W6+4 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden und Liegend.",
       entschaerfen: "den Pendelarm blockieren", ruecksetzen: "Schwingt zurück, nach 1 Runde wieder bereit."
     },
     en: {
       name: "Sickle Pendulum", ausloeser: AUS.platte.en,
       beschreibung: "A groove in the ceiling, inside it a rusty sickle on a pendulum arm.",
-      wirkung: "The sickle swings down: melee Strike +11 against each creature in its path, 2d6+4 slashing.",
+      wirkung: "The sickle swings down: melee hit (no attack roll) against each creature in its path, 2d6+4 slashing.",
       krit: "Critical hit: double damage and prone.",
       entschaerfen: "block the pendulum arm", ruecksetzen: "Swings back, ready again after 1 round."
     },

@@ -30,7 +30,7 @@ import { STUFE_10 } from "./fallen-stufe-10.mjs";
 
 export { D, T, Z };
 
-export const DATEN_STAND = "0.10.0-1";
+export const DATEN_STAND = "0.11.0-1";
 
 const tuerAus = AUS.tuer;
 const schlossAus = AUS.schloss;
@@ -47,14 +47,14 @@ const STUFE_5 = [
     de: {
       name: "Bolzenwerfer im Türrahmen", ausloeser: tuerAus.de,
       beschreibung: "Ein gespannter Armbrustmechanismus steckt im Rahmen, ein Faden läuft zum Türblatt.",
-      wirkung: "Die Falle schießt einen Bolzen auf die öffnende Kreatur: Fernkampf-Angriff +17, 6W10+12 Stich und 2W6 anhaltende Blutung.",
+      wirkung: "Die Falle schießt einen Bolzen auf die öffnende Kreatur: Fernkampf-Treffer (ohne Angriffswurf), 6W10+12 Stich und 2W6 anhaltende Blutung.",
       krit: "Kritischer Treffer: doppelter Schaden, und das Ziel ist Kraftlos 1, bis die Blutung endet.",
       entschaerfen: "den Faden durchtrennen, ohne ihn zu lösen", ruecksetzen: "Von Hand neu spannen (1 Minute)."
     },
     en: {
       name: "Door-Frame Bolt Thrower", ausloeser: tuerAus.en,
       beschreibung: "A cocked crossbow mechanism hides in the frame, a thread runs to the door leaf.",
-      wirkung: "The trap fires a bolt at the creature opening the door: ranged Strike +17, 6d10+12 piercing and 2d6 persistent bleed.",
+      wirkung: "The trap fires a bolt at the creature opening the door: ranged hit (no attack roll), 6d10+12 piercing and 2d6 persistent bleed.",
       krit: "Critical hit: double damage, and the target is enfeebled 1 until the bleeding ends.",
       entschaerfen: "cut the thread without releasing it", ruecksetzen: "Rearm by hand (1 minute)."
     },
@@ -162,14 +162,14 @@ const STUFE_5 = [
     de: {
       name: "Kraftlanzen-Glyphe", ausloeser: tuerAus.de,
       beschreibung: "Drei winzige Runen bilden ein Dreieck auf dem Türblatt.",
-      wirkung: "Drei Lanzen aus Kraft schießen hervor: je ein Zauberangriff +17 gegen bis zu drei Kreaturen im Wirkungsbereich, die öffnende Kreatur zuerst, 8W6+2W10 Kraft. Treffer: 10 Fuß zurückgestoßen und Liegend.",
+      wirkung: "Drei Lanzen aus Kraft schießen hervor: je ein Zaubertreffer (ohne Angriffswurf) gegen bis zu drei Kreaturen im Wirkungsbereich, die öffnende Kreatur zuerst, 8W6+2W10 Kraft. Treffer: 10 Fuß zurückgestoßen und Liegend.",
       krit: "Kritischer Treffer: doppelter Schaden, 20 Fuß zurückgeschleudert, Liegend und Betäubt 1.",
       entschaerfen: "die Runen bannen oder auseinanderkratzen", ruecksetzen: "Lädt sich nach 1 Stunde neu."
     },
     en: {
       name: "Glyph of Force Lances", ausloeser: tuerAus.en,
       beschreibung: "Three tiny runes form a triangle on the door leaf.",
-      wirkung: "Three lances of force shoot out: one spell attack +17 each against up to three creatures in the area, the creature opening the door first, 8d6+2d10 force. Hit: pushed back 10 feet and knocked prone.",
+      wirkung: "Three lances of force shoot out: one spell hit (no attack roll) each against up to three creatures in the area, the creature opening the door first, 8d6+2d10 force. Hit: pushed back 10 feet and knocked prone.",
       krit: "Critical hit: double damage, hurled back 20 feet, prone and stunned 1.",
       entschaerfen: "dispel the runes or scratch them apart", ruecksetzen: "Recharges after 1 hour."
     },
@@ -280,14 +280,14 @@ const STUFE_5 = [
     de: {
       name: "Klingendeckel", ausloeser: schlossAus.de,
       beschreibung: "Im Deckel der Truhe liegt ein Kranz gespannter Klingen.",
-      wirkung: "Die Klingen schnappen zu: Nahkampf-Angriff +17 gegen die öffnende Kreatur, 7W8+14 Hieb und 2W8 anhaltende Blutung.",
+      wirkung: "Die Klingen schnappen zu: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 7W8+14 Hieb und 2W8 anhaltende Blutung.",
       krit: "Kritischer Treffer: doppelter Schaden, und das Ziel ist Kraftlos 2, bis die Blutung endet.",
       entschaerfen: "den Deckel nur einen Spalt öffnen und die Feder blockieren", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Bladed Lid", ausloeser: schlossAus.en,
       beschreibung: "A ring of cocked blades lies inside the chest's lid.",
-      wirkung: "The blades snap shut: melee Strike +17 against the creature opening it, 7d8+14 slashing and 2d8 persistent bleed.",
+      wirkung: "The blades snap shut: melee hit (no attack roll) against the creature opening it, 7d8+14 slashing and 2d8 persistent bleed.",
       krit: "Critical hit: double damage, and the target is enfeebled 2 until the bleeding ends.",
       entschaerfen: "open the lid only a crack and jam the spring", ruecksetzen: "Rearm by hand."
     },
@@ -391,14 +391,14 @@ const STUFE_5 = [
     de: {
       name: "Entladungsrune", ausloeser: schlossAus.de,
       beschreibung: "Eine Rune auf der Innenseite des Schlossblechs, nur durch das Schlüsselloch zu sehen.",
-      wirkung: "Zauberangriff +17 gegen die Kreatur am Schloss, 10W6+2W10 Kraft. Treffer: Kraftlos 2 für 1 Minute. Danach springt die Entladung auf eine weitere Kreatur im Wirkungsbereich über: gleicher Angriff, halber Schaden.",
+      wirkung: "Zaubertreffer (ohne Angriffswurf) gegen die Kreatur am Schloss, 10W6+2W10 Kraft. Treffer: Kraftlos 2 für 1 Minute. Danach springt die Entladung auf eine weitere Kreatur im Wirkungsbereich über: gleicher Angriff, halber Schaden.",
       krit: "Kritischer Treffer: doppelter Schaden, Kraftlos 2 für 1 Minute, 15 Fuß zurückgeschleudert und Liegend.",
       entschaerfen: "die Rune durch das Schlüsselloch bannen", ruecksetzen: "Lädt sich bei Sonnenaufgang neu."
     },
     en: {
       name: "Discharge Rune", ausloeser: schlossAus.en,
       beschreibung: "A rune on the inside of the lock plate, visible only through the keyhole.",
-      wirkung: "Spell attack +17 against the creature at the lock, 10d6+2d10 force. Hit: enfeebled 2 for 1 minute. Then the discharge jumps to another creature in the area: same attack, half damage.",
+      wirkung: "Spell hit (no attack roll) against the creature at the lock, 10d6+2d10 force. Hit: enfeebled 2 for 1 minute. Then the discharge jumps to another creature in the area: same attack, half damage.",
       krit: "Critical hit: double damage, enfeebled 2 for 1 minute, hurled back 15 feet and prone.",
       entschaerfen: "dispel the rune through the keyhole", ruecksetzen: "Recharges at sunrise."
     },
@@ -486,14 +486,14 @@ const STUFE_5 = [
     de: {
       name: "Fangeisen", ausloeser: feldAus.de,
       beschreibung: "Ein schweres, gezahntes Eisen, unter Erde und Moos verborgen.",
-      wirkung: "Das Eisen schnappt zu: Nahkampf-Angriff +17, 6W8+12 Stich und 2W6 anhaltende Blutung. Treffer: Bewegungsunfähig (Entkommen SG 23 oder Athletik SG 23 zum Aufstemmen), solange das Eisen hält.",
+      wirkung: "Das Eisen schnappt zu: Nahkampf-Treffer (ohne Angriffswurf), 6W8+12 Stich und 2W6 anhaltende Blutung. Treffer: Bewegungsunfähig (Entkommen SG 23 oder Athletik SG 23 zum Aufstemmen), solange das Eisen hält.",
       krit: "Kritischer Treffer: doppelter Schaden, dazu Verlangsamt 1, solange das Eisen hält.",
       entschaerfen: "die Feder sperren", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Toothed Trap", ausloeser: feldAus.en,
       beschreibung: "A heavy, toothed iron trap hidden under soil and moss.",
-      wirkung: "The jaws snap shut: melee Strike +17, 6d8+12 piercing and 2d6 persistent bleed. Hit: immobilized (Escape DC 23 or Athletics DC 23 to pry open) while the trap holds.",
+      wirkung: "The jaws snap shut: melee hit (no attack roll), 6d8+12 piercing and 2d6 persistent bleed. Hit: immobilized (Escape DC 23 or Athletics DC 23 to pry open) while the trap holds.",
       krit: "Critical hit: double damage, and slowed 1 while the trap holds.",
       entschaerfen: "lock the spring", ruecksetzen: "Rearm by hand."
     },
@@ -598,14 +598,14 @@ const STUFE_5 = [
     de: {
       name: "Wandspeere", ausloeser: "Eine Kreatur betritt die Druckplatte.",
       beschreibung: "Eine Druckplatte im Boden, in den Wänden des Gangs verborgene Speeröffnungen.",
-      wirkung: "Speere schießen aus den Wänden: je ein Nahkampf-Angriff +17 gegen jede Kreatur im Wirkungsbereich, 5W10+10 Stich und 1W8 anhaltende Blutung.",
+      wirkung: "Speere schießen aus den Wänden: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 5W10+10 Stich und 1W8 anhaltende Blutung.",
       krit: "Kritischer Treffer: doppelter Schaden, und das Ziel hängt am Speer fest, Bewegungsunfähig, bis es sich losreißt (Athletik SG 23).",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Setzt sich nach 1 Minute selbst zurück."
     },
     en: {
       name: "Wall Spears", ausloeser: "A creature steps on the pressure plate.",
       beschreibung: "A pressure plate in the floor, spear slots hidden in the walls of the corridor.",
-      wirkung: "Spears shoot from the walls: one melee Strike +17 against each creature in the area, 5d10+10 piercing and 1d8 persistent bleed.",
+      wirkung: "Spears shoot from the walls: one melee hit (no attack roll) against each creature in the area, 5d10+10 piercing and 1d8 persistent bleed.",
       krit: "Critical hit: double damage, and the target is pinned on the spear, immobilized until it tears free (Athletics DC 23).",
       entschaerfen: "wedge the plate", ruecksetzen: "Resets itself after 1 minute."
     },
@@ -619,14 +619,14 @@ const STUFE_5 = [
     de: {
       name: "Pendelklinge", ausloeser: "Eine Kreatur betritt das Auslösefeld.",
       beschreibung: "Ein Schlitz in der Decke, darüber eine schwere Klinge an einem Pendel.",
-      wirkung: "Die Klinge schwingt herab: Nahkampf-Angriff +17 gegen jede Kreatur in der Bahn, 7W8+15 Hieb.",
+      wirkung: "Die Klinge schwingt herab: Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur in der Bahn, 7W8+15 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden, 2W8 anhaltende Blutung und Liegend.",
       entschaerfen: "das Pendel blockieren oder die Klinge festhalten", ruecksetzen: "Schwingt zurück, nach 1 Runde wieder bereit."
     },
     en: {
       name: "Pendulum Blade", ausloeser: "A creature enters the trigger square.",
       beschreibung: "A slot in the ceiling, above it a heavy blade on a pendulum.",
-      wirkung: "The blade swings down: melee Strike +17 against each creature in its path, 7d8+15 slashing.",
+      wirkung: "The blade swings down: melee hit (no attack roll) against each creature in its path, 7d8+15 slashing.",
       krit: "Critical hit: double damage, 2d8 persistent bleed and prone.",
       entschaerfen: "block the pendulum or hold the blade", ruecksetzen: "Swings back, ready again after 1 round."
     },

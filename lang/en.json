@@ -139,6 +139,10 @@
       "DurchBetreten": "{name} walked into it.",
       "DurchMagie": "Detect magic by {name}.",
       "KeinAngriff": "PF2e has no strike data for {name}.",
+      "Getroffen": "The trap hits {namen}, without an attack roll. Apply the damage on the damage card. For a critical hit press the button: double damage and the critical effects, then apply only the critical damage card.",
+      "Kritisch": "Critical: {name}",
+      "KritischWeg": "The trap or the creature no longer exists, no critical hit.",
+      "KnopfDarunter": "Trap below: {name}",
       "KeinSchaden": "{name}: {grad}, no damage.",
       "SchadenFuer": "{name}: {grad}.",
       "Schaden": {

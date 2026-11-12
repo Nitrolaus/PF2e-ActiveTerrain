@@ -264,6 +264,9 @@ export async function aufdecken(gefahr, grund = "") {
 /* Eine Aktion oder einen Angriff der Gefahr auslösen, gegen jede betroffene Figur. */
 export async function ausloesen(gefahr, item, ziele = betroffene(gefahr)) {
   if (!item) return;
+  // Der Angriff einer eigenen Falle im Menü (0.11.0) geht denselben Weg wie ihr Auslösen: ohne Angriffswurf,
+  // mit der Zielgrenze der Falle. Angriffe fremder Gefahren würfeln weiter wie bisher.
+  if (item.getFlag?.(MODUL, "rolle") === "angriff") item = ausloeseAktion(Array.from(gefahr.actor?.items ?? [])) ?? item;
   if (["melee", "ranged"].includes(item.type)) return angreifen(gefahr, item, ziele);
   // Eigene Fallen (0.4.0): höchstens so viele Ziele, wer auslöst zuerst; Angriffsfallen greifen gleich an.
   const hoechstens = Number(item.getFlag?.(MODUL, "hoechstens"));
@@ -272,7 +275,7 @@ export async function ausloesen(gefahr, item, ziele = betroffene(gefahr)) {
     ? Array.from(gefahr.actor?.items ?? []).find((it) => it.getFlag?.(MODUL, "rolle") === "angriff") : null;
   if (angriff) {
     await meldung(`<p><strong>${html(gefahr.name)}: ${html(item.name)}</strong></p>${ziele.length ? "" : `<p><em>${t("Niemand")}</em></p>`}${String(item.system?.description?.value ?? "")}`, { gefahr, oeffentlich: true });
-    if (ziele.length) await angreifen(gefahr, angriff, ziele);
+    if (ziele.length) await treffen(gefahr, angriff, ziele);
     await nachAusloesenMelden(gefahr, item, ziele);
     return;
   }
@@ -350,6 +353,81 @@ async function angreifen(gefahr, item, ziele) {
     for (const objekt of globalThis.canvas?.tokens?.placeables ?? []) {
       objekt.setTarget?.(vorher.includes(objekt.id), { releaseOthers: false, groupSelection: true });
     }
+  }
+}
+
+/*
+ * Eigene Angriffsfallen ohne Angriffswurf (0.11.0, 12.11.2026: "ein Angriffswurf finde ich bei Fallen auch
+ * blöd, es soll gleich reinhauen, wenn die SC die Falle nicht entschärfen oder auslösen"; "das soll in der Falle
+ * klickbar sein, auch der Schaden"). Gewählt: Treffer, kritisch per Knopf; Schaden per Klick auf der Karte.
+ * Jede Figur wird normal getroffen: PF2es Schadenswurf der Gefahr (Karte mit den Knöpfen zum Anwenden) und die
+ * Treffer-Folgen. Danach eine Karte nur für die Spielleitung mit je Figur einem Knopf "Kritisch".
+ */
+function angriffVon(gefahr, item) {
+  return (gefahr.actor?.system?.actions ?? []).find((a) => a?.item?.id === item.id) ?? null;
+}
+
+async function mitZiel(ziel, aufgabe) {
+  const vorher = Array.from(game.user.targets ?? []).map((z) => z.id);
+  try {
+    globalThis.canvas?.tokens?.get?.(ziel.id)?.setTarget?.(true, { releaseOthers: true, groupSelection: false });
+    return await aufgabe();
+  } finally {
+    for (const objekt of globalThis.canvas?.tokens?.placeables ?? []) {
+      objekt.setTarget?.(vorher.includes(objekt.id), { releaseOthers: false, groupSelection: true });
+    }
+  }
+}
+
+async function treffen(gefahr, item, ziele) {
+  const angriff = angriffVon(gefahr, item);
+  if (!angriff) {
+    ui.notifications.warn(t("KeinAngriff", { name: item.name }));
+    return;
+  }
+  for (const ziel of ziele) {
+    await mitZiel(ziel, () => angriff.damage?.({ skipDialog: true }));
+    for (const e of erweiterungen) await e.nachWurf?.(gefahr, ziel, "hit");
+  }
+  const knoepfe = ziele.map((ziel) => `<button type="button" data-gp-krit="${html(`${gefahr.id}|${item.id}|${ziel.id}`)}">`
+    + `<i class="fa-solid fa-burst"></i> ${html(t("Kritisch", { name: ziel.name }))}</button>`);
+  await meldung(`<p>${t("Getroffen", { namen: ziele.map((z) => `<strong>${html(z.name)}</strong>`).join(", ") })}</p>${knoepfe.join("")}`, { gefahr });
+}
+
+/* Knopf "Kritisch" (0.11.0): kritischer Schaden und die kritischen Folgen, einmal je Figur und Karte. */
+async function kritischGeben(nachricht, kennung) {
+  const [gefahrId, itemId, zielId] = String(kennung).split("|");
+  const erledigt = nachricht.getFlag?.(MODUL, "kritisch") ?? [];
+  if (erledigt.includes(zielId)) return;
+  const szene = game.scenes.find((s) => s.tokens.has(gefahrId));
+  const gefahr = szene?.tokens.get(gefahrId);
+  const ziel = szene?.tokens.get(zielId);
+  const item = gefahr?.actor?.items?.get?.(itemId);
+  const angriff = gefahr && item ? angriffVon(gefahr, item) : null;
+  if (!gefahr || !ziel || !angriff) {
+    ui.notifications.warn(t("KritischWeg"));
+    return;
+  }
+  await nachricht.setFlag(MODUL, "kritisch", [...erledigt, zielId]);
+  await mitZiel(ziel, () => angriff.critical?.({ skipDialog: true }));
+  for (const e of erweiterungen) await e.nachWurf?.(gefahr, ziel, "criticalHit");
+}
+
+function kritKnoepfeEinsetzen(nachricht, element) {
+  const knoepfe = element?.querySelectorAll?.("button[data-gp-krit]") ?? [];
+  if (!knoepfe.length) return;
+  const erledigt = nachricht.getFlag?.(MODUL, "kritisch") ?? [];
+  for (const knopf of knoepfe) {
+    const zielId = String(knopf.dataset.gpKrit).split("|")[2];
+    if (!game.user?.isGM || erledigt.includes(zielId)) {
+      knopf.disabled = true;
+      continue;
+    }
+    knopf.addEventListener("click", (ereignis) => {
+      ereignis.preventDefault();
+      knopf.disabled = true;
+      void kritischGeben(nachricht, knopf.dataset.gpKrit).catch((fehler) => console.error(`[${MODUL}] Kritisch`, fehler));
+    });
   }
 }
 
@@ -750,7 +828,11 @@ export async function menue(gefahr) {
 function knopfEinsetzen(_anwendung, wurzel, daten) {
   const element = typeof wurzel?.querySelector === "function" ? wurzel : wurzel?.[0];
   const dokument = globalThis.canvas?.scene?.tokens?.get?.(daten?._id ?? "");
-  if (!element || !istGefahr(dokument)) return;
+  if (!element || !dokument) return;
+  if (!istGefahr(dokument)) {
+    fallenDarunterEinsetzen(element, dokument);
+    return;
+  }
   // Einfache Gefahren brauchen "Kampf beitreten" nicht (0.3.2, 25.10.2026), für alle, die das HUD
   // sehen. Komplexe würfeln nach den Regeln Initiative und behalten den Knopf.
   if (!dokument.actor?.system?.details?.isComplex) element.querySelector('[data-action="combat"]')?.remove();
@@ -771,6 +853,37 @@ function knopfEinsetzen(_anwendung, wurzel, daten) {
   spalte.append(knopf);
 }
 
+/*
+ * Totenkopf auch am Token darüber (0.11.0, 12.11.2026: Eine Schlossfalle lag unter der Schatzkiste und war
+ * kaum zu erreichen; gewählt: "ja, auch am Token darüber"). Steht ein anderer Token auf einem Feld einer Gefahr,
+ * zeigt sein HUD der Spielleitung je Gefahr einen Totenkopf mit deren Menü.
+ */
+export function fallenDarunter(dokument) {
+  const eigene = felderVon(dokument);
+  return Array.from(dokument?.parent?.tokens ?? []).filter((gefahr) => gefahr.id !== dokument.id && istGefahr(gefahr)
+    && [...felderVon(gefahr)].some((f) => eigene.has(f)));
+}
+
+function fallenDarunterEinsetzen(element, dokument) {
+  if (!game.user?.isGM) return;
+  const spalte = element.querySelector(".col.right") ?? element.querySelector(".col.left");
+  if (!spalte || spalte.querySelector(`[data-action="${MODUL}-gefahr-darunter"]`)) return;
+  for (const gefahr of fallenDarunter(dokument)) {
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.className = "control-icon";
+    knopf.dataset.action = `${MODUL}-gefahr-darunter`;
+    knopf.dataset.tooltip = t("KnopfDarunter", { name: gefahr.name });
+    knopf.innerHTML = `<i class="fa-solid fa-skull-crossbones"></i>`;
+    knopf.addEventListener("click", (ereignis) => {
+      ereignis.preventDefault();
+      ereignis.stopPropagation();
+      void menue(gefahr).catch((fehler) => console.error(`[${MODUL}] Gefahr`, fehler));
+    });
+    spalte.append(knopf);
+  }
+}
+
 /* ---------------------------------------------------------------- Anmelden */
 
 export function einstellungenAnmelden() {
@@ -786,6 +899,7 @@ export function einstellungenAnmelden() {
 
 export function anmelden() {
   Hooks.on("renderTokenHUD", knopfEinsetzen);
+  Hooks.on("renderChatMessageHTML", (nachricht, element) => kritKnoepfeEinsetzen(nachricht, element));
   Hooks.on("createChatMessage", (nachricht) => {
     if (!istAktiveSpielleitung()) return;
     const kontext = nachricht.flags?.pf2e?.context ?? null;

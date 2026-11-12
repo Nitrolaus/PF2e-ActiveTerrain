@@ -307,3 +307,18 @@ test("Nur - und _ als waagerechte Zeichen, keine typografischen Zeichen in den T
   assert.doesNotMatch(roh, /[–—−…„“” ]/u);
   for (const f of FALLEN) for (const s of SPRACHEN) assert.doesNotMatch(JSON.stringify(bau(f, s)), /[–—−…„“” ]/u, f.id);
 });
+
+// 0.11.0 (12.11.2026: "ein Angriffswurf finde ich bei Fallen auch blöd, es soll gleich reinhauen"): Die Texte der
+// Angriffsfallen nennen keinen Angriffsbonus mehr, sondern den Treffer ohne Angriffswurf.
+test("Angriffsfallen treffen laut Text ohne Angriffswurf", () => {
+  const mitAngriff = FALLEN.filter((f) => f.angriff);
+  assert.equal(mitAngriff.length, 45);
+  for (const f of FALLEN) {
+    assert.doesNotMatch(`${f.de.wirkung} ${f.en.wirkung}`, /(Angriff|angriff|Strike|attack) \+\d+/u, f.id);
+  }
+  for (const f of mitAngriff) {
+    assert.match(f.de.wirkung, /\(ohne Angriffswurf\)/u, `${f.id} de`);
+    assert.match(f.en.wirkung, /\(no attack roll\)/u, `${f.id} en`);
+  }
+  assert.equal(DATEN_STAND, "0.11.0-1", "neuer Datenstand, damit bestehende Fallen-Akteure die Texte bekommen");
+});

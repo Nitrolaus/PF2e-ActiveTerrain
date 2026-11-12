@@ -110,6 +110,11 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
   who opened it first.
 - **Lock traps** get an "Open / pick the lock" button in the hazard menu, against the creature next to
   the lock.
+- **Attack traps hit without an attack roll**: when triggered, every creature in reach takes the damage at
+  once, as a PF2e damage card to apply, together with the effects of a hit. The GM then gets a card with a
+  "Critical" button per creature for double damage and the critical effects, usable once.
+- **Traps under other tokens**: if a token such as a chest stands on a trap, its token HUD shows the GM a
+  skull with the menu of that trap.
 - **Summoning traps** call a creature up to one level above the trap at levels 1 to 4 and up to three levels
   above from level 5 (level 2 to 13) that the GM picks
   when placing the trap. It rolls
@@ -357,6 +362,11 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
   Spielers, der geöffnet hat.
 - **Schlossfallen** bekommen im Menü der Gefahr den Knopf "Öffnen / Schloss knacken", gegen die Figur
   neben dem Schloss.
+- **Angriffsfallen treffen ohne Angriffswurf**: Beim Auslösen bekommt jede erreichte Figur sofort den Schaden,
+  als PF2e-Schadenskarte zum Anwenden, dazu die Folgen eines Treffers. Danach bekommt die Spielleitung eine
+  Karte mit einem Knopf "Kritisch" je Figur für doppelten Schaden und die kritischen Folgen, einmal nutzbar.
+- **Fallen unter anderen Token**: Steht ein Token wie eine Kiste auf einer Falle, zeigt sein Token-HUD der
+  Spielleitung einen Totenkopf mit dem Menü dieser Falle.
 - **Herbeirufende Fallen** rufen eine Kreatur bis eine Stufe über der Falle auf Stufe 1 bis 4 und bis drei Stufen
   darüber ab Stufe 5 (Stufe 2 bis 13), die die
   Spielleitung beim Setzen wählt. Sie

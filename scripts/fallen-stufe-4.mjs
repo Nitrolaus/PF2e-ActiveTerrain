@@ -20,14 +20,14 @@ export const STUFE_4 = [
     de: {
       name: "Hellebarde hinter der Tür", ausloeser: AUS.tuer.de,
       beschreibung: "Hinter der Tür steht eine Hellebarde in einer Halterung, ein Seil läuft von ihr zur Klinke.",
-      wirkung: "Die Hellebarde schwingt durch die Türöffnung: Nahkampf-Angriff +14 gegen die öffnende Kreatur, 2W10+8 Hieb.",
+      wirkung: "Die Hellebarde schwingt durch die Türöffnung: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 2W10+8 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden und Liegend.",
       entschaerfen: "die Tür nur einen Spalt öffnen und das Seil durchschneiden", ruecksetzen: "Hellebarde neu einhängen."
     },
     en: {
       name: "Halberd behind the Door", ausloeser: AUS.tuer.en,
       beschreibung: "A halberd stands in a bracket behind the door, a rope runs from it to the handle.",
-      wirkung: "The halberd swings through the doorway: melee Strike +14 against the creature opening the door, 2d10+8 slashing.",
+      wirkung: "The halberd swings through the doorway: melee hit (no attack roll) against the creature opening the door, 2d10+8 slashing.",
       krit: "Critical hit: double damage and prone.",
       entschaerfen: "open the door only a crack and cut the rope", ruecksetzen: "Hang the halberd back in place."
     },
@@ -229,14 +229,14 @@ export const STUFE_4 = [
     de: {
       name: "Scherenfalle", ausloeser: AUS.schloss.de,
       beschreibung: "Zwei geschliffene Bleche liegen in der Fuge zwischen Deckel und Truhe.",
-      wirkung: "Die Bleche schließen sich wie eine Schere: Nahkampf-Angriff +14 gegen die öffnende Kreatur, 3W6+9 Hieb.",
+      wirkung: "Die Bleche schließen sich wie eine Schere: Nahkampf-Treffer (ohne Angriffswurf) gegen die öffnende Kreatur, 3W6+9 Hieb.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "einen Eisenkeil zwischen die Bleche treiben", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Shear Trap", ausloeser: AUS.schloss.en,
       beschreibung: "Two ground metal plates lie in the joint between lid and chest.",
-      wirkung: "The plates close like shears: melee Strike +14 against the creature opening it, 3d6+9 slashing.",
+      wirkung: "The plates close like shears: melee hit (no attack roll) against the creature opening it, 3d6+9 slashing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "drive an iron wedge between the plates", ruecksetzen: "Rearm by hand."
     }
@@ -433,14 +433,14 @@ export const STUFE_4 = [
     de: {
       name: "Pfeilhagel aus dem Hinterhalt", ausloeser: AUS.betreten.de,
       beschreibung: "Im Unterholz stehen drei gespannte Bögen, ein Faden läuft quer über den Pfad.",
-      wirkung: "Drei Pfeile schwirren aus dem Unterholz: je ein Fernkampf-Angriff +14 gegen bis zu drei Kreaturen im Wirkungsbereich, die auslösende zuerst, 2W10+8 Stich.",
+      wirkung: "Drei Pfeile schwirren aus dem Unterholz: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen bis zu drei Kreaturen im Wirkungsbereich, die auslösende zuerst, 2W10+8 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "den Faden lösen oder die Bögen entspannen", ruecksetzen: "Bögen neu spannen und Pfeile auflegen."
     },
     en: {
       name: "Ambush Arrow Volley", ausloeser: AUS.betreten.en,
       beschreibung: "Three drawn bows stand in the undergrowth, a thread runs across the path.",
-      wirkung: "Three arrows whirr out of the undergrowth: one ranged Strike +14 each against up to three creatures in the area, the triggering one first, 2d10+8 piercing.",
+      wirkung: "Three arrows whirr out of the undergrowth: one ranged hit (no attack roll) each against up to three creatures in the area, the triggering one first, 2d10+8 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "loosen the thread or unstring the bows", ruecksetzen: "Draw the bows and nock arrows again."
     }
@@ -568,14 +568,14 @@ export const STUFE_4 = [
     de: {
       name: "Speere aus dem Boden", ausloeser: AUS.platte.de,
       beschreibung: "Im Boden des Gangs sind kleine Löcher in Reihen, eine Platte sitzt lose.",
-      wirkung: "Speere stoßen aus dem Boden: je ein Nahkampf-Angriff +14 gegen jede Kreatur im Wirkungsbereich, 2W10+8 Stich.",
+      wirkung: "Speere stoßen aus dem Boden: je ein Nahkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 2W10+8 Stich.",
       krit: "Kritischer Treffer: doppelter Schaden.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Setzt sich nach 1 Minute selbst zurück."
     },
     en: {
       name: "Spears from the Floor", ausloeser: AUS.platte.en,
       beschreibung: "Small holes lie in rows in the corridor floor, one slab sits loose.",
-      wirkung: "Spears thrust up from the floor: one melee Strike +14 against each creature in the area, 2d10+8 piercing.",
+      wirkung: "Spears thrust up from the floor: one melee hit (no attack roll) against each creature in the area, 2d10+8 piercing.",
       krit: "Critical hit: double damage.",
       entschaerfen: "wedge the slab", ruecksetzen: "Resets itself after 1 minute."
     }

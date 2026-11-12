@@ -23,14 +23,14 @@ export const STUFE_8 = [
     de: {
       name: "Schießscharten im Türrahmen", ausloeser: AUS.tuer.de,
       beschreibung: "Der Türrahmen ist aus schwerem Stein, in seinen Kanten sitzen schmale Schlitze wie Schießscharten.",
-      wirkung: "Aus den Schlitzen schießen Pfeile: je ein Fernkampf-Angriff +23 gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Die Pfeile stecken in Arm und Schulter, Kraftlos 1 und Unbeholfen 1 für 24 Stunden.",
+      wirkung: "Aus den Schlitzen schießen Pfeile: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Die Pfeile stecken in Arm und Schulter, Kraftlos 1 und Unbeholfen 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und ein Pfeil splittert im Gelenk: Kraftlos 2 und Unbeholfen 1 für 1 Woche.",
       entschaerfen: "die Schlitze von innen verstopfen", ruecksetzen: "Magazine neu füllen (10 Minuten)."
     },
     en: {
       name: "Arrow Slits in the Door Frame", ausloeser: AUS.tuer.en,
       beschreibung: "The door frame is heavy stone, narrow slits like arrow slits sit in its edges.",
-      wirkung: "Arrows shoot out of the slits: one ranged Strike +23 against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: the arrows lodge in arm and shoulder, enfeebled 1 and clumsy 1 for 24 hours.",
+      wirkung: "Arrows shoot out of the slits: one ranged hit (no attack roll) against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: the arrows lodge in arm and shoulder, enfeebled 1 and clumsy 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and an arrow splinters in the joint: enfeebled 2 and clumsy 1 for 1 week.",
       entschaerfen: "plug the slits from inside", ruecksetzen: "Refill the magazines (10 minutes)."
     },
@@ -236,14 +236,14 @@ export const STUFE_8 = [
     de: {
       name: "Handfessel mit Klinge", ausloeser: AUS.schloss.de,
       beschreibung: "Unter dem Schloss ist ein offener Eisenring eingelassen, gerade groß genug für ein Handgelenk.",
-      wirkung: "Der Ring schnappt um das Handgelenk, eine Klinge fährt darüber: Nahkampf-Angriff +23, 9W8+20 Hieb und 4W6 anhaltende Blutung. Treffer: Die Sehnen der Hand sind angeschnitten, Unbeholfen 2 und Kraftlos 1 für 24 Stunden.",
+      wirkung: "Der Ring schnappt um das Handgelenk, eine Klinge fährt darüber: Nahkampf-Treffer (ohne Angriffswurf), 9W8+20 Hieb und 4W6 anhaltende Blutung. Treffer: Die Sehnen der Hand sind angeschnitten, Unbeholfen 2 und Kraftlos 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, die Sehnen sind durchtrennt: Unbeholfen 3 und Kraftlos 2 für 1 Woche.",
       entschaerfen: "den Ring mit einem Keil offen halten", ruecksetzen: "Von Hand neu spannen."
     },
     en: {
       name: "Bladed Manacle", ausloeser: AUS.schloss.en,
       beschreibung: "An open iron ring is set below the lock, just large enough for a wrist.",
-      wirkung: "The ring snaps shut around the wrist, a blade sweeps across it: melee Strike +23, 9d8+20 slashing and 4d6 persistent bleed. Hit: the tendons of the hand are nicked, clumsy 2 and enfeebled 1 for 24 hours.",
+      wirkung: "The ring snaps shut around the wrist, a blade sweeps across it: melee hit (no attack roll), 9d8+20 slashing and 4d6 persistent bleed. Hit: the tendons of the hand are nicked, clumsy 2 and enfeebled 1 for 24 hours.",
       krit: "Critical hit: double damage, the tendons are severed: clumsy 3 and enfeebled 2 for 1 week.",
       entschaerfen: "keep the ring open with a wedge", ruecksetzen: "Rearm by hand."
     },
@@ -425,14 +425,14 @@ export const STUFE_8 = [
     de: {
       name: "Speerschleudern im Unterholz", ausloeser: AUS.betreten.de,
       beschreibung: "Im dichten Unterholz zu beiden Seiten des Pfads glänzt hier und da Metall, ein Draht läuft quer.",
-      wirkung: "Gespannte Schleudern werfen Speere über den Pfad: je ein Fernkampf-Angriff +23 gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Liegend, und die Wunde reißt bei jedem Schritt: Unbeholfen 1 für 24 Stunden.",
+      wirkung: "Gespannte Schleudern werfen Speere über den Pfad: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Liegend, und die Wunde reißt bei jedem Schritt: Unbeholfen 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, der Speer nagelt sie an den Boden: Liegend und Bewegungsunfähig, bis sie ihn mit einer Interagieren-Aktion herauszieht, und das Bein ist durchbohrt: Verlangsamt 1 für 1 Woche.",
       entschaerfen: "den Draht entlasten und die Schleudern entspannen", ruecksetzen: "Schleudern neu spannen (10 Minuten)."
     },
     en: {
       name: "Spear Slings in the Undergrowth", ausloeser: AUS.betreten.en,
       beschreibung: "Metal glints here and there in the dense undergrowth on both sides of the path, a wire runs across.",
-      wirkung: "Cocked slings hurl spears across the path: one ranged Strike +23 against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: prone, and the wound tears with every step: clumsy 1 for 24 hours.",
+      wirkung: "Cocked slings hurl spears across the path: one ranged hit (no attack roll) against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: prone, and the wound tears with every step: clumsy 1 for 24 hours.",
       krit: "Critical hit: double damage, the spear pins it to the ground: prone and immobilized until it pulls the spear out with an Interact action, and the leg is pierced: slowed 1 for 1 week.",
       entschaerfen: "take the load off the wire and release the slings", ruecksetzen: "Cock the slings again (10 minutes)."
     },
@@ -588,14 +588,14 @@ export const STUFE_8 = [
     de: {
       name: "Armbrustgalerie", ausloeser: AUS.platte.de,
       beschreibung: "Unter der Decke läuft eine schmale Galerie, hinter ihrer Brüstung reihen sich dunkle Öffnungen.",
-      wirkung: "Armbrüste feuern von der Galerie: je ein Fernkampf-Angriff +23 gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Der Bolzen steckt im Fleisch, Kraftlos 1 für 24 Stunden.",
+      wirkung: "Armbrüste feuern von der Galerie: je ein Fernkampf-Treffer (ohne Angriffswurf) gegen jede Kreatur im Wirkungsbereich, 9W10+18 Stich und 4W6 anhaltende Blutung. Treffer: Der Bolzen steckt im Fleisch, Kraftlos 1 für 24 Stunden.",
       krit: "Kritischer Treffer: doppelter Schaden, Liegend, und der Bolzen splittert im Knochen: Kraftlos 1 für 1 Woche und Verlangsamt 1 für 24 Stunden.",
       entschaerfen: "die Platte verkeilen", ruecksetzen: "Armbrüste neu spannen (10 Minuten)."
     },
     en: {
       name: "Crossbow Gallery", ausloeser: AUS.platte.en,
       beschreibung: "A narrow gallery runs beneath the ceiling, dark openings in a row behind its parapet.",
-      wirkung: "Crossbows fire from the gallery: one ranged Strike +23 against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: the bolt lodges in the flesh, enfeebled 1 for 24 hours.",
+      wirkung: "Crossbows fire from the gallery: one ranged hit (no attack roll) against each creature in the area, 9d10+18 piercing and 4d6 persistent bleed. Hit: the bolt lodges in the flesh, enfeebled 1 for 24 hours.",
       krit: "Critical hit: double damage, prone, and the bolt splinters in the bone: enfeebled 1 for 1 week and slowed 1 for 24 hours.",
       entschaerfen: "wedge the plate", ruecksetzen: "Cock the crossbows again (10 minutes)."
     },

@@ -1,6 +1,7 @@
 // Rauchtest der eigenen Fallen (0.4.0) mit Foundry- und PF2e-Attrappen. Aufruf: node tests/fallen-rauch.mjs
 // Prüft: Menü und Setzen an der Tür, Akteur im eigenen Ordner, Tür- und Schlossfallen nicht beim Betreten,
-// Tür öffnen löst gegen den Öffnenden aus, Angriffsfalle greift gleich an, Schloss-Knopf, Herbeirufen mit
+// Tür öffnen löst gegen den Öffnenden aus, Angriffsfalle trifft ohne Angriffswurf (0.11.0), Knopf Kritisch,
+// Totenkopf am Token darüber, Schloss-Knopf, Herbeirufen mit
 // Initiative und Verschwinden, äußere Veränderung beim kritischen Fehlschlag.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -74,8 +75,8 @@ function akteurAus(daten, id) {
   if (angriff) {
     a.system.actions.push({
       item: angriff,
-      variants: [{ roll: async () => { angriffe.push(aktuellesZiel); return { degreeOfSuccess: 2 }; } }],
-      damage: async () => angriffe.push("schaden"), critical: async () => angriffe.push("kritisch")
+      variants: [{ roll: async () => { angriffe.push("wurf"); return { degreeOfSuccess: 2 }; } }],
+      damage: async () => angriffe.push(aktuellesZiel, "schaden"), critical: async () => angriffe.push(aktuellesZiel, "kritisch")
     });
   }
   akteure.push(a);
@@ -209,7 +210,7 @@ await ausloesen("updateWall", tuer, { ds: 0 }, {}, "sp");
 assert.equal(bolzen.hidden, true, "Schließen löst nichts aus");
 await ausloesen("updateWall", tuer, { ds: 1 }, {}, "sp");
 assert.equal(bolzen.hidden, false, "aufgedeckt");
-assert.deepEqual(angriffe, ["brandy0000000001", "schaden"], "ein Angriff gegen Brandy, Treffer würfelt Schaden");
+assert.deepEqual(angriffe, ["brandy0000000001", "schaden"], "Brandy getroffen, Schaden ohne Angriffswurf");
 assert.ok(chat.slice(schlossVorher).some((c) => String(c.content).includes("Brandy hat die Tür geöffnet")));
 // Wieder offen: aufgedeckte Falle löst nicht noch einmal aus.
 await ausloesen("updateWall", tuer, { ds: 1 }, {}, "sp");
@@ -399,5 +400,78 @@ const karte = chat.slice(vor).find((c) => String(c.content).includes("<ul>"));
 assert.ok(karte, "eine Karte für mehrere");
 assert.equal((karte.content.match(/<li>/gu) ?? []).length, 3, "drei Ziele");
 assert.ok(karte.content.indexOf("Brandy") < karte.content.indexOf("Wache"), "Brandy zuerst");
+
+// 0.11.0 (12.11.2026): Angriffsfallen ohne Angriffswurf, kritisch per Knopf, Totenkopf am Token darüber.
+assert.ok(!angriffe.includes("wurf"), "keine eigene Falle würfelt einen Angriff");
+erneuert.length = 0;
+effekte.length = 0;
+brandyActor.items.length = 0;
+angriffe.length = 0;
+const deckelActor = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "schloss9-beissender-deckel"), "de", "t"), "akt_deckel000000");
+const deckel = dokument({ id: "deckel0000000001", name: "Beißender Deckel", x: 1100, y: 1100, width: 1, height: 1, hidden: true, parent: szene, actor: deckelActor });
+tokenListe.push(deckel);
+const vorDeckel = chat.length;
+await gefahren.ausloesen(deckel, deckelActor.items[0], [brandy]);
+assert.deepEqual(angriffe, ["brandy0000000001", "schaden"], "Deckel: Schaden ohne Angriffswurf");
+assert.deepEqual(effekte.map((e) => e.name).sort(), ["Kraftlos 2 (Beißender Deckel)", "Unbeholfen 2 (Beißender Deckel)"], "Treffer-Folgen");
+const kritKarte = chat.slice(vorDeckel).find((c) => String(c.content).includes("data-gp-krit"));
+assert.ok(kritKarte, "Karte mit Knopf Kritisch");
+assert.ok(Array.isArray(kritKarte.whisper), "nur für die Spielleitung");
+const kennungKrit = /data-gp-krit="([^"]+)"/u.exec(kritKarte.content)[1];
+assert.equal(kennungKrit, `${deckel.id}|${deckelActor.items.find((it) => it.flags?.gelaendepinsel?.rolle === "angriff").id}|${brandy.id}`);
+
+// Knopf drücken: kritischer Schaden und die kritischen Folgen (1 Woche), danach ist der Knopf verbraucht.
+const nachrichtKrit = { flags: {}, getFlag: (_m, k) => nachrichtKrit.flags[k], setFlag: async (_m, k, v) => { nachrichtKrit.flags[k] = v; } };
+const knopfKrit = () => ({ dataset: { gpKrit: kennungKrit }, disabled: false, klick: null, addEventListener(_typ, fn) { this.klick = fn; } });
+const ersterKnopf = knopfKrit();
+await ausloesen("renderChatMessageHTML", nachrichtKrit, { querySelectorAll: () => [ersterKnopf] });
+assert.equal(typeof ersterKnopf.klick, "function", "Knopf verdrahtet");
+ersterKnopf.klick({ preventDefault() {} });
+await warten();
+assert.deepEqual(angriffe.slice(-2), ["brandy0000000001", "kritisch"], "kritischer Schaden gegen Brandy");
+assert.deepEqual(erneuert.map((e) => e.name).sort(), ["Kraftlos 2 (Beißender Deckel)", "Unbeholfen 3 (Beißender Deckel)"], "kritische Folgen erneuern die Effekte");
+assert.ok(erneuert.every((e) => e["system.duration"].value === 7 && e["system.duration"].unit === "days"), "1 Woche");
+assert.deepEqual(nachrichtKrit.flags.kritisch, [brandy.id]);
+const zweiterKnopf = knopfKrit();
+await ausloesen("renderChatMessageHTML", nachrichtKrit, { querySelectorAll: () => [zweiterKnopf] });
+assert.equal(zweiterKnopf.disabled, true, "nach dem Klick gesperrt");
+assert.equal(zweiterKnopf.klick, null);
+
+// Der Angriff im Menü geht denselben Weg: kein Wurf, Zielgrenze der Falle.
+angriffe.length = 0;
+const angriffItem = deckelActor.items.find((it) => it.flags?.gelaendepinsel?.rolle === "angriff");
+await gefahren.ausloesen(deckel, angriffItem, [brandy, wache]);
+assert.deepEqual(angriffe, ["brandy0000000001", "schaden"], "Menü-Angriff ohne Wurf, höchstens 1 Ziel");
+
+// Totenkopf am Token darüber: Die Schatzkiste steht auf dem Feld des Deckels.
+const kiste = dokument({ id: "kiste00000000001", name: "Schatzkiste", x: 1100, y: 1100, width: 1, height: 1, hidden: false, parent: szene,
+  actor: { type: "loot", isOfType: () => false } });
+const anderswo = dokument({ id: "anderswo00000001", name: "Fass", x: 1300, y: 1100, width: 1, height: 1, hidden: false, parent: szene,
+  actor: { type: "loot", isOfType: () => false } });
+tokenListe.push(kiste, anderswo);
+assert.deepEqual(gefahren.fallenDarunter(kiste).map((g) => g.id), [deckel.id]);
+assert.deepEqual(gefahren.fallenDarunter(anderswo), []);
+const hudSpalte = { kinder: [], querySelector: () => null, append(k) { this.kinder.push(k); } };
+const hudWurzel = { querySelector: (s) => (s === ".col.right" ? hudSpalte : null) };
+const erzeugenVorher = globalThis.document.createElement;
+globalThis.document.createElement = () => ({ dataset: {}, innerHTML: "", addEventListener(_typ, fn) { this.klick = fn; } });
+try {
+  await ausloesen("renderTokenHUD", {}, hudWurzel, { _id: kiste.id });
+  const darunter = hudSpalte.kinder.filter((k) => k.dataset.action === "gelaendepinsel-gefahr-darunter");
+  assert.equal(darunter.length, 1, "ein Totenkopf an der Kiste");
+  assert.ok(darunter[0].dataset.tooltip.includes("Beißender Deckel"));
+  hudSpalte.kinder.length = 0;
+  await ausloesen("renderTokenHUD", {}, hudWurzel, { _id: anderswo.id });
+  assert.equal(hudSpalte.kinder.length, 0, "kein Totenkopf ohne Falle darunter");
+  game.user = spieler;
+  await ausloesen("renderTokenHUD", {}, hudWurzel, { _id: kiste.id });
+  assert.equal(hudSpalte.kinder.length, 0, "Spieler sehen ihn nicht");
+} finally {
+  game.user = gm;
+  globalThis.document.createElement = erzeugenVorher;
+}
+tokenListe.splice(tokenListe.indexOf(kiste), 1);
+tokenListe.splice(tokenListe.indexOf(anderswo), 1);
+tokenListe.splice(tokenListe.indexOf(deckel), 1);
 
 console.log("fallen-rauch: ok");
