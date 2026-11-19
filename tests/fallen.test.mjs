@@ -320,5 +320,30 @@ test("Angriffsfallen treffen laut Text ohne Angriffswurf", () => {
     assert.match(f.de.wirkung, /\(ohne Angriffswurf\)/u, `${f.id} de`);
     assert.match(f.en.wirkung, /\(no attack roll\)/u, `${f.id} en`);
   }
-  assert.equal(DATEN_STAND, "0.11.0-1", "neuer Datenstand, damit bestehende Fallen-Akteure die Texte bekommen");
+  assert.match(DATEN_STAND, /^0.11./u, "Datenstand ab 0.11.0, damit bestehende Fallen-Akteure die Texte bekommen");
+});
+
+// 0.11.1 (19.11.2026: "bei allen Fallen müssen die Radius in Fuß/Meter angegeben werden, also die, die
+// Flächenschaden machen"): Jede Falle mit Wirkungsbereich nennt ihn in Fuß und Meter, und bereichFuss liest
+// denselben Wert zurück. Fallen ohne Wirkungsbereich nennen keinen.
+test("Fallen mit Wirkungsbereich nennen den Radius in Fuß und Meter", async () => {
+  const { reaktionHtml, bereichSatz } = await import("../scripts/fallen-logik.mjs");
+  const { bereichFuss } = await import("../scripts/gefahren-logik.mjs");
+  const mit = FALLEN.filter((f) => Number(f.wirkung) > 0);
+  assert.equal(mit.length, 213);
+  for (const f of FALLEN) {
+    for (const s of SPRACHEN) {
+      const text = reaktionHtml(f, s);
+      if (Number(f.wirkung) > 0) {
+        assert.ok(text.includes(bereichSatz(f, s)), `${f.id} ${s}`);
+        assert.equal(bereichFuss(text), f.wirkung, `${f.id} ${s}: Text und Wert`);
+      } else {
+        assert.equal(bereichSatz(f, s), "", f.id);
+        assert.doesNotMatch(text, /Wirkungsbereich:|Area:/u, f.id);
+      }
+    }
+  }
+  assert.equal(bereichSatz({ wirkung: 5 }, "de"), "Wirkungsbereich: im Umkreis von 5 Fuß (1,5 m) um die Falle.");
+  assert.equal(bereichSatz({ wirkung: 15 }, "en"), "Area: within 15 feet (4.5 m) of the trap.");
+  assert.equal(bereichSatz({ wirkung: 30 }, "de"), "Wirkungsbereich: im Umkreis von 30 Fuß (9 m) um die Falle.");
 });

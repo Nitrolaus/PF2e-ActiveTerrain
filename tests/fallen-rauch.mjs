@@ -474,4 +474,104 @@ tokenListe.splice(tokenListe.indexOf(kiste), 1);
 tokenListe.splice(tokenListe.indexOf(anderswo), 1);
 tokenListe.splice(tokenListe.indexOf(deckel), 1);
 
+// 0.11.1 (19.11.2026): Haken "Radius auf der Karte zeigen" je Falle, ein einfacher Kreis am Token der Falle.
+{
+  const gezeichnet = [];
+  class Behaelter {
+    constructor() { this.children = []; this.parent = null; this.destroyed = false; this.eventMode = "auto"; }
+    addChild(k) { k.parent = this; this.children.push(k); return k; }
+    addChildAt(k, i) { k.parent = this; this.children.splice(i, 0, k); return k; }
+    removeChild(k) { this.children = this.children.filter((c) => c !== k); k.parent = null; }
+    destroy() { this.destroyed = true; }
+  }
+  class Grafik extends Behaelter {
+    circle(x, y, r) { gezeichnet.push({ x, y, r }); return this; }
+    fill() { return this; }
+    stroke() { return this; }
+  }
+  class Schrift extends Behaelter {
+    constructor(text) { super(); this.text = text; this.anchor = { set() {} }; this.position = { set() {} }; }
+  }
+  const pixiVorher = globalThis.PIXI;
+  globalThis.PIXI = { Container: Behaelter, Graphics: Grafik, Text: Schrift };
+  try {
+    assert.equal(gefahren.radiusPixel(10, 100, 100), 250, "10 Fuß ab dem Rand eines Feldes: 2 Felder plus halbes Feld");
+    const steinActor2 = akteurAus(akteurDaten(FALLEN.find((f) => f.id === "gelaende-gewitterstein"), "de", "t"), "akt_stein2000000");
+    const wirkung = Number(FALLEN.find((f) => f.id === "gelaende-gewitterstein").wirkung);
+    assert.ok(wirkung > 0, "Gewitterstein hat einen Wirkungsbereich");
+    const steinDok = dokument({ id: "stein20000000001", name: "Gewitterstein", x: 1500, y: 1500, width: 1, height: 1, hidden: true, parent: szene, actor: steinActor2 });
+    tokenListe.push(steinDok);
+    const steinToken = Object.assign(new Behaelter(), { id: steinDok.id, document: steinDok, w: 100, h: 100 });
+    steinDok.object = steinToken;
+
+    await ausloesen("refreshToken", steinToken);
+    assert.equal(steinToken.children.length, 0, "ohne Haken kein Kreis");
+
+    // Haken im Dialog "Bereich einstellen" setzen.
+    dialogAntworten.push({ ausloeser: 0, wirkung, radius: true });
+    await gefahren.bereichEinstellen(steinDok);
+    assert.equal(steinDok.getFlag("gelaendepinsel", "radiusZeigen"), true, "Haken als Flagge am Token");
+    await ausloesen("refreshToken", steinToken);
+    assert.equal(steinToken.children.length, 1, "ein Kreis am Token");
+    assert.deepEqual(gezeichnet.at(-1), { x: 50, y: 50, r: gefahren.radiusPixel(wirkung, 100, 100) }, "Kreis um die Mitte, Radius aus der Wirkung");
+    const beschriftung = steinToken.children[0].children.find((k) => k instanceof Schrift);
+    const meter = String(Math.round(wirkung * 0.3 * 10) / 10).replace(".", ",");
+    assert.equal(beschriftung?.text, `${wirkung} Fuß (${meter} m)`, "Beschriftung in Fuß und Meter");
+
+    // Neuzeichnen ohne Änderung baut nichts doppelt.
+    const vorher = gezeichnet.length;
+    await ausloesen("refreshToken", steinToken);
+    assert.equal(gezeichnet.length, vorher, "nicht doppelt gezeichnet");
+    assert.equal(steinToken.children.length, 1);
+
+    // Haken weg: Kreis weg.
+    dialogAntworten.push({ ausloeser: 0, wirkung, radius: false });
+    await gefahren.bereichEinstellen(steinDok);
+    await ausloesen("refreshToken", steinToken);
+    assert.equal(steinToken.children.length, 0, "ohne Haken wieder kein Kreis");
+
+    // 0.11.2: Knopf direkt im Token-HUD der Falle, ein Klick an, ein Klick aus.
+    const radiusSpalte = { kinder: [], querySelector(s) { return this.kinder.find((k) => s.includes(k.dataset.action)) ?? null; }, append(k) { this.kinder.push(k); } };
+    const radiusWurzel = { querySelector: (s) => (s === ".col.right" ? radiusSpalte : null) };
+    const erzeugen = globalThis.document.createElement;
+    globalThis.document.createElement = () => ({ dataset: {}, className: "", innerHTML: "", addEventListener(_typ, fn) { this.klick = fn; } });
+    try {
+      await ausloesen("renderTokenHUD", {}, radiusWurzel, { _id: steinDok.id });
+      const radiusKnopf = radiusSpalte.kinder.find((k) => k.dataset.action === "gelaendepinsel-radius");
+      assert.ok(radiusKnopf, "Radius-Knopf am Token der Falle");
+      assert.equal(radiusKnopf.className, "control-icon", "aus");
+      radiusKnopf.klick({ preventDefault() {}, stopPropagation() {} });
+      await warten();
+      assert.equal(steinDok.getFlag("gelaendepinsel", "radiusZeigen"), true, "ein Klick schaltet an");
+      assert.equal(radiusKnopf.className, "control-icon active");
+      await ausloesen("refreshToken", steinToken);
+      assert.equal(steinToken.children.length, 1, "Kreis nach dem Klick");
+      radiusKnopf.klick({ preventDefault() {}, stopPropagation() {} });
+      await warten();
+      assert.equal(steinDok.getFlag("gelaendepinsel", "radiusZeigen"), false, "zweiter Klick schaltet aus");
+      await ausloesen("refreshToken", steinToken);
+      assert.equal(steinToken.children.length, 0);
+      // Kein Radius-Knopf an einer Falle ohne Wirkungsbereich und nicht für Spieler.
+      const ohneBereich = FALLEN.find((f) => !(Number(f.wirkung) > 0) && f.art === "gelaende");
+      const ohneDok = dokument({ id: "ohnebereich00001", name: ohneBereich.de.name, x: 1700, y: 1500, width: 1, height: 1, hidden: true, parent: szene,
+        actor: akteurAus(akteurDaten(ohneBereich, "de", "t"), "akt_ohne00000000") });
+      tokenListe.push(ohneDok);
+      const s2 = { kinder: [], querySelector: () => null, append(k) { this.kinder.push(k); } };
+      await ausloesen("renderTokenHUD", {}, { querySelector: (s) => (s === ".col.right" ? s2 : null) }, { _id: ohneDok.id });
+      assert.ok(!s2.kinder.some((k) => k.dataset.action === "gelaendepinsel-radius"), "ohne Bereich kein Radius-Knopf");
+      tokenListe.splice(tokenListe.indexOf(ohneDok), 1);
+      game.user = spieler;
+      const s3 = { kinder: [], querySelector: () => null, append(k) { this.kinder.push(k); } };
+      await ausloesen("renderTokenHUD", {}, { querySelector: (s) => (s === ".col.right" ? s3 : null) }, { _id: steinDok.id });
+      assert.equal(s3.kinder.length, 0, "Spieler sehen keinen Radius-Knopf");
+    } finally {
+      game.user = gm;
+      globalThis.document.createElement = erzeugen;
+    }
+    tokenListe.splice(tokenListe.indexOf(steinDok), 1);
+  } finally {
+    globalThis.PIXI = pixiVorher;
+  }
+}
+
 console.log("fallen-rauch: ok");

@@ -143,6 +143,9 @@
       "Kritisch": "Critical: {name}",
       "KritischWeg": "The trap or the creature no longer exists, no critical hit.",
       "KnopfDarunter": "Trap below: {name}",
+      "RadiusText": "{fuss} ft ({meter} m)",
+      "RadiusAn": "Show radius on the map",
+      "RadiusAus": "Hide radius",
       "KeinSchaden": "{name}: {grad}, no damage.",
       "SchadenFuer": "{name}: {grad}.",
       "Schaden": {
@@ -180,7 +183,8 @@
         "Ausloeser": "Trigger in feet around the trap (0 = its square only)",
         "Wirkung": "Effect in feet around the trap (0 = its square only)",
         "Speichern": "Save",
-        "Stand": "Trigger {ausloeser} feet, effect {wirkung} feet around the trap."
+        "Stand": "Trigger {ausloeser} feet, effect {wirkung} feet around the trap.",
+        "RadiusZeigen": "Show radius on the map"
       },
       "ZuWeit": "{name} is not adjacent to the hazard, the roll doesn't count.",
       "NurDaneben": "Only someone adjacent to the hazard counts."

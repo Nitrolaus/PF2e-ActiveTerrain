@@ -30,7 +30,7 @@ import { STUFE_10 } from "./fallen-stufe-10.mjs";
 
 export { D, T, Z };
 
-export const DATEN_STAND = "0.11.0-1";
+export const DATEN_STAND = "0.11.1-1";
 
 const tuerAus = AUS.tuer;
 const schlossAus = AUS.schloss;

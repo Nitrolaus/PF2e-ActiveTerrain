@@ -777,14 +777,18 @@ export async function bereichEinstellen(gefahr) {
   const wirkung = wirkungFuss(gefahr) ?? 0;
   const feld = (name, beschriftung, wert) => `<div class="form-group"><label>${beschriftung}</label>`
     + `<input type="number" name="${name}" min="0" step="5" value="${Number(wert)}"></div>`;
+  // Haken "Radius auf der Karte zeigen" (0.11.1), je Falle als Flagge radiusZeigen.
+  const haken = `<div class="form-group"><label>${t("Bereich.RadiusZeigen")}</label>`
+    + `<input type="checkbox" name="radius"${gefahr.getFlag?.(MODUL, "radiusZeigen") ? " checked" : ""}></div>`;
   const werte = await foundry.applications.api.DialogV2.wait({
     window: { title: `${gefahr.name}: ${t("BereichEinstellen")}` },
-    content: feld("ausloeser", t("Bereich.Ausloeser"), ausloeser) + feld("wirkung", t("Bereich.Wirkung"), wirkung),
+    content: feld("ausloeser", t("Bereich.Ausloeser"), ausloeser) + feld("wirkung", t("Bereich.Wirkung"), wirkung) + haken,
     buttons: [{
       action: "speichern", label: t("Bereich.Speichern"), default: true,
       callback: (_ereignis, knopf) => ({
         ausloeser: Number(knopf.form.elements.ausloeser.value),
-        wirkung: Number(knopf.form.elements.wirkung.value)
+        wirkung: Number(knopf.form.elements.wirkung.value),
+        radius: Boolean(knopf.form.elements.radius?.checked)
       })
     }],
     rejectClose: false
@@ -792,8 +796,87 @@ export async function bereichEinstellen(gefahr) {
   if (!werte || !Number.isFinite(werte.ausloeser) || !Number.isFinite(werte.wirkung)) return;
   await gefahr.update({
     [`flags.${MODUL}.ausloeser`]: Math.max(0, werte.ausloeser),
-    [`flags.${MODUL}.wirkung`]: Math.max(0, werte.wirkung)
+    [`flags.${MODUL}.wirkung`]: Math.max(0, werte.wirkung),
+    [`flags.${MODUL}.radiusZeigen`]: Boolean(werte.radius)
   });
+}
+
+/*
+ * Radius auf der Karte (0.11.1, 19.11.2026: "kann ich einen Schalter haben, der den Radius anzeigt im Spiel bei
+ * jeder Falle", "den Schalter bei jeder Falle einbauen zum Anhaken"; gewählt: einfacher Kreis). Der Kreis hängt am
+ * Token der Falle: Foundry zeigt ihn damit genau dem, dem es die Falle zeigt. Eine versteckte Falle sieht nur die
+ * Spielleitung, also auch ihren Kreis; eine aufgedeckte sehen alle. Radius = Wirkung in Fuß ab dem Rand der Falle.
+ */
+const radien = new Map();
+const RADIUS_FARBE = 0xd2452d;
+const neueGrafikApi = (grafik) => typeof grafik.fill === "function";
+
+function radiusEntfernen(id) {
+  const eintrag = radien.get(id);
+  if (!eintrag) return;
+  radien.delete(id);
+  eintrag.behaelter.parent?.removeChild?.(eintrag.behaelter);
+  if (!eintrag.behaelter.destroyed) eintrag.behaelter.destroy?.({ children: true });
+}
+
+export function radiusPixel(fuss, breite, hoehe) {
+  const raster = globalThis.canvas?.grid;
+  const g = Number(raster?.size) || 100;
+  const d = Number(raster?.distance) || 5;
+  return (Number(fuss) / d) * g + Math.max(Number(breite) || g, Number(hoehe) || g) / 2;
+}
+
+function radiusBauen(token, fuss) {
+  const breite = Number(token.w ?? globalThis.canvas?.grid?.size ?? 100);
+  const hoehe = Number(token.h ?? globalThis.canvas?.grid?.size ?? 100);
+  const r = radiusPixel(fuss, breite, hoehe);
+  const g = Number(globalThis.canvas?.grid?.size) || 100;
+  const behaelter = new PIXI.Container();
+  behaelter.eventMode = "none";
+  const grafik = new PIXI.Graphics();
+  const linie = Math.max(2, g * 0.04);
+  if (neueGrafikApi(grafik)) {
+    grafik.circle(breite / 2, hoehe / 2, r).fill({ color: RADIUS_FARBE, alpha: 0.12 }).stroke({ color: RADIUS_FARBE, width: linie, alpha: 0.9 });
+  } else {
+    grafik.lineStyle?.(linie, RADIUS_FARBE, 0.9);
+    grafik.beginFill?.(RADIUS_FARBE, 0.12);
+    grafik.drawCircle?.(breite / 2, hoehe / 2, r);
+    grafik.endFill?.();
+  }
+  behaelter.addChild(grafik);
+  try {
+    const meter = String(Math.round(Number(fuss) * 0.3 * 10) / 10).replace(".", game.i18n?.lang === "de" ? "," : ".");
+    const Schrift = foundry.canvas?.containers?.PreciseText ?? PIXI.Text;
+    const text = new Schrift(t("RadiusText", { fuss, meter }), {
+      fontSize: Math.max(12, Math.round(g * 0.24)), fill: 0xffffff, stroke: 0x000000, strokeThickness: Math.max(2, Math.round(g * 0.04))
+    });
+    text.anchor?.set?.(0.5, 0);
+    text.position?.set?.(breite / 2, hoehe / 2 - r + linie * 2);
+    behaelter.addChild(text);
+  } catch (fehler) {
+    console.warn(`[${MODUL}] Radius-Beschriftung`, fehler);
+  }
+  return { behaelter, fuss, breite, hoehe };
+}
+
+export function radiusPruefen(token) {
+  const dokument = token?.document;
+  const id = token?.id ?? dokument?.id;
+  if (!id) return;
+  const fuss = istGefahr(dokument) && dokument.getFlag?.(MODUL, "radiusZeigen") ? Number(wirkungFuss(dokument)) || 0 : 0;
+  if (fuss <= 0 || typeof token.addChild !== "function") {
+    radiusEntfernen(id);
+    return;
+  }
+  const eintrag = radien.get(id);
+  // Foundry baut den Token beim Neuzeichnen neu auf und wirft dabei seine Kinder weg.
+  if (eintrag && !eintrag.behaelter.destroyed && eintrag.behaelter.parent === token && eintrag.fuss === fuss
+    && eintrag.breite === Number(token.w ?? 0) && eintrag.hoehe === Number(token.h ?? 0)) return;
+  radiusEntfernen(id);
+  const neu = radiusBauen(token, fuss);
+  if (typeof token.addChildAt === "function") token.addChildAt(neu.behaelter, 0);
+  else token.addChild(neu.behaelter);
+  radien.set(id, neu);
 }
 
 /* ---------------------------------------------------------------- Knopf und Auswahl */
@@ -851,6 +934,33 @@ function knopfEinsetzen(_anwendung, wurzel, daten) {
     void menue(dokument).catch((fehler) => console.error(`[${MODUL}] Gefahr`, fehler));
   });
   spalte.append(knopf);
+  radiusKnopfEinsetzen(spalte, dokument);
+}
+
+/*
+ * Radius-Knopf direkt am Token (0.11.2, 19.11.2026: "ich sehe weder am Fallen-Token noch im Akteur eine
+ * Fähigkeit, wo ich den Kreis anzeigen lassen kann"). Bis 0.11.1 nur als Haken im Dialog "Bereich einstellen".
+ * Ein Klick schaltet den Kreis an oder aus; nur bei Gefahren mit Wirkungsbereich, nur für die Spielleitung.
+ */
+function radiusKnopfEinsetzen(spalte, dokument) {
+  if (!(Number(wirkungFuss(dokument)) > 0) || spalte.querySelector(`[data-action="${MODUL}-radius"]`)) return;
+  const an = Boolean(dokument.getFlag?.(MODUL, "radiusZeigen"));
+  const knopf = document.createElement("button");
+  knopf.type = "button";
+  knopf.className = an ? "control-icon active" : "control-icon";
+  knopf.dataset.action = `${MODUL}-radius`;
+  const titel = (wert) => (wert ? t("RadiusAus") : t("RadiusAn"));
+  knopf.dataset.tooltip = titel(an);
+  knopf.innerHTML = `<i class="fa-solid fa-circle-dot"></i>`;
+  knopf.addEventListener("click", (ereignis) => {
+    ereignis.preventDefault();
+    ereignis.stopPropagation();
+    const neu = !dokument.getFlag?.(MODUL, "radiusZeigen");
+    knopf.className = neu ? "control-icon active" : "control-icon";
+    knopf.dataset.tooltip = titel(neu);
+    void dokument.setFlag(MODUL, "radiusZeigen", neu).catch((fehler) => console.error(`[${MODUL}] Radius`, fehler));
+  });
+  spalte.append(knopf);
 }
 
 /*
@@ -900,6 +1010,11 @@ export function einstellungenAnmelden() {
 export function anmelden() {
   Hooks.on("renderTokenHUD", knopfEinsetzen);
   Hooks.on("renderChatMessageHTML", (nachricht, element) => kritKnoepfeEinsetzen(nachricht, element));
+  Hooks.on("refreshToken", (token) => radiusPruefen(token));
+  Hooks.on("updateToken", (dokument, aenderung) => {
+    if (aenderung?.flags?.[MODUL] !== undefined || "width" in (aenderung ?? {}) || "height" in (aenderung ?? {})) radiusPruefen(dokument.object);
+  });
+  Hooks.on("deleteToken", (dokument) => radiusEntfernen(dokument.id));
   Hooks.on("createChatMessage", (nachricht) => {
     if (!istAktiveSpielleitung()) return;
     const kontext = nachricht.flags?.pf2e?.context ?? null;

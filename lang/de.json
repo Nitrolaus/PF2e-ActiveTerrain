@@ -143,6 +143,9 @@
       "Kritisch": "Kritisch: {name}",
       "KritischWeg": "Die Falle oder die Figur gibt es nicht mehr, kein kritischer Treffer.",
       "KnopfDarunter": "Falle darunter: {name}",
+      "RadiusText": "{fuss} Fuß ({meter} m)",
+      "RadiusAn": "Radius auf der Karte zeigen",
+      "RadiusAus": "Radius ausblenden",
       "KeinSchaden": "{name}: {grad}, kein Schaden.",
       "SchadenFuer": "{name}: {grad}.",
       "Schaden": {
@@ -180,7 +183,8 @@
         "Ausloeser": "Auslöser in Fuß um die Falle (0 = nur ihr Feld)",
         "Wirkung": "Wirkung in Fuß um die Falle (0 = nur ihr Feld)",
         "Speichern": "Speichern",
-        "Stand": "Auslöser {ausloeser} Fuß, Wirkung {wirkung} Fuß um die Falle."
+        "Stand": "Auslöser {ausloeser} Fuß, Wirkung {wirkung} Fuß um die Falle.",
+        "RadiusZeigen": "Radius auf der Karte zeigen"
       },
       "ZuWeit": "{name} steht nicht neben der Gefahr, der Wurf zählt nicht.",
       "NurDaneben": "Es zählt nur, wer neben der Gefahr steht."

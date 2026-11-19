@@ -115,6 +115,11 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
   "Critical" button per creature for double damage and the critical effects, usable once.
 - **Traps under other tokens**: if a token such as a chest stands on a trap, its token HUD shows the GM a
   skull with the menu of that trap.
+- **Area in feet and meters**: every trap with an effect area names it in its rule text, for example
+  "Area: within 10 feet (3 m) of the trap.", so it stands on every chat card of the trigger action.
+- **Radius on the map**: a button with a circle in the token HUD of a trap with an effect area (or the
+  checkbox in "Set trigger and effect area") draws a plain circle with its radius, measured from the edge of the trap. Who
+  sees the trap sees the circle: only the GM while it is hidden.
 - **Summoning traps** call a creature up to one level above the trap at levels 1 to 4 and up to three levels
   above from level 5 (level 2 to 13) that the GM picks
   when placing the trap. It rolls
@@ -367,6 +372,12 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
   Karte mit einem Knopf "Kritisch" je Figur für doppelten Schaden und die kritischen Folgen, einmal nutzbar.
 - **Fallen unter anderen Token**: Steht ein Token wie eine Kiste auf einer Falle, zeigt sein Token-HUD der
   Spielleitung einen Totenkopf mit dem Menü dieser Falle.
+- **Wirkungsbereich in Fuß und Meter**: Jede Falle mit Wirkungsbereich nennt ihn im Regeltext, etwa
+  "Wirkungsbereich: im Umkreis von 10 Fuß (3 m) um die Falle.", er steht also auf jeder Chat-Karte der
+  Auslöse-Aktion.
+- **Radius auf der Karte**: Ein Knopf mit Kreis im Token-HUD einer Falle mit Wirkungsbereich (oder der Haken
+  in "Auslöser und Wirkung einstellen") zeichnet einen einfachen Kreis mit ihrem Radius, gemessen ab dem Rand der Falle.
+  Den Kreis sieht, wer die Falle sieht: versteckt nur die Spielleitung.
 - **Herbeirufende Fallen** rufen eine Kreatur bis eine Stufe über der Falle auf Stufe 1 bis 4 und bis drei Stufen
   darüber ab Stufe 5 (Stufe 2 bis 13), die die
   Spielleitung beim Setzen wählt. Sie

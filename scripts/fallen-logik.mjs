@@ -113,7 +113,8 @@ const TEXT = Object.freeze({
   treffer: ["Treffer", "Hit"],
   krit: ["Kritischer Treffer", "Critical Hit"],
   angriff: ["Angriff", "Strike"],
-  waffe: ["Falle", "Trap"]
+  waffe: ["Falle", "Trap"],
+  bereich: ["Wirkungsbereich: im Umkreis von {fuss} Fuß ({meter} m) um die Falle.", "Area: within {fuss} feet ({meter} m) of the trap."]
 });
 
 export function sprache(lang) {
@@ -183,14 +184,29 @@ function absatz(kopf, inhalt) {
   return `<p><strong>${kopf}</strong> ${inhalt}</p>`;
 }
 
+/*
+ * Der Wirkungsbereich als Satz (0.11.1, 19.11.2026: "bei allen Fallen müssen die Radius in Fuß/Meter angegeben
+ * werden, also die, die Flächenschaden machen"). Nur Fallen mit Wirkungsbereich; Meter wie die deutsche PF2e-Ausgabe
+ * (5 Fuß = 1,5 m). Die Schreibweise "im Umkreis von N Fuß" / "within N feet" liest auch bereichFuss
+ * (gefahren-logik.mjs), so passen Text und Wert immer zusammen.
+ */
+export function bereichSatz(falle, s) {
+  const fuss = Number(falle?.wirkung) || 0;
+  if (fuss <= 0) return "";
+  const meter = String(Math.round(fuss * 0.3 * 10) / 10).replace(".", s === "de" ? "," : ".");
+  return w(TEXT.bereich, s).replace("{fuss}", String(fuss)).replace("{meter}", meter);
+}
+
 /* Die Auslöse-Reaktion als HTML. */
 export function reaktionHtml(falle, s) {
   const l = falle[s];
+  const bereich = bereichSatz(falle, s);
+  const wirkungText = bereich ? `${html(l.wirkung)} ${bereich}` : html(l.wirkung);
   let h = absatz(w(TEXT.ausloeser, s), html(l.ausloeser)) + "<hr />";
   if (falle.wurf || falle.gift) {
     const wurf = falle.wurf ?? falle.gift;
     const satz = (falle.wirkung ? w(TEXT.alle, s) : w(TEXT.einer, s)).replace("{wurf}", wurfBefehl(wurf.typ, wurf.dc));
-    h += absatz(w(TEXT.wirkung, s), `${html(l.wirkung)} ${satz}`) + "<hr />";
+    h += absatz(w(TEXT.wirkung, s), `${wirkungText} ${satz}`) + "<hr />";
     const grade = falle.wurf ? falle.wurf.grade : {
       ke: [], e: [],
       f: [{ t: { de: `${w(TEXT.stufe, "de").replace("{n}", 1)}:`, en: `${w(TEXT.stufe, "en").replace("{n}", 1)}:` } }, ...falle.gift.stufen[0]],
@@ -204,7 +220,7 @@ export function reaktionHtml(falle, s) {
     }
     return h;
   }
-  h += absatz(w(TEXT.wirkung, s), html(l.wirkung));
+  h += absatz(w(TEXT.wirkung, s), wirkungText);
   if (l.krit) h += `<p>${html(l.krit)}</p>`;
   const zustaende = [...(falle.trefferZ ?? []), ...(falle.kritZ ?? [])];
   if (zustaende.length) {
