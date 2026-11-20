@@ -1,0 +1,90 @@
+name: Bug report / Fehlermeldung
+description: Something does not work as described. / Etwas funktioniert nicht wie beschrieben.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! English or German, both are fine.
+        Danke fürs Testen! Englisch oder Deutsch, beides ist recht.
+  - type: input
+    id: modulfassung
+    attributes:
+      label: Module version / Modulfassung
+      description: Setup screen, "Add-on Modules", or "Manage Modules" in the world. / Startbildschirm unter "Add-on Modules" oder "Module verwalten" in der Welt.
+      placeholder: "0.11.3"
+    validations:
+      required: true
+  - type: input
+    id: foundry
+    attributes:
+      label: Foundry VTT version / Foundry-Fassung
+      placeholder: "14.370"
+    validations:
+      required: true
+  - type: input
+    id: pf2e
+    attributes:
+      label: PF2e system version / PF2e-Fassung
+      placeholder: "8.7.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: wer
+    attributes:
+      label: Who saw it? / Wer hat es gesehen?
+      options:
+        - Gamemaster / Spielleitung
+        - Player / Spieler
+        - Both / Beide
+    validations:
+      required: true
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Area / Bereich
+      options:
+        - Terrain painting / Gelände malen
+        - Movement and check cards / Bewegung und Würfelkarten
+        - Hidden terrain / Verborgenes Gelände
+        - Traps and hazards / Fallen und Gefahren
+        - Trap library / Fallensammlung
+        - Search and finding / Absuchen und Finden
+        - Settings / Einstellungen
+        - Other / Anderes
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: What did you do? / Was hast du getan?
+      description: Step by step, so someone else can do the same. / Schritt für Schritt, sodass es jemand nachmachen kann.
+      placeholder: |
+        1. Painted uneven ground with the 2-square brush
+        2. Moved a token across it
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: What did you expect? / Was hast du erwartet?
+    validations:
+      required: true
+  - type: textarea
+    id: passiert
+    attributes:
+      label: What happened instead? / Was ist stattdessen passiert?
+      description: A screenshot helps a lot. / Ein Bildschirmfoto hilft sehr.
+    validations:
+      required: true
+  - type: textarea
+    id: konsole
+    attributes:
+      label: Console output / Konsolenausgabe
+      description: F12 in the browser, tab "Console", red lines after the error. Please remove anything private. / F12 im Browser, Reiter "Konsole", rote Zeilen nach dem Fehler. Bitte Privates vorher entfernen.
+      render: text
+  - type: textarea
+    id: module
+    attributes:
+      label: Other active modules / Andere aktive Module
+      description: Does it also happen with only this module active? The "Find the Culprit" button in "Manage Modules" helps. / Passiert es auch, wenn nur dieses Modul aktiv ist? Dabei hilft der Knopf "Find the Culprit" unter "Module verwalten".

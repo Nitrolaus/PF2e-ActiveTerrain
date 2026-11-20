@@ -225,6 +225,25 @@ When a move stops at a check, the module calls the hook `gelaendepinselAnhalten`
 `{ tokenId, sceneId }` on every client, so modules that move tokens themselves can stop their own
 movement there.
 
+## Testing
+
+Testers are welcome. A test world with a few tokens is enough; this round covers the main parts:
+
+1. **Terrain**: paint each of the five types and move a token across. Check the movement cost, the check
+   card on entering and that the move stops at the check on narrow, uneven and hazardous terrain.
+2. **Hidden terrain**: paint with the crossed-out eye, look as a player (nothing to see), then reveal it
+   with the eye brush.
+3. **Traps**: open the library (skull at the top of the terrain toolbar), drag a trap of your party's level
+   onto the map and walk a token into it. Try disabling it, triggering it from afar, the radius button in
+   its token HUD and smashing it (apply damage until half its HP).
+4. **Lock and door traps**: put a lock trap under a chest token (skull in the chest's token HUD) and a door
+   trap next to a door, then open both.
+5. **Search**: start Search with the magnifying glass in a character's token HUD and walk past a hidden
+   trap.
+
+Please report anything that does not match this description with the issue template "Bug report" (see
+below). Rules questions and ideas are welcome too, as a plain issue.
+
 ## Bugs and requests
 
 Please report them here on GitHub under "Issues". Helpful: the versions of Foundry, PF2e and this
@@ -468,6 +487,25 @@ Manifest-URL wie oben. Eigener Foundry-Server: auf der Startseite unter "Add-on-
 installieren" gehen und die Adresse unten bei "Manifest-URL" eintragen. The Forge: im Bazaar links
 "Install From Manifest" wählen und die Adresse einfügen. Danach das Modul in der Welt unter "Module
 verwalten" einschalten.
+
+## Testen
+
+Tester sind willkommen. Eine Testwelt mit ein paar Token reicht; diese Runde deckt die wichtigsten Teile ab:
+
+1. **Gelände**: jede der fünf Arten malen und einen Token darüber ziehen. Zu prüfen: die Bewegungskosten,
+   die Würfelkarte beim Betreten und dass der Zug bei schmal, uneben und gefährlich an der Probe endet.
+2. **Verborgenes Gelände**: mit dem durchgestrichenen Auge malen, als Spieler nachsehen (nichts zu sehen),
+   dann mit dem Pinsel "Aufdecken" (Auge) zeigen.
+3. **Fallen**: die Sammlung öffnen (Totenkopf oben in der Gelände-Werkzeugleiste), eine Falle in der Stufe
+   der Gruppe auf die Karte ziehen und einen Token hineinlaufen lassen. Dazu Entschärfen, Auslösen aus der
+   Ferne, den Radius-Knopf im Token-HUD der Falle und Zerschlagen (Schaden bis auf die halben TP).
+4. **Schloss- und Türfallen**: eine Schlossfalle unter eine Kiste legen (Totenkopf im Token-HUD der Kiste)
+   und eine Türfalle neben eine Tür, dann beide öffnen.
+5. **Absuchen**: mit der Lupe im Token-HUD einer Figur das Absuchen starten und an einer versteckten Falle
+   vorbeigehen.
+
+Was nicht zu dieser Beschreibung passt, bitte über die Vorlage "Bug report / Fehlermeldung" melden (siehe
+unten). Regelfragen und Ideen sind auch willkommen, als gewöhnliches Issue.
 
 ## Fehler und Wünsche
 
