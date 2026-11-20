@@ -8,7 +8,7 @@
 // aus den Wurfnachrichten (flags.pf2e.context).
 import {
   GRADE, KENNUNG, RETTUNGSWUERFE, ausloeseAktion, befehle, bereichFuss, entschaerfenSchritt, entschaerfenWuerfe, kennungEntschaerfen,
-  kennungFalle, kennungLesen, mindestRang, noetigeErfolge, schadenFuer, textMitOption, textOhneWuerfe, wuerfeFuer
+  kennungFalle, kennungLesen, mindestRang, noetigeErfolge, schadenFuer, textMitOption, textOhneWuerfe, wuerfeFuer, zerschlagen
 } from "./gefahren-logik.mjs";
 import { suchtGerade } from "./suchen.mjs";
 
@@ -568,6 +568,26 @@ async function nachEntschaerfen(kennung, grad, nachricht) {
   }
 }
 
+/*
+ * Zerschlagen (0.11.3, 20.11.2026): Fallen die TP einer Gefahr mit Werten auf die Bruchschwelle, gilt sie als
+ * entschärft, mit Meldung. Die Härte zieht PF2e beim Anwenden des Schadens selbst ab. Vorher blieb sie scharf, bis
+ * jemand sie per Wurf entschärfte, auch bei 0 TP. Fallen-Token sind meist nicht verknüpft; ihr Schaden landet im
+ * Delta des Tokens, deshalb hören drei Hooks zu, die Sperre verhindert die doppelte Meldung.
+ */
+const zerschlagenLaeuft = new Set();
+async function zerschlagenPruefen(gefahr) {
+  if (!istAktiveSpielleitung() || !istGefahr(gefahr) || entschaerft(gefahr) || zerschlagenLaeuft.has(gefahr.id)) return;
+  if (!zerschlagen(gefahr.actor?.system?.attributes)) return;
+  zerschlagenLaeuft.add(gefahr.id);
+  try {
+    await gefahr.update({ [`flags.${MODUL}.entschaerft`]: true });
+    await meldung(`<p>${t("Zerschlagen", { name: `<strong>${html(gefahr.name)}</strong>` })}</p>`, { gefahr, oeffentlich: !gefahr.hidden });
+  } finally {
+    zerschlagenLaeuft.delete(gefahr.id);
+  }
+}
+const zerschlagenWeiter = (gefahr) => void zerschlagenPruefen(gefahr).catch((fehler) => console.error(`[${MODUL}] Zerschlagen`, fehler));
+
 /* ---------------------------------------------------------------- Finden */
 
 function heimlichkeit(gefahr) {
@@ -1013,6 +1033,15 @@ export function anmelden() {
   Hooks.on("refreshToken", (token) => radiusPruefen(token));
   Hooks.on("updateToken", (dokument, aenderung) => {
     if (aenderung?.flags?.[MODUL] !== undefined || "width" in (aenderung ?? {}) || "height" in (aenderung ?? {})) radiusPruefen(dokument.object);
+    if (aenderung?.delta?.system?.attributes?.hp !== undefined) zerschlagenWeiter(dokument);
+  });
+  Hooks.on("updateActor", (actor) => {
+    if (actor?.type !== "hazard") return;
+    const dokumente = actor.isToken ? [actor.token] : (actor.getActiveTokens?.(true, true) ?? []);
+    for (const dokument of dokumente) if (dokument) zerschlagenWeiter(dokument);
+  });
+  Hooks.on("updateActorDelta", (delta, aenderung) => {
+    if (aenderung?.system?.attributes?.hp !== undefined && delta?.parent) zerschlagenWeiter(delta.parent);
   });
   Hooks.on("deleteToken", (dokument) => radiusEntfernen(dokument.id));
   Hooks.on("createChatMessage", (nachricht) => {

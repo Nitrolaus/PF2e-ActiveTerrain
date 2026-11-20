@@ -231,7 +231,9 @@ export const STUFE_9 = [
   },
   {
     id: "schloss9-beissender-deckel", art: "schloss", stufe: 9, merkmale: ["mechanical", "trap"],
-    heimlichkeit: 30, rang: 1, ausloeser: "knopf", wirkung: 0, werte: { rk: 28, haerte: 18, tp: 72 },
+    // Härte 10, 40 TP seit 0.11.3 (20.11.2026, "reicht ein Schlag, um die zu beseitigen?"): Ein guter Schlag
+    // bricht den dünnen Deckel (Bruchschwelle 20), vorher Härte 18 und 72 TP wie eine Tür.
+    heimlichkeit: 30, rang: 1, ausloeser: "knopf", wirkung: 0, werte: { rk: 28, haerte: 10, tp: 40 },
     entschaerfen: [["thievery", 30, 1]],
     angriff: { bonus: 25, schaden: [D("10d8+22", "slashing"), D("5d6", "bleed", "persistent")], hoechstens: 1, nah: true },
     de: {

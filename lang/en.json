@@ -162,6 +162,7 @@
       "KeinEntschaerfen": "This hazard's Disable entry has no check.",
       "ErfolgeStand": "Successes toward disabling: {stand} of {noetig}.",
       "Entschaerft": "{name} is disabled.",
+      "Zerschlagen": "{name} is smashed and no longer works.",
       "ZaehltNicht": "{name}: The check doesn't count, the required proficiency is missing.",
       "LoestAus": "{name}: Critical failure while disabling, the hazard triggers.",
       "Magie": {

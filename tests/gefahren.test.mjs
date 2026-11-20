@@ -4,8 +4,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   befehle, mitOption, textMitOption, absatzFuer, schadenFuer, mindestRang, entschaerfenWuerfe, noetigeErfolge,
-  entschaerfenSchritt, ausloeseAktion, kennungFalle, kennungEntschaerfen, kennungGelaende, kennungLesen, wuerfeFuer, textOhneWuerfe
+  entschaerfenSchritt, ausloeseAktion, kennungFalle, kennungEntschaerfen, kennungGelaende, kennungLesen, wuerfeFuer, textOhneWuerfe,
+  zerschlagen
 } from "../scripts/gefahren-logik.mjs";
+
+test("Zerschlagen (0.11.3): ab der Bruchschwelle, halbe TP oder eigene Angabe", () => {
+  const werte = (value, max, extra = {}) => ({ hasHealth: true, hp: { value, max, ...extra } });
+  assert.equal(zerschlagen(werte(40, 40)), false, "heil");
+  assert.equal(zerschlagen(werte(21, 40)), false, "knapp über der Schwelle");
+  assert.equal(zerschlagen(werte(20, 40)), true, "genau auf der Schwelle");
+  assert.equal(zerschlagen(werte(0, 72)), true, "0 TP");
+  assert.equal(zerschlagen(werte(36, 72)), true, "Hälfte von 72");
+  assert.equal(zerschlagen(werte(30, 40, { brokenThreshold: 25 })), false, "eigene Schwelle 25");
+  assert.equal(zerschlagen(werte(25, 40, { brokenThreshold: 25 })), true);
+  assert.equal(zerschlagen({ hasHealth: false, hp: { value: 0, max: 0 } }), false, "ohne Werte nie");
+  assert.equal(zerschlagen({ hasHealth: true, hp: { value: 0, max: 0 } }), false, "ohne TP nie");
+  assert.equal(zerschlagen(undefined), false);
+});
 
 test("Eine Karte für alle (0.3.10): Würfe je Figur, Text ohne Würfe", () => {
   const atem = "<p>Die Kreatur muss einen @Check[fortitude|dc:30]{Zähigkeitswurf} ablegen.</p><p>Dazu @Check[reflex|dc:28|basic] und @Damage[6d6[poison]].</p>";

@@ -323,6 +323,18 @@ test("Angriffsfallen treffen laut Text ohne Angriffswurf", () => {
   assert.match(DATEN_STAND, /^0.11./u, "Datenstand ab 0.11.0, damit bestehende Fallen-Akteure die Texte bekommen");
 });
 
+// 0.11.3 (20.11.2026, "reicht ein Schlag, um die zu beseitigen?"): Der Beißende Deckel bricht nach einem guten
+// Schlag, Härte 10 und 40 TP (Bruchschwelle 20), bestehende Akteure bekommen das über den neuen Datenstand.
+test("Beißender Deckel: Härte 10, 40 TP", () => {
+  const deckel = FALLEN.find((f) => f.id === "schloss9-beissender-deckel");
+  assert.deepEqual(deckel.werte, { rk: 28, haerte: 10, tp: 40 });
+  const a = bau(deckel, "de").system.attributes;
+  assert.equal(a.hardness, 10);
+  assert.equal(a.hp.max, 40);
+  assert.equal(a.hasHealth, true);
+  assert.match(DATEN_STAND, /^0\.11\.3-/u);
+});
+
 // 0.11.1 (19.11.2026: "bei allen Fallen müssen die Radius in Fuß/Meter angegeben werden, also die, die
 // Flächenschaden machen"): Jede Falle mit Wirkungsbereich nennt ihn in Fuß und Meter, und bereichFuss liest
 // denselben Wert zurück. Fallen ohne Wirkungsbereich nennen keinen.

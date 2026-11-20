@@ -120,6 +120,9 @@ place, 17 of them magical, in English and German. Each level is deadlier than th
 - **Radius on the map**: a button with a circle in the token HUD of a trap with an effect area (or the
   checkbox in "Set trigger and effect area") draws a plain circle with its radius, measured from the edge of the trap. Who
   sees the trap sees the circle: only the GM while it is hidden.
+- **Smashing counts**: a hazard with hit points whose HP drop to its broken threshold (half its HP unless it
+  names one) counts as disabled, with a chat message. PF2e subtracts the hardness itself when damage is
+  applied. Before, a trap stayed armed even at 0 HP.
 - **Summoning traps** call a creature up to one level above the trap at levels 1 to 4 and up to three levels
   above from level 5 (level 2 to 13) that the GM picks
   when placing the trap. It rolls
@@ -378,6 +381,9 @@ Kompendium. Sie sind allgemein, für Orte gemacht und nicht für ein bestimmtes 
 - **Radius auf der Karte**: Ein Knopf mit Kreis im Token-HUD einer Falle mit Wirkungsbereich (oder der Haken
   in "Auslöser und Wirkung einstellen") zeichnet einen einfachen Kreis mit ihrem Radius, gemessen ab dem Rand der Falle.
   Den Kreis sieht, wer die Falle sieht: versteckt nur die Spielleitung.
+- **Zerschlagen zählt**: Fallen die TP einer Gefahr mit Trefferpunkten auf ihre Bruchschwelle (halbe TP, wenn
+  sie keine eigene nennt), gilt sie als entschärft, mit Meldung im Chat. Die Härte zieht PF2e beim Anwenden
+  des Schadens selbst ab. Vorher blieb eine Falle auch bei 0 TP scharf.
 - **Herbeirufende Fallen** rufen eine Kreatur bis eine Stufe über der Falle auf Stufe 1 bis 4 und bis drei Stufen
   darüber ab Stufe 5 (Stufe 2 bis 13), die die
   Spielleitung beim Setzen wählt. Sie

@@ -211,6 +211,21 @@ export function entschaerfenSchritt(grad) {
 }
 
 /*
+ * Zerschlagen (0.11.3, 20.11.2026 auf den Vorschlag "Zerschlagen zählt, bei allen Fallen mit Werten"): Eine
+ * Gefahr mit Werten ist zerbrochen, sobald ihre TP auf der Bruchschwelle oder darunter liegen; ohne eigene Angabe
+ * ist das wie bei PF2e die Hälfte der TP. Vorher blieb eine Falle auch bei 0 TP scharf.
+ */
+export function zerschlagen(attribute) {
+  if (!attribute?.hasHealth) return false;
+  const max = Number(attribute.hp?.max ?? 0);
+  const wert = Number(attribute.hp?.value);
+  if (!(max > 0) || !Number.isFinite(wert)) return false;
+  const eigene = Number(attribute.hp?.brokenThreshold);
+  const schwelle = eigene > 0 ? eigene : Math.floor(max / 2);
+  return wert <= schwelle;
+}
+
+/*
  * Die Aktion, die beim Betreten auslöst: zuerst eine Reaktion oder freie Aktion mit Auslöser, sonst eine
  * Aktion mit Auslöser, sonst die erste Aktion. Angriffe (melee, ranged) lösen nicht von selbst aus.
  */

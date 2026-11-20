@@ -445,4 +445,52 @@ assert.equal(g.ausloeseFelder(zimmer).size, 9, "ohne Prüfmöglichkeit wie bishe
 brandy.x = 100;
 brandy.y = 300;
 
+// Zerschlagen (0.11.3): TP auf der Bruchschwelle setzen die Falle ab, einmal gemeldet, über jeden der drei Wege.
+{
+  const deckelActor = { type: "hazard", isToken: true, items: [], system: { attributes: { hasHealth: true, hp: { value: 40, max: 40 } } } };
+  const deckel = dokument({ id: "deckel0000000001", name: "Beißender Deckel", x: 900, y: 900, width: 1, height: 1, hidden: false, actor: deckelActor, parent: szene });
+  deckelActor.token = deckel;
+  // Wie in Foundry: Die Flagge steht erst nach dem Weg über den Server, nicht schon beim Aufruf.
+  const sofort = deckel.update;
+  deckel.update = async (u) => { await new Promise((r) => setTimeout(r, 5)); return sofort(u); };
+  const zerschlagenMeldungen = () => chat.filter((c) => String(c.content).includes("ist zerschlagen")).length;
+  await ausloesen("updateActor", deckelActor, {});
+  assert.equal(deckel.getFlag("gelaendepinsel", "entschaerft"), undefined, "heil: bleibt scharf");
+  deckelActor.system.attributes.hp.value = 21;
+  await ausloesen("updateActorDelta", { parent: deckel }, { system: { attributes: { hp: { value: 21 } } } });
+  assert.equal(deckel.getFlag("gelaendepinsel", "entschaerft"), undefined, "über der Schwelle: scharf");
+  deckelActor.system.attributes.hp.value = 20;
+  await Promise.all([
+    ausloesen("updateActor", deckelActor, {}),
+    ausloesen("updateToken", deckel, { delta: { system: { attributes: { hp: { value: 20 } } } } }),
+    ausloesen("updateActorDelta", { parent: deckel }, { system: { attributes: { hp: { value: 20 } } } })
+  ]);
+  assert.equal(deckel.getFlag("gelaendepinsel", "entschaerft"), true, "auf der Schwelle: entschärft");
+  assert.equal(zerschlagenMeldungen(), 1, "eine Meldung, obwohl drei Hooks kamen");
+  const meldung = chat.find((c) => String(c.content).includes("ist zerschlagen"));
+  assert.equal(meldung.whisper, undefined, "aufgedeckt: offen im Chat");
+  deckelActor.system.attributes.hp.value = 0;
+  await ausloesen("updateActor", deckelActor, {});
+  assert.equal(zerschlagenMeldungen(), 1, "schon entschärft: keine zweite Meldung");
+
+  // Versteckt nur an die Spielleitung; Spieler ohne aktive SL-Rolle tun nichts.
+  const verstecktActor = { type: "hazard", isToken: true, items: [], system: { attributes: { hasHealth: true, hp: { value: 0, max: 40 } } } };
+  const versteckt = dokument({ id: "deckel0000000002", name: "Zweiter Deckel", x: 900, y: 1000, width: 1, height: 1, hidden: true, actor: verstecktActor, parent: szene });
+  verstecktActor.token = versteckt;
+  game.user = spieler;
+  await ausloesen("updateActor", verstecktActor, {});
+  assert.equal(versteckt.getFlag("gelaendepinsel", "entschaerft"), undefined, "Spieler: nichts");
+  game.user = gm;
+  await ausloesen("updateActor", verstecktActor, {});
+  assert.equal(versteckt.getFlag("gelaendepinsel", "entschaerft"), true);
+  assert.ok(chat.at(-1).whisper?.includes("gm"), "versteckt: nur an die SL");
+
+  // Ohne Werte (hasHealth false) nie.
+  const ohneActor = { type: "hazard", isToken: true, items: [], system: { attributes: { hasHealth: false, hp: { value: 0, max: 0 } } } };
+  const ohne = dokument({ id: "ohne000000000001", name: "Ohne Werte", x: 900, y: 1100, width: 1, height: 1, hidden: false, actor: ohneActor, parent: szene });
+  ohneActor.token = ohne;
+  await ausloesen("updateActor", ohneActor, {});
+  assert.equal(ohne.getFlag("gelaendepinsel", "entschaerft"), undefined, "ohne Werte bleibt sie");
+}
+
 console.log("gefahren-rauch: ok");

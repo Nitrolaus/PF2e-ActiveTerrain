@@ -162,6 +162,7 @@
       "KeinEntschaerfen": "Im Entschärfen-Eintrag dieser Gefahr steht kein Wurf.",
       "ErfolgeStand": "Erfolge beim Entschärfen: {stand} von {noetig}.",
       "Entschaerft": "{name} ist entschärft.",
+      "Zerschlagen": "{name} ist zerschlagen und tut nichts mehr.",
       "ZaehltNicht": "{name}: Der Wurf zählt nicht, der nötige Übungsgrad fehlt.",
       "LoestAus": "{name}: Kritischer Fehlschlag beim Entschärfen, die Gefahr löst aus.",
       "Magie": {
